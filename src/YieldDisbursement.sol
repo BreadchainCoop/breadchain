@@ -61,54 +61,6 @@ contract YieldDisburser is OwnableUpgradeable {
 
     }
 
-    // ### Voting Functions ###
-    function castVote(
-        uint[] memory projectindex,
-        uint[] memory percentages
-    ) internal {
-        require(projectindex.length == percentages.length);
-        require(projectindex.length == breadchainProjects.length);
-        // calculate the sum of the percentages
-        uint sum = 0;
-        for (uint i = 0; i < percentages.length; i++) {
-            sum += percentages[i];
-        }
-        // sum of percentages must be 100
-        require(sum == 1);
-
-        for (uint i = 0; i < projectindex.length; i++) {
-            breadchainProjectsYield[projectindex[i]] = percentages[i];
-        }
-    }
-
-    function computeScaledAverage(
-        uint[][] memory vectors
-    ) public view returns (uint[] memory) {
-        uint VECTOR_LENGTH = breadchainProjects.length;
-        uint[] memory sum;
-        uint[] memory average;
-        // Step 1: Calculate sum and then the average of each element
-        for (uint i = 0; i < VECTOR_LENGTH; i++) {
-            // Summing elements of the two vectors
-            sum[i] = vectors[0][i] + vectors[1][i];
-            // Calculating the average, scaled to maintain precision
-            average[i] = (sum[i] * SCALE) / VECTOR_LENGTH;
-        }
-
-        // Step 2: Calculate the total sum of the average vector
-        uint totalSum = 0;
-        for (uint i = 0; i < VECTOR_LENGTH; i++) {
-            totalSum += average[i];
-        }
-
-        // Step 3: Normalize the average vector so it sums up to 100 * SCALE
-        uint[] memory normalizedAverage;
-        for (uint i = 0; i < VECTOR_LENGTH; i++) {
-            normalizedAverage[i] = (average[i] * SCALE) / totalSum;
-        }
-
-        return normalizedAverage;
-    }
     //## Only Owner Functions ##
     function setDuration(uint48 _duration) public onlyOwner {
         duration = _duration * 1 minutes;
@@ -130,30 +82,5 @@ contract YieldDisburser is OwnableUpgradeable {
     // ### BREAD Token Functions ###
     function claimYield() internal {
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
-    }
-    function getVotingPowerForPeriod(
-        uint256 start,
-        uint256 end,
-        address account
-    ) external view returns (uint256 accountVotingPower) {
-        uint32 latestCheckpointPos = breadToken.numCheckpoints(account);
-        require(latestCheckpointPos > 0, "No checkpoints for account");
-        latestCheckpointPos--; // -1 because it's 0-indexed
-        uint256 votingPower = 0;
-        uint48 _prev_key = latestCheckpointPos; // Initializing the previous key
-        for (uint32 i = latestCheckpointPos - 1; ; i--) {
-            // Looping through the checkpoints
-            Checkpoints.Checkpoint208 memory checkpoint = breadToken
-                .checkpoints(account, i); // Getting the checkpoint
-            uint48 _key = checkpoint._key; // Block number
-            uint208 _value = checkpoint._value; // Voting power
-            if (_key <= end && _key >= start) {
-                votingPower += (_value * (_key - _prev_key)); // Adding the voting power for the period
-            }
-            if (_key <= start) {
-                return votingPower; // If we are before the start of the period, we can return the voting power
-            }
-            _prev_key = _key; // Updating the previous key
-        }
     }
 }
