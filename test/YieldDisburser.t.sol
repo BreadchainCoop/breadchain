@@ -2,23 +2,27 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {Counter} from "../src/Counter.sol";
+import {YieldDisburser} from "../src/YieldDisburser.sol";
+import {ERC20VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 
-contract CounterTest is Test {
-    Counter public counter;
+abstract contract Bread is ERC20VotesUpgradeable {
+    function claimYield(uint256 amount, address receiver) public virtual;
+    function yieldAccrued() external view virtual returns (uint256);
+}
+contract MockBread is Bread{
+    function claimYield(uint256 amount, address receiver) override public{
+         super._mint(receiver,amount);
+    }
+    function yieldAccrued() external pure override returns (uint256){
+        return 5;
+    }
+}
+contract YieldDisburserTest is Test {
+    YieldDisburser public yieldDisburser;
+    MockBread public bread; 
+
 
     function setUp() public {
-        counter = new Counter();
-        counter.setNumber(0);
-    }
-
-    function test_Increment() public {
-        counter.increment();
-        assertEq(counter.number(), 1);
-    }
-
-    function testFuzz_SetNumber(uint256 x) public {
-        counter.setNumber(x);
-        assertEq(counter.number(), x);
+        
     }
 }
