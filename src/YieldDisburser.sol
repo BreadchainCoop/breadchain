@@ -11,11 +11,6 @@ abstract contract Bread is ERC20VotesUpgradeable {
 }
 
 contract YieldDisburser is OwnableUpgradeable {
-    //implement a monthly counter so yield can only be claimed and distributed once a month ++
-    //implement a function that can cast a single vote of the yield distribution between all projects, accepting a list of tuples of project addresses and % amounts
-    //implement a function that can cast multiple votes, accepting a list of tuples of project addresses ,% amounts and a signature for each vote + the month number
-    //time weighted voting
-    // a mapping for each projects yearly/ monthly yield percentage
     address[] public breadchainProjects;
     uint[] public breadchainProjectsYield;
     uint constant SCALE = 1e6; // Scale factor to maintain precision
@@ -34,8 +29,8 @@ contract YieldDisburser is OwnableUpgradeable {
         returns (bool, bytes memory)
     {
         uint48 _now = Time.timestamp();
-        if (_now > lastClaimed + duration) revert AlreadyClaimed();
-        bytes memory ret;
+        if (_now < lastClaimed + duration) revert AlreadyClaimed();
+        bytes memory ret = abi.encodePacked(this.distributeYield.selector);
         return(true, ret);
 
     }
@@ -48,6 +43,7 @@ contract YieldDisburser is OwnableUpgradeable {
     }
     function _distributeYield() internal{
         claimYield();
+        lastClaimed = Time.timestamp();
         uint256 balance = breadToken.balanceOf(address(this));
         uint256 projectCount = breadchainProjects.length;
         require(
