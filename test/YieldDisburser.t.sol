@@ -78,6 +78,8 @@ contract YieldDisburserTest is Test {
         vm.roll(42424242430);
         votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242430, address(this));
         assertEq(votingPowerAfter, 9000000);
+        vm.expectRevert();
+        votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242431, address(this));
 
     }
     function testFuzzy_voting_power( uint256 seed) public {
@@ -102,6 +104,9 @@ contract YieldDisburserTest is Test {
             expectedVotingPower += (nextMintBlockNum - mintblocknum) * seed;
         }
         assertEq(votingPower, expectedVotingPower);
+        votingPower =  yieldDisburser.getVotingPowerForPeriod(start- 1000, blockNumbers[(blockNumbers.length)-1], holder);
+        assertEq(votingPower, expectedVotingPower);
+       
     }
     
 }
