@@ -45,10 +45,15 @@ $ forge snapshot
 $ anvil
 ```
 
+### Test 
+
+```shell 
+$ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv 
+```
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/script/DeployYieldDisburser.s.sol:DeployYieldDisburser --rpc-url "https://rpc.gnosis.gateway.fm" --private-key <your_private_key>
 ```
 
 ### Cast
