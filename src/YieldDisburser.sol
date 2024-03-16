@@ -1,10 +1,15 @@
 // contracts/MyNFT.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {ERC20VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {
+    OwnableUpgradeable
+} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {
+    ERC20VotesUpgradeable
+}
+from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
+import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 abstract contract Bread is ERC20VotesUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
