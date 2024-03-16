@@ -16,6 +16,8 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
 contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
     Bread public bread;
+    uint256[] blockNumbers;
+
     function setUp() public {
         bread = Bread(address(0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3));
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
@@ -59,13 +61,47 @@ contract YieldDisburserTest is Test {
         vm.roll(32323232323);
         vm.expectRevert();
         uint256 votingPowerBefore =  yieldDisburser.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
-        vm.deal(address(this),1000000);
+        vm.deal(address(this),1000000000000);
         vm.roll(42424242424);
         bread.mint{value:1000000}(address(this));
         vm.roll(42424242425);
         uint256 votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242425, address(this));
-        console2.log("votingpower", votingPowerAfter);
-        assertGt(votingPowerAfter, 0);
+        assertEq(votingPowerAfter, 1000000);
+        vm.roll(42424242426);
+        votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242426, address(this));
+        assertEq(votingPowerAfter, 2000000);
+        vm.roll(42424242427);
+        bread.mint{value:1000000}(address(this));
+        vm.roll(42424242428);
+        votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242428, address(this));
+        assertEq(votingPowerAfter, 5000000);
+        vm.roll(42424242430);
+        votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242430, address(this));
+        assertEq(votingPowerAfter, 9000000);
 
     }
+    function testFuzzy_voting_power( uint256 seed) public {
+        uint256 start = 32323232323;
+        vm.roll(start);
+        address holder = address(this);
+        uint256 mints = 10;
+        vm.assume(seed < 100000000000 / mints);
+        vm.assume(seed>0);
+        vm.deal(holder, 100000000000);
+        for (uint256 i = 0; i< mints; i++){
+            uint256 mintblocknum = start + seed; 
+            vm.roll(mintblocknum);
+            bread.mint{value:seed}(holder);
+            blockNumbers.push(mintblocknum);
+        }
+        uint256 votingPower =  yieldDisburser.getVotingPowerForPeriod(start, blockNumbers[(blockNumbers.length)-1], holder);
+        uint256 expectedVotingPower = 0;
+        for (uint256 i = 0; i< blockNumbers.length -1; i++){
+            uint256 mintblocknum = blockNumbers[i];
+            uint256 nextMintBlockNum = blockNumbers[i+1];
+            expectedVotingPower += (nextMintBlockNum - mintblocknum) * seed;
+        }
+        assertEq(votingPower, expectedVotingPower);
+    }
+    
 }

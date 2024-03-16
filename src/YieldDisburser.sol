@@ -5,6 +5,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {ERC20VotesUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+
 abstract contract Bread is ERC20VotesUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
@@ -40,10 +41,10 @@ contract YieldDisburser is OwnableUpgradeable {
     function castVote(
         uint[] memory percentages
     ) internal {
-        require(projectindex.length == breadchainProjects.length);
-        for (uint i = 0; i < projectindex.length; i++) {
-            breadchainProjectsYield[projectindex[i]] = percentages[i];
-        }
+        // require(projectindex.length == breadchainProjects.length);
+        // for (uint i = 0; i < projectindex.length; i++) {
+        //     breadchainProjectsYield[projectindex[i]] = percentages[i];
+        // }
     }
 
     /// ##########################################
@@ -71,25 +72,30 @@ contract YieldDisburser is OwnableUpgradeable {
         address account
     ) external view returns (uint256) {
         require(start < end, "Start must be before end");
+        require(end<= Time.blockNumber());
         uint32 latestCheckpointPos = breadToken.numCheckpoints(account);
         require(latestCheckpointPos > 0, "No checkpoints for account");
-        latestCheckpointPos--; // -1 because it's 0-indexed
-        uint256 votingPower = 0;
-        uint48 _prev_key = latestCheckpointPos; // Initializing the previous key
-        for (uint32 i = latestCheckpointPos; ; i--) {
-            // Looping through the checkpoints
-            Checkpoints.Checkpoint208 memory checkpoint = breadToken
-                .checkpoints(account, i); // Getting the checkpoint
-            uint48 _key = checkpoint._key; // Block number
-            uint208 _value = checkpoint._value; // Voting power
-            if (_key <= end && _key >= start) {
-                votingPower += (_value * (_key - _prev_key)); // Adding the voting power for the period
+        latestCheckpointPos--;
+        Checkpoints.Checkpoint208 memory intervalEnd = breadToken.checkpoints(account, latestCheckpointPos); // Subtract 1 for 0-indexed
+        uint48 prevKey = intervalEnd._key;
+        uint256 intervalEndValue = intervalEnd._value;
+        uint256 votingPower = intervalEndValue * (end - prevKey);
+        if (latestCheckpointPos == 0) return votingPower;
+        // Iterate through checkpoints in reverse order
+        for (uint32 i = latestCheckpointPos - 1 ; i >= 0; i--) {
+            Checkpoints.Checkpoint208 memory checkpoint = breadToken.checkpoints(account, i); 
+            uint48 key = checkpoint._key;
+            uint256 value = checkpoint._value;
+            if (key <= start) {
+                votingPower += value * (prevKey - start); 
+                break;
             }
-            if (_key <= start) {
-                return votingPower; // If we are before the start of the period, we can return the voting power
+            if (key > start) {
+                votingPower += value * (prevKey - key);
             }
-            _prev_key = _key; // Updating the previous key
+            
         }
+        return votingPower;
     }
     /// ##########################################
     /// ## Internal Functions ##

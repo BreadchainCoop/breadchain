@@ -7,5 +7,6 @@ build_info = true
 extra_output = ["storageLayout"]
 [rpc_endpoints]
 sepolia = "QUICKNODE_ENDPOINT_URL"
-
+[fuzz]
+runs = 1000
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
