@@ -3,19 +3,12 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {YieldDisburser} from "../src/YieldDisburser.sol";
-import {
-    ERC20VotesUpgradeable
-}
-from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {
-    OwnableUpgradeable
-} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-abstract contract Bread is ERC20VotesUpgradeable ,OwnableUpgradeable{
+import {ERC20VotesUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
-    function setYieldClaimer(address _yieldClaimer) virtual external; 
-
-
+    function setYieldClaimer(address _yieldClaimer) external virtual;
 }
 contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
@@ -59,6 +52,4 @@ contract YieldDisburserTest is Test {
         uint48 durationAfter = yieldDisburser.duration();
         assertEq(durationBefore + 10 minutes, durationAfter);
     }
-
-    
 }

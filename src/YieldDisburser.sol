@@ -1,13 +1,8 @@
 // contracts/MyNFT.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
-import {
-    OwnableUpgradeable
-} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import {
-    ERC20VotesUpgradeable
-}
-from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {ERC20VotesUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 abstract contract Bread is ERC20VotesUpgradeable {
@@ -36,17 +31,16 @@ contract YieldDisburser is OwnableUpgradeable {
         uint48 _now = Time.timestamp();
         if (_now < lastClaimed + duration) revert AlreadyClaimed();
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
-        return(true, ret);
-
+        return (true, ret);
     }
 
     function distributeYield() public {
-        (bool _resolved, /*bytes memory _data */)= resolveYieldDistribution();
+        (bool _resolved /*bytes memory _data */, ) = resolveYieldDistribution();
         if (_resolved) {
             _distributeYield();
         }
     }
-    function _distributeYield() internal{
+    function _distributeYield() internal {
         claimYield();
         lastClaimed = Time.timestamp();
         uint256 balance = breadToken.balanceOf(address(this));
@@ -59,7 +53,6 @@ contract YieldDisburser is OwnableUpgradeable {
             // breadToken.transfer(breadchainProjects[i], balance / projectCount);
             breadToken.transfer(breadchainProjects[i], 1);
         }
-
     }
 
     //## Only Owner Functions ##
@@ -85,8 +78,11 @@ contract YieldDisburser is OwnableUpgradeable {
     function claimYield() internal {
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
     }
-    // #### Voted distribution functions 
-    function castVote(uint[] memory projectindex, uint[] memory percentages) internal {
+    // #### Voted distribution functions
+    function castVote(
+        uint[] memory projectindex,
+        uint[] memory percentages
+    ) internal {
         require(projectindex.length == percentages.length);
         require(projectindex.length == breadchainProjects.length);
         // calculate the sum of the percentages
@@ -100,8 +96,5 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint i = 0; i < projectindex.length; i++) {
             breadchainProjectsYield[projectindex[i]] = percentages[i];
         }
-
     }
-
-    
 }
