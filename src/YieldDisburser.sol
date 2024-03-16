@@ -81,7 +81,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 intervalEndValue = intervalEnd._value;
         uint256 votingPower = intervalEndValue * (end - prevKey);
         if (latestCheckpointPos == 0) return votingPower;
-        // Iterate through checkpoints in reverse order
+        // Iterate through checkpoints in reverse order, starting one before the latest checkpoint because we already handled it above
         for (uint32 i = latestCheckpointPos - 1 ; i >= 0; i--) {
             Checkpoints.Checkpoint208 memory checkpoint = breadToken.checkpoints(account, i); 
             uint48 key = checkpoint._key;
