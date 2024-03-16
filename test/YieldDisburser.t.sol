@@ -5,28 +5,21 @@ import {Test, console2} from "forge-std/Test.sol";
 import {YieldDisburser} from "../src/YieldDisburser.sol";
 import {ERC20VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-abstract contract Bread is ERC20VotesUpgradeable {
+abstract contract Bread is ERC20VotesUpgradeable ,OwnableUpgradeable{
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
-}
-contract MockBread is Bread {
-    function claimYield(uint256 amount, address receiver) public override {
-        super._mint(receiver, amount);
-    }
-    function yieldAccrued() external pure override returns (uint256) {
-        return 5;
-    }
+    function setYieldClaimer(address _yieldClaimer) virtual external; 
+
+
 }
 contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
-    MockBread public bread;
-
+    Bread public bread;
     function setUp() public {
-        bread = new MockBread();
-        // ProxyAdmin proxyAdmin = new ProxyAdmin(
-        //     address(this)
-        // );
+        bread = Bread(address(0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3));
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
         yieldDisburser = YieldDisburser(
             address(
@@ -40,9 +33,30 @@ contract YieldDisburserTest is Test {
                 )
             )
         );
-    }
-    function test_simple_claim() public{
+        address owner = bread.owner();
+        vm.prank(owner);
+        bread.setYieldClaimer(address(yieldDisburser));
         yieldDisburser.addProject(address(this));
-        yieldDisburser.distributeYield();
     }
+    function test_simple_claim() public {
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        yieldDisburser.distributeYield();
+        uint256 bread_bal_after = bread.balanceOf(address(this));
+        assertGt(bread_bal_after, 0);
+    }
+
+    function test_add_project() public {
+        assert(yieldDisburser.breadchainProjects(0) == address(this));
+        yieldDisburser.removeProject(address(this));
+        assert(yieldDisburser.breadchainProjects(0) == address(0));
+    }
+    function test_set_duration() public {
+        uint48 durationBefore = yieldDisburser.duration();
+        yieldDisburser.setDuration(10);
+        uint48 durationAfter = yieldDisburser.duration();
+        assertEq(durationBefore + 10 minutes, durationAfter);
+    }
+
+    
 }
