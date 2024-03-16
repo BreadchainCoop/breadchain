@@ -59,6 +59,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
     //## Only Owner Functions ##
     function setDuration(uint48 _duration) public onlyOwner {
+        require(_duration > 0, "Duration must be greater than 0");
         duration = _duration * 1 minutes;
     }
     function setLastClaimed(uint48 _lastClaimed) public onlyOwner {
@@ -97,30 +98,5 @@ contract YieldDisburser is OwnableUpgradeable {
 
     }
 
-   function computeScaledAverage(uint[][] memory vectors) public  view returns (uint[] memory) {
-        uint VECTOR_LENGTH = breadchainProjects.length;
-        uint[] memory sum;
-        uint[] memory average;
-        // Step 1: Calculate sum and then the average of each element
-        for(uint i = 0; i < VECTOR_LENGTH; i++) {
-            // Summing elements of the two vectors
-            sum[i] = vectors[0][i] + vectors[1][i];
-            // Calculating the average, scaled to maintain precision
-            average[i] = (sum[i] * SCALE) / VECTOR_LENGTH;
-        }
-
-        // Step 2: Calculate the total sum of the average vector
-        uint totalSum = 0;
-        for(uint i = 0; i < VECTOR_LENGTH; i++) {
-            totalSum += average[i];
-        }
-
-        // Step 3: Normalize the average vector so it sums up to 100 * SCALE
-        uint[] memory normalizedAverage;
-        for(uint i = 0; i < VECTOR_LENGTH; i++) {
-            normalizedAverage[i] = (average[i] * SCALE) / totalSum;
-        }
-
-        return normalizedAverage;
-    }
+    
 }
