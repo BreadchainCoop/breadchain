@@ -82,13 +82,13 @@ contract YieldDisburserTest is Test {
         votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242431, address(this));
 
     }
-    function testFuzzy_voting_power( uint256 seed) public {
+    function testFuzzy_voting_power( uint256 seed,uint256 mints) public {
+        mints = uint256(bound( mints,  1, 100));
+        vm.assume(seed < 100000000000 / mints);
+        vm.assume(seed>0);
         uint256 start = 32323232323;
         vm.roll(start);
         address holder = address(this);
-        uint256 mints = 10;
-        vm.assume(seed < 100000000000 / mints);
-        vm.assume(seed>0);
         vm.deal(holder, 100000000000);
         for (uint256 i = 0; i< mints; i++){
             uint256 mintblocknum = start + seed; 
