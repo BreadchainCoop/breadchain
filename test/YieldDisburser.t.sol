@@ -11,6 +11,7 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
     function setYieldClaimer(address _yieldClaimer) external virtual;
+    function mint(address receiver) external payable virtual;
 }
 contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
@@ -53,5 +54,18 @@ contract YieldDisburserTest is Test {
         yieldDisburser.setDuration(10);
         uint48 durationAfter = yieldDisburser.duration();
         assertEq(durationBefore + 10 minutes, durationAfter);
+    }
+    function test_voting_power() public {
+        vm.roll(32323232323);
+        vm.expectRevert();
+        uint256 votingPowerBefore =  yieldDisburser.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
+        vm.deal(address(this),1000000);
+        vm.roll(42424242424);
+        bread.mint{value:1000000}(address(this));
+        vm.roll(42424242425);
+        uint256 votingPowerAfter =  yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242425, address(this));
+        console2.log("votingpower", votingPowerAfter);
+        assertGt(votingPowerAfter, 0);
+
     }
 }
