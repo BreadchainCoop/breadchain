@@ -17,6 +17,9 @@ contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
     Bread public bread;
     uint256[] blockNumbers;
+    uint256[] percentages;
+    uint256[] votes;
+
 
     function setUp() public {
         bread = Bread(address(0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3));
@@ -38,12 +41,62 @@ contract YieldDisburserTest is Test {
         bread.setYieldClaimer(address(yieldDisburser));
         yieldDisburser.addProject(address(this));
     }
-    function test_simple_claim() public {
+    function test_simple_distribute() public {
+        vm.roll(32323232323);
+        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlocknumber(block.number);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
+        address holder = address(0x1234567890123456789012345678901234567890);
+        vm.deal(holder,1000000000000);
+        vm.prank(holder);
+        bread.mint{value:1000000}(holder);
+        vm.roll(32323332323);
+        uint256 vote = 100;
+        percentages.push(vote);
+        uint256 yieldAccrued = bread.yieldAccrued();
+        vm.prank(holder);
+        yieldDisburser.castVote(percentages);
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertGt(bread_bal_after, 0);
+        assertEq(bread_bal_after, yieldAccrued);
+    }
+    function testFuzzyDistribute(uint256 seed, uint256 accounts) public {
+        address secondProject = address(0x1234567890123456789012345678901234567890);
+        yieldDisburser.addProject(secondProject);
+        accounts = uint256(bound( accounts,  1, 3));
+        seed = uint256(bound( seed,  1, 100000000000));
+        vm.assume(seed>0);
+        vm.assume(accounts>0);
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlocknumber(start);
+        uint256 yieldAccrued;
+        uint256 currentBlockNumber =32323232323;
+        for (uint256 i = 0; i< accounts; i++){
+            uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
+            address holder = address(uint160(randomval));
+            uint256 token_amount = bound(randomval,100,10000);
+            vm.deal(holder, token_amount);
+            vm.prank(holder);
+            bread.mint{value: token_amount}(holder);
+            uint256 vote = randomval % 100;
+            currentBlockNumber += randomval % 5;
+            vm.roll(currentBlockNumber);
+            votes.push(vote);
+            votes.push(100-vote);
+            vm.prank(holder);
+            yieldDisburser.castVote(votes);
+            votes.pop();
+            votes.pop();
+        }
+        yieldAccrued = bread.yieldAccrued() / 2;
+        yieldDisburser.distributeYield();
+        uint256 this_bal_after = bread.balanceOf(address(this));
+        uint256 second_bal_after = bread.balanceOf(secondProject);
+        assertEq(this_bal_after + second_bal_after, yieldAccrued -1 );
+
     }
 
     function test_add_project() public {

@@ -13,10 +13,13 @@ abstract contract Bread is ERC20VotesUpgradeable {
 
 contract YieldDisburser is OwnableUpgradeable {
     address[] public breadchainProjects;
-    uint[] public breadchainProjectsYield;
+    uint256[]  projectYieldDistributions;
+    address[] public breadchainVoters;
     Bread public breadToken;
-    uint48 public lastClaimed;
+    uint48 public lastClaimedTimestamp;
+    uint256 public lastClaimedBlocknumber; 
     uint48 public duration;
+    mapping(address => uint256[]) holderToDistribution;
     error AlreadyClaimed();
     event BaseYieldDistributed(uint256 amount, address project);
     function initialize(address breadAddress) public initializer {
@@ -33,18 +36,27 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 projectCount = breadchainProjects.length;
         if (_resolved) {
             _distributeBaseYield(balance, projectCount);
-            _distributedVotedYield(projectCount);
+            _distributedVotedYield(balance, projectCount);
         }
-        lastClaimed = Time.timestamp();
+        lastClaimedTimestamp = Time.timestamp();
+        lastClaimedBlocknumber = Time.blockNumber();
     }
-
+    function castVoteBySignature(
+        uint256[] calldata percentages,
+        bytes calldata signature,
+        address holder
+    ) public {
+        (uint8 v, bytes32 r, bytes32 s) = abi.decode(signature, (uint8, bytes32, bytes32));
+        address signer = ecrecover(keccak256(abi.encodePacked(percentages)), v, r, s);
+        if (signer != holder) revert("Invalid signature");
+        _castVote(percentages,holder);
+    }
     function castVote(
-        uint[] memory percentages
-    ) internal {
-        // require(projectindex.length == breadchainProjects.length);
-        // for (uint i = 0; i < projectindex.length; i++) {
-        //     breadchainProjectsYield[projectindex[i]] = percentages[i];
-        // }
+        uint256[] calldata percentages
+    ) public {
+        _castVote(percentages, msg.sender);
+        
+        
     }
 
     /// ##########################################
@@ -62,7 +74,7 @@ contract YieldDisburser is OwnableUpgradeable {
             balance > breadchainProjects.length,
             "Yield too low to distribute"
         );
-        if (_now < lastClaimed + duration) revert AlreadyClaimed();
+        if (_now < lastClaimedTimestamp + duration) revert AlreadyClaimed();
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
         return (true, ret);
     }
@@ -111,8 +123,47 @@ contract YieldDisburser is OwnableUpgradeable {
             emit BaseYieldDistributed(baseYield, breadchainProjects[i]);
         }
     }
-    function _distributedVotedYield(uint256 projectCount) internal {
-        for (uint i = 0; i < projectCount; i++) {}
+    function _castVote(uint256[] calldata percentages,address holder) internal {
+        uint256 length = breadchainProjects.length;
+        require(
+            percentages.length == length,
+            "Incorrect number of projects"
+        );
+        uint256 total;
+        for (uint i = 0; i < length; i++) {
+            total += percentages[i];
+        }
+        require(total == 100, "Total must equal 100");
+        if (holderToDistribution[holder].length > 0) {
+            delete holderToDistribution[holder];
+        }
+        holderToDistribution[holder]= percentages;
+        breadchainVoters.push(holder);
+    }
+    function _distributedVotedYield(uint256 balance,uint256 projectCount) internal {
+        uint256 currentBlock = Time.blockNumber();
+        uint256 total_votes_casted;     
+        for (uint k = 0; k < projectCount; k++) {
+            projectYieldDistributions.push(0);
+        }
+        while (breadchainVoters.length > 0){
+            address voter = breadchainVoters[breadchainVoters.length - 1];
+            breadchainVoters.pop();
+            uint256 votingpower = this.getVotingPowerForPeriod(lastClaimedBlocknumber,currentBlock , voter);
+            uint256[] memory percentages = holderToDistribution[voter];
+            delete holderToDistribution[voter];
+            for (uint j = 0; j < projectCount; j++) {
+                uint256 vote = votingpower * percentages[j];
+                projectYieldDistributions[j]+=vote;
+                total_votes_casted += vote;
+            }
+        }
+        for (uint l = 0; l < projectCount; l++) {
+            breadToken.transfer(breadchainProjects[l], (projectYieldDistributions[l] / total_votes_casted) * balance);
+        }
+        for (uint m = 0; m < projectCount; m++) {
+            projectYieldDistributions.pop();
+        }
     }
     function claimYield() internal {
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
@@ -124,11 +175,16 @@ contract YieldDisburser is OwnableUpgradeable {
         require(_duration > 0, "Duration must be greater than 0");
         duration = _duration * 1 minutes;
     }
-    function setLastClaimed(uint48 _lastClaimed) public onlyOwner {
-        lastClaimed = _lastClaimed;
+    function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
+        lastClaimedTimestamp = _lastClaimedTimestamp;
+    }
+    
+    function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
+        lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
     function addProject(address projectAddress) public onlyOwner {
         breadchainProjects.push(projectAddress);
+        
     }
     function removeProject(address projectAddress) public onlyOwner {
         for (uint i = 0; i < breadchainProjects.length; i++) {
