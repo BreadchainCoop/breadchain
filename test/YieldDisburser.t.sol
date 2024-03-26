@@ -105,10 +105,10 @@ contract YieldDisburserTest is Test {
         assert(yieldDisburser.breadchainProjects(0) == address(0));
     }
     function test_set_duration() public {
-        uint48 durationBefore = yieldDisburser.duration();
-        yieldDisburser.setDuration(10);
-        uint48 durationAfter = yieldDisburser.duration();
-        assertEq(durationBefore + 10 minutes, durationAfter);
+        uint48 TimeBetweenClaimsBefore = yieldDisburser.minimumTimeBetweenClaims();
+        yieldDisburser.setMinimumTimeBetweenClaims(10);
+        uint48 TimeBetweenClaimsAfter = yieldDisburser.minimumTimeBetweenClaims();
+        assertEq(TimeBetweenClaimsBefore + 10 minutes, TimeBetweenClaimsAfter);
     }
     function test_voting_power() public {
         vm.roll(32323232323);

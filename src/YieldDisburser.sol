@@ -18,7 +18,7 @@ contract YieldDisburser is OwnableUpgradeable {
     Bread public breadToken;
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber; 
-    uint48 public duration;
+    uint48 public minimumTimeBetweenClaims;
     mapping(address => uint256[]) holderToDistribution;
     error AlreadyClaimed();
     event BaseYieldDistributed(uint256 amount, address project);
@@ -74,7 +74,7 @@ contract YieldDisburser is OwnableUpgradeable {
             balance > breadchainProjects.length,
             "Yield too low to distribute"
         );
-        if (_now < lastClaimedTimestamp + duration) revert AlreadyClaimed();
+        if (_now < lastClaimedTimestamp + minimumTimeBetweenClaims) revert AlreadyClaimed();
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
         return (true, ret);
     }
@@ -171,9 +171,9 @@ contract YieldDisburser is OwnableUpgradeable {
     /// ##########################################
     /// ## Only Owner Functions ##
     /// ##########################################
-    function setDuration(uint48 _duration) public onlyOwner {
-        require(_duration > 0, "Duration must be greater than 0");
-        duration = _duration * 1 minutes;
+    function setMinimumTimeBetweenClaims(uint48 _minimumTimeBetweenClaims) public onlyOwner {
+        require(_minimumTimeBetweenClaims > 0, "minimumTimeBetweenClaims must be greater than 0");
+        minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
     }
     function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
         lastClaimedTimestamp = _lastClaimedTimestamp;
