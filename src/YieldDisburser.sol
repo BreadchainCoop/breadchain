@@ -31,15 +31,14 @@ contract YieldDisburser is OwnableUpgradeable {
     /// ##########################################
     function distributeYield() public {
         (bool _resolved /*bytes memory _data */, ) = resolveYieldDistribution();
-        if (_resolved) {
-            claimYield();
-            uint256 balance = breadToken.balanceOf(address(this)) / 2;
-            uint256 projectCount = breadchainProjects.length;
-            _distributeBaseYield(balance, projectCount);
-            _distributedVotedYield(balance, projectCount);
-            lastClaimedTimestamp = Time.timestamp();
-            lastClaimedBlocknumber = Time.blockNumber();
-        }
+        require(_resolved, "Yield not resolved");
+        claimYield();
+        uint256 balance = breadToken.balanceOf(address(this)) / 2;
+        uint256 projectCount = breadchainProjects.length;
+        _distributeBaseYield(balance, projectCount);
+        _distributedVotedYield(balance, projectCount);
+        lastClaimedTimestamp = Time.timestamp();
+        lastClaimedBlocknumber = Time.blockNumber();
     }
     function castVoteBySignature(
         uint256[] calldata percentages,
