@@ -69,7 +69,7 @@ contract YieldDisburser is OwnableUpgradeable {
     {
         uint48 _now = Time.timestamp();
         uint256 balance = (breadToken.balanceOf(address(this)) +
-            breadToken.yieldAccrued()) / 2;
+            breadToken.yieldAccrued());
         require(
             balance > breadchainProjects.length,
             "Yield too low to distribute"
