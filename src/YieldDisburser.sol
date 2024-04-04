@@ -42,17 +42,18 @@ contract YieldDisburser is OwnableUpgradeable {
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
 
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
+
+        lastClaimedTimestamp = Time.timestamp();
+        lastClaimedBlocknumber = Time.blockNumber();
+
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
 
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
         for (uint256 i; i < breadchainProjects.length; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
-
-        lastClaimedTimestamp = Time.timestamp();
-        lastClaimedBlocknumber = Time.blockNumber();
     }
 
     function castVoteBySignature(uint256[] calldata percentages, bytes calldata signature, address holder) public {
