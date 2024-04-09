@@ -104,6 +104,10 @@ contract YieldDisburser is OwnableUpgradeable {
         return votingPower;
     }
 
+    function getNextWindowTimestamp() public view returns (uint256) {
+        return lastClaimedTimestamp + minimumTimeBetweenClaims;
+    }
+
     /**
      *
      *         Internal Functions        *
