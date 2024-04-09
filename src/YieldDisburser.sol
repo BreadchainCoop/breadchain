@@ -108,6 +108,10 @@ contract YieldDisburser is OwnableUpgradeable {
         return lastClaimedTimestamp + minimumTimeBetweenClaims;
     }
 
+    function getCurrentMemberProjects() public view returns (address[] memory) {
+        return breadchainProjects;
+    }
+
     /**
      *
      *         Internal Functions        *
