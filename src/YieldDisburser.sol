@@ -131,7 +131,7 @@ contract YieldDisburser is OwnableUpgradeable {
         holderToDistribution[holder] = percentages;
     }
 
-    function _getVotedDistribution(uint256 projectCount) internal view returns (uint256[] memory, uint256) {
+    function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
 
@@ -139,12 +139,12 @@ contract YieldDisburser is OwnableUpgradeable {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
-
             for (uint256 j; j < projectCount; ++j) {
                 uint256 vote = voterPower * voterDistribution[j];
                 projectDistributions[j] += vote;
                 totalVotes += vote;
             }
+            delete holderToDistribution[voter];
         }
 
         return (projectDistributions, totalVotes);
