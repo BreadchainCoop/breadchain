@@ -14,13 +14,10 @@ contract DeployYieldDisburser is Script {
         vm.startBroadcast();
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
         TransparentUpgradeableProxy yieldDisburser = new TransparentUpgradeableProxy(
-                address(yieldDisburserImplementation),
-                address(msg.sender),
-                abi.encodeWithSelector(
-                    YieldDisburser.initialize.selector,
-                    0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3
-                )
-            );
+            address(yieldDisburserImplementation),
+            address(msg.sender),
+            abi.encodeWithSelector(YieldDisburser.initialize.selector, 0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3)
+        );
 
         vm.stopBroadcast();
     }

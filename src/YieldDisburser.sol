@@ -35,7 +35,6 @@ contract YieldDisburser is OwnableUpgradeable {
      *          Public Functions         *
      *
      */
-
     function distributeYield() public {
         (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
         require(_resolved, "Yield not resolved");
@@ -73,7 +72,6 @@ contract YieldDisburser is OwnableUpgradeable {
      *           View Functions          *
      *
      */
-
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
         uint48 _now = Time.timestamp();
         uint256 balance = (breadToken.balanceOf(address(this)) + breadToken.yieldAccrued());
@@ -125,7 +123,6 @@ contract YieldDisburser is OwnableUpgradeable {
      *         Internal Functions        *
      *
      */
-
     function _castVote(uint256[] calldata percentages, address holder) internal {
         uint256 length = breadchainProjects.length;
         require(percentages.length == length, "Incorrect number of projects");
@@ -165,10 +162,9 @@ contract YieldDisburser is OwnableUpgradeable {
      *        Only Owner Functions       *
      *
      */
-
     function setMinimumTimeBetweenClaims(uint48 _minimumTimeBetweenClaims) public onlyOwner {
-        require(_minimumTimeBetweenClaims > 0, "minimumTimeBetweenClaims must be greater than 0");
-        minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
+        require(_minimumTimeBetweenClaims > 1 minutes, "minimumTimeBetweenClaims must be greater than 0");
+        minimumTimeBetweenClaims = _minimumTimeBetweenClaims;
     }
 
     function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
