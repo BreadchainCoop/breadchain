@@ -110,14 +110,6 @@ contract YieldDisburser is OwnableUpgradeable {
         return votingPower;
     }
 
-    function getNextWindowTimestamp() public view returns (uint256) {
-        return lastClaimedTimestamp + minimumTimeBetweenClaims;
-    }
-
-    function getCurrentMemberProjects() public view returns (address[] memory) {
-        return breadchainProjects;
-    }
-
     /**
      *
      *         Internal Functions        *
@@ -164,8 +156,8 @@ contract YieldDisburser is OwnableUpgradeable {
      *
      */
     function setMinimumTimeBetweenClaims(uint48 _minimumTimeBetweenClaims) public onlyOwner {
-        require(_minimumTimeBetweenClaims > 1 minutes, "minimumTimeBetweenClaims must be greater than 0");
-        minimumTimeBetweenClaims = _minimumTimeBetweenClaims;
+        require(_minimumTimeBetweenClaims > 0, "minimumTimeBetweenClaims must be greater than 0");
+        minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
     }
 
     function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {

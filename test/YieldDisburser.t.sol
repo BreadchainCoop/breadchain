@@ -32,7 +32,10 @@ contract YieldDisburserTest is Test {
                 new TransparentUpgradeableProxy(
                     address(yieldDisburserImplementation),
                     address(this),
-                    abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread))
+                    abi.encodeWithSelector(
+                        YieldDisburser.initialize.selector,
+                        address(bread)
+                    )
                 )
             )
         );
@@ -60,12 +63,12 @@ contract YieldDisburserTest is Test {
         yieldDisburser.castVote(percentages);
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertEq(bread_bal_after, yieldAccrued - 1);
+        assertEq(bread_bal_after, yieldAccrued -1);
     }
 
     function testFuzzyDistribute(uint256 seed, uint256 accounts) public {
-        vm.assume(seed > 10);
-        vm.assume(accounts > 10);
+        vm.assume(seed>10);
+        vm.assume(accounts>10);
         address secondProject = address(0x1234567890123456789012345678901234567890);
         yieldDisburser.addProject(secondProject);
         accounts = uint256(bound(accounts, 1, 3));
@@ -97,17 +100,17 @@ contract YieldDisburserTest is Test {
             votes.pop();
             votes.pop();
         }
-        vm.warp(1000 minutes);
+        vm.warp(1000  minutes);
         yieldAccrued = bread.yieldAccrued() / 2;
         yieldDisburser.distributeYield();
         uint256 this_bal_after = bread.balanceOf(address(this));
         uint256 second_bal_after = bread.balanceOf(secondProject);
 
-        assertGt(this_bal_after + second_bal_after, yieldAccrued - 2);
-        assertLt(this_bal_after + second_bal_after, yieldAccrued + 1);
+        assertGt(this_bal_after + second_bal_after, yieldAccrued -2 );
+        assertLt(this_bal_after + second_bal_after, yieldAccrued +1 );
     }
 
-    function test_remove_project() public {
+    function test_add_project() public {
         assert(yieldDisburser.breadchainProjects(0) == address(this));
         yieldDisburser.removeProject(address(this));
         assert(yieldDisburser.breadchainProjects(0) == address(0));
@@ -115,9 +118,9 @@ contract YieldDisburserTest is Test {
 
     function test_set_duration() public {
         uint48 TimeBetweenClaimsBefore = yieldDisburser.minimumTimeBetweenClaims();
-        yieldDisburser.setMinimumTimeBetweenClaims(10 minutes);
+        yieldDisburser.setMinimumTimeBetweenClaims(10);
         uint48 TimeBetweenClaimsAfter = yieldDisburser.minimumTimeBetweenClaims();
-        assertEq(TimeBetweenClaimsBefore + uint48(10 minutes), TimeBetweenClaimsAfter);
+        assertEq(TimeBetweenClaimsBefore + 10 minutes, TimeBetweenClaimsAfter);
     }
 
     function test_voting_power() public {
