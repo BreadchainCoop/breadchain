@@ -20,14 +20,14 @@ contract YieldDisburser is OwnableUpgradeable {
 
     event BaseYieldDistributed(uint256 amount, address project);
 
-    error YieldNotResolved();
-    error YieldTooLow(uint256);
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
-    error NoCheckpointsForAccount();
-    error StartMustBeBeforeEnd();
     error InvalidSignature();
     error MustBeGreaterThanZero();
+    error NoCheckpointsForAccount();
+    error StartMustBeBeforeEnd();
+    error YieldNotResolved();
+    error YieldTooLow(uint256);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
