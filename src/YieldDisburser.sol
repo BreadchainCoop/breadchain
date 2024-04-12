@@ -27,7 +27,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error NoCheckpointsForAccount();
     error StartMustBeBeforeEnd();
     error InvalidSignature();
-    error MinimumTimeBetweenClaimsMustBeGreaterThanZero();
+    error MustBeGreaterThanZero();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
