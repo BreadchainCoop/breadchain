@@ -26,6 +26,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error IncorrectNumberOfProjects();
     error NoCheckpointsForAccount();
     error StartMustBeBeforeEnd();
+    error InvalidSignature();
     error MinimumTimeBetweenClaimsMustBeGreaterThanZero();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -66,7 +67,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function castVoteBySignature(uint256[] calldata percentages, bytes calldata signature, address holder) public {
         (uint8 v, bytes32 r, bytes32 s) = abi.decode(signature, (uint8, bytes32, bytes32));
         address signer = ecrecover(keccak256(abi.encodePacked(percentages)), v, r, s);
-        if (signer != holder) revert("Invalid signature"); // TODO not creating custom error in anticipation of #5
+        if (signer != holder) revert InvalidSignature();
         _castVote(percentages, holder);
     }
 
