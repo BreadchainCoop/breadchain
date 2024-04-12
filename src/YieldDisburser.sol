@@ -24,6 +24,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error IncorrectNumberOfProjects();
     error InvalidSignature();
     error MustBeGreaterThanZero();
+    error MustEqualOneHundredPercent();
     error NoCheckpointsForAccount();
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
@@ -135,11 +136,13 @@ contract YieldDisburser is OwnableUpgradeable {
     function _castVote(uint256[] calldata percentages, address holder) internal {
         uint256 length = breadchainProjects.length;
         if (percentages.length != length) revert IncorrectNumberOfProjects();
+
         uint256 total;
         for (uint256 i = 0; i < length; i++) {
             total += percentages[i];
         }
-        require(total == 100, "Total must equal 100"); // TODO not creating custom error in anticipation of #16
+        if (total != 100) revert MustEqualOneHundredPercent();
+
         if (holderToDistribution[holder].length > 0) {
             delete holderToDistribution[holder];
         }
