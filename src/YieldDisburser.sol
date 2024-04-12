@@ -20,6 +20,16 @@ contract YieldDisburser is OwnableUpgradeable {
 
     event BaseYieldDistributed(uint256 amount, address project);
 
+    error EndAfterCurrentBlock();
+    error IncorrectNumberOfProjects();
+    error InvalidSignature();
+    error MustBeGreaterThanZero();
+    error MustEqualOneHundredPercent();
+    error NoCheckpointsForAccount();
+    error StartMustBeBeforeEnd();
+    error YieldNotResolved();
+    error YieldTooLow(uint256);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -37,7 +47,7 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function distributeYield() public {
         (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
-        require(_resolved, "Yield not resolved");
+        if (!_resolved) revert YieldNotResolved();
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
 
@@ -58,7 +68,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function castVoteBySignature(uint256[] calldata percentages, bytes calldata signature, address holder) public {
         (uint8 v, bytes32 r, bytes32 s) = abi.decode(signature, (uint8, bytes32, bytes32));
         address signer = ecrecover(keccak256(abi.encodePacked(percentages)), v, r, s);
-        if (signer != holder) revert("Invalid signature");
+        if (signer != holder) revert InvalidSignature();
         _castVote(percentages, holder);
     }
 
@@ -75,7 +85,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
         uint48 _now = Time.timestamp();
         uint256 balance = (breadToken.balanceOf(address(this)) + breadToken.yieldAccrued());
-        require(balance > breadchainProjects.length, "Yield too low to distribute");
+        if (balance > breadchainProjects.length) revert YieldTooLow(balance);
         if (_now < lastClaimedTimestamp + minimumTimeBetweenClaims) {
             revert AlreadyClaimed();
         }
@@ -84,10 +94,10 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function getVotingPowerForPeriod(uint256 start, uint256 end, address account) external view returns (uint256) {
-        require(start < end, "Start must be before end");
-        require(end <= Time.blockNumber());
+        if (start < end) revert StartMustBeBeforeEnd();
+        if (end <= Time.blockNumber()) revert EndAfterCurrentBlock();
         uint32 latestCheckpointPos = breadToken.numCheckpoints(account);
-        require(latestCheckpointPos > 0, "No checkpoints for account");
+        if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
         latestCheckpointPos--;
         Checkpoints.Checkpoint208 memory intervalEnd = breadToken.checkpoints(account, latestCheckpointPos); // Subtract 1 for 0-indexed
         uint48 prevKey = intervalEnd._key;
@@ -117,12 +127,14 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function _castVote(uint256[] calldata percentages, address holder) internal {
         uint256 length = breadchainProjects.length;
-        require(percentages.length == length, "Incorrect number of projects");
+        if (percentages.length != length) revert IncorrectNumberOfProjects();
+
         uint256 total;
         for (uint256 i = 0; i < length; i++) {
             total += percentages[i];
         }
-        require(total == 100, "Total must equal 100");
+        if (total != 100) revert MustEqualOneHundredPercent();
+
         if (holderToDistribution[holder].length > 0) {
             delete holderToDistribution[holder];
         } else {
@@ -156,7 +168,7 @@ contract YieldDisburser is OwnableUpgradeable {
      *
      */
     function setMinimumTimeBetweenClaims(uint48 _minimumTimeBetweenClaims) public onlyOwner {
-        require(_minimumTimeBetweenClaims > 0, "minimumTimeBetweenClaims must be greater than 0");
+        if (_minimumTimeBetweenClaims == 0) revert MustBeGreaterThanZero();
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
     }
 
