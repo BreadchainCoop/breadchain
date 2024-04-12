@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -32,10 +32,7 @@ contract YieldDisburserTest is Test {
                 new TransparentUpgradeableProxy(
                     address(yieldDisburserImplementation),
                     address(this),
-                    abi.encodeWithSelector(
-                        YieldDisburser.initialize.selector,
-                        address(bread)
-                    )
+                    abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread))
                 )
             )
         );
@@ -47,8 +44,12 @@ contract YieldDisburserTest is Test {
 
     function test_simple_distribute() public {
         vm.roll(32323232323);
-        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
-        yieldDisburser.setLastClaimedBlocknumber(block.number);
+
+        // TODO Find an alternative way to test this that does not require godmode functions
+        // https://github.com/BreadchainCoop/breadchain/issues/21
+        // yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        // yieldDisburser.setLastClaimedBlocknumber(uint48(block.number));
+
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
@@ -63,12 +64,12 @@ contract YieldDisburserTest is Test {
         yieldDisburser.castVote(percentages);
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertEq(bread_bal_after, yieldAccrued -1);
+        assertEq(bread_bal_after, yieldAccrued - 1);
     }
 
     function testFuzzyDistribute(uint256 seed, uint256 accounts) public {
-        vm.assume(seed>10);
-        vm.assume(accounts>10);
+        vm.assume(seed > 10);
+        vm.assume(accounts > 10);
         address secondProject = address(0x1234567890123456789012345678901234567890);
         yieldDisburser.addProject(secondProject);
         accounts = uint256(bound(accounts, 1, 3));
@@ -79,8 +80,12 @@ contract YieldDisburserTest is Test {
         vm.roll(start);
         yieldDisburser.setMinimumTimeBetweenClaims(10);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
-        yieldDisburser.setlastClaimedTimestamp(startTimestamp);
-        yieldDisburser.setLastClaimedBlocknumber(start);
+
+        // TODO Find an alternative way to test this that does not require godmode functions
+        // https://github.com/BreadchainCoop/breadchain/issues/21
+        // yieldDisburser.setlastClaimedTimestamp(startTimestamp);
+        // yieldDisburser.setLastClaimedBlocknumber(uint48(start));
+
         uint256 yieldAccrued;
         uint256 currentBlockNumber = 32323232323;
         for (uint256 i = 0; i < accounts; i++) {
@@ -100,14 +105,14 @@ contract YieldDisburserTest is Test {
             votes.pop();
             votes.pop();
         }
-        vm.warp(1000  minutes);
+        vm.warp(1000 minutes);
         yieldAccrued = bread.yieldAccrued() / 2;
         yieldDisburser.distributeYield();
         uint256 this_bal_after = bread.balanceOf(address(this));
         uint256 second_bal_after = bread.balanceOf(secondProject);
 
-        assertGt(this_bal_after + second_bal_after, yieldAccrued -2 );
-        assertLt(this_bal_after + second_bal_after, yieldAccrued +1 );
+        assertGt(this_bal_after + second_bal_after, yieldAccrued - 2);
+        assertLt(this_bal_after + second_bal_after, yieldAccrued + 1);
     }
 
     function test_add_project() public {
@@ -162,8 +167,9 @@ contract YieldDisburserTest is Test {
             bread.mint{value: seed}(holder);
             blockNumbers.push(mintblocknum);
         }
-        uint256 votingPower =
-            yieldDisburser.getVotingPowerForPeriod(start, blockNumbers[(blockNumbers.length) - 1], holder);
+        uint256 votingPower = yieldDisburser.getVotingPowerForPeriod(
+            uint48(start), uint48(blockNumbers[(blockNumbers.length) - 1]), holder
+        );
         uint256 expectedVotingPower = 0;
         for (uint256 i = 0; i < blockNumbers.length - 1; i++) {
             uint256 mintblocknum = blockNumbers[i];
@@ -171,8 +177,9 @@ contract YieldDisburserTest is Test {
             expectedVotingPower += (nextMintBlockNum - mintblocknum) * seed;
         }
         assertEq(votingPower, expectedVotingPower);
-        votingPower =
-            yieldDisburser.getVotingPowerForPeriod(start - 1000, blockNumbers[(blockNumbers.length) - 1], holder);
+        votingPower = yieldDisburser.getVotingPowerForPeriod(
+            uint48(start - 1000), uint48(blockNumbers[(blockNumbers.length) - 1]), holder
+        );
         assertEq(votingPower, expectedVotingPower);
     }
 }
