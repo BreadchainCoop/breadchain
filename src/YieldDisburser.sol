@@ -120,14 +120,6 @@ contract YieldDisburser is OwnableUpgradeable {
         return votingPower;
     }
 
-    function getNextWindowTimestamp() public view returns (uint256) {
-        return lastClaimedTimestamp + minimumTimeBetweenClaims;
-    }
-
-    function getCurrentMemberProjects() public view returns (address[] memory) {
-        return breadchainProjects;
-    }
-
     /**
      *
      *         Internal Functions        *
@@ -145,12 +137,13 @@ contract YieldDisburser is OwnableUpgradeable {
 
         if (holderToDistribution[holder].length > 0) {
             delete holderToDistribution[holder];
+        } else {
+            breadchainVoters.push(holder);
         }
         holderToDistribution[holder] = percentages;
-        breadchainVoters.push(holder);
     }
 
-    function _getVotedDistribution(uint256 projectCount) internal view returns (uint256[] memory, uint256) {
+    function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
 
@@ -158,12 +151,12 @@ contract YieldDisburser is OwnableUpgradeable {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
-
             for (uint256 j; j < projectCount; ++j) {
                 uint256 vote = voterPower * voterDistribution[j];
                 projectDistributions[j] += vote;
                 totalVotes += vote;
             }
+            delete holderToDistribution[voter];
         }
 
         return (projectDistributions, totalVotes);
