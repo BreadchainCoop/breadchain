@@ -48,7 +48,7 @@ $ anvil
 ### Test 
 
 ```shell 
-$ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv 
+$ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv
 ```
 ### Deploy
 

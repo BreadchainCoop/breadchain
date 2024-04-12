@@ -174,6 +174,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function setMinimumTimeBetweenClaims(uint48 _minimumTimeBetweenClaims) public onlyOwner {
         if (_minimumTimeBetweenClaims == 0) revert MinimumTimeBetweenClaimsMustBeGreaterThanZero();
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
+
     }
 
     function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
