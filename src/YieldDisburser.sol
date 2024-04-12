@@ -9,9 +9,10 @@ import {IBreadToken} from "./IBreadToken.sol";
 
 /**
  * @title TODO
- * @author Ron
- * @author bagelface.eth
  * @notice TODO
+ * @author Breadchain Cooperative (https://breadchain.xyz/)
+ * @custom:coauthor Ron
+ * @custom:coauthor bagelface.eth
  */
 contract YieldDisburser is OwnableUpgradeable {
     event BaseYieldDistributed(uint256 amount, address project);
