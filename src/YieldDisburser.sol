@@ -18,9 +18,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public minimumTimeBetweenClaims;
     mapping(address => uint256[]) public holderToDistribution;
 
-    event BaseYieldDistributed(uint256 amount, address project);
-    event VotedYieldDistributed(uint256 amount, address project);
-    event VotedYieldPercentage(uint256 percentage, address project);
+    event ProjectDistributionStats(uint256 votedYield, uint256 baseYield, uint256 percentage, address project);
     event TotalVotesForProject(uint256 totalVotes, address project);
 
     error EndAfterCurrentBlock();
@@ -55,9 +53,6 @@ contract YieldDisburser is OwnableUpgradeable {
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
 
         (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
-        for (uint256 i; i < breadchainProjects.length; ++i) {
-            emit VotedYieldPercentage(projectDistributions[i] / totalVotes, breadchainProjects[i]);
-        }
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
 
@@ -67,8 +62,9 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < breadchainProjects.length; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
-            emit VotedYieldDistributed(votedSplit, breadchainProjects[i]);
-            emit BaseYieldDistributed(baseSplit, breadchainProjects[i]);
+            emit ProjectDistributionStats(
+                votedSplit, baseSplit, projectDistributions[i] / totalVotes, breadchainProjects[i]
+            );
         }
     }
 
@@ -167,7 +163,7 @@ contract YieldDisburser is OwnableUpgradeable {
             delete holderToDistribution[voter];
         }
         for (uint256 i; i < projectCount; ++i) {
-            emit VotedYieldPercentage(projectVotes[i], breadchainProjects[i]);
+            emit TotalVotesForProject(projectVotes[i], breadchainProjects[i]);
         }
 
         return (projectDistributions, totalVotes);
