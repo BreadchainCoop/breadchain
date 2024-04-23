@@ -18,7 +18,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public minimumTimeBetweenClaims;
     mapping(address => uint256[]) public holderToDistribution;
 
-    event ProjectDistributionStats(uint256 votedYield, uint256 baseYield, uint256 percentage, address project);
+    event YieldDistributed(uint256 votedYield, uint256 baseYield, uint256 percentage, address indexed project);
     event TotalVotesForProject(uint256 totalVotes, address project);
 
     error EndAfterCurrentBlock();
