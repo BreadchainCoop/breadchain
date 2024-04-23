@@ -11,6 +11,7 @@ error AlreadyClaimed();
 
 contract YieldDisburser is OwnableUpgradeable {
     address[] public breadchainProjects;
+    address[] public queuedBreadchainProjects;
     address[] public breadchainVoters;
     IBreadToken public breadToken;
     uint48 public lastClaimedTimestamp;
@@ -35,8 +36,11 @@ contract YieldDisburser is OwnableUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address breadAddress) public initializer {
+    function initialize(address breadAddress, address[] calldata _breadchainProjects) public initializer {
         breadToken = IBreadToken(breadAddress);
+        for (uint256 i; i < _breadchainProjects.length; ++i) {
+            breadchainProjects.push(_breadchainProjects[i]);
+        }
         __Ownable_init(msg.sender);
     }
 
@@ -62,6 +66,10 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < breadchainProjects.length; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
+        }
+        if (queuedBreadchainProjects.length > 0) {
+            breadchainProjects = queuedBreadchainProjects;
+            delete queuedBreadchainProjects;
         }
     }
 
@@ -180,16 +188,7 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
 
-    function addProject(address projectAddress) public onlyOwner {
-        breadchainProjects.push(projectAddress);
-    }
-
-    function removeProject(address projectAddress) public onlyOwner {
-        for (uint256 i = 0; i < breadchainProjects.length; i++) {
-            if (breadchainProjects[i] == projectAddress) {
-                delete breadchainProjects[i];
-                break;
-            }
-        }
+    function setProjects(address[] calldata _projects) public onlyOwner {
+        queuedBreadchainProjects = _projects;
     }
 }
