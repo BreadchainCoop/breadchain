@@ -93,7 +93,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
         uint48 _now = Time.timestamp();
         uint256 balance = (breadToken.balanceOf(address(this)) + breadToken.yieldAccrued());
-        if (balance > breadchainProjects.length) revert YieldTooLow(balance);
+        if (balance < breadchainProjects.length) revert YieldTooLow(balance);
         if (_now < lastClaimedTimestamp + minimumTimeBetweenClaims) {
             revert AlreadyClaimed();
         }
@@ -102,8 +102,8 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function getVotingPowerForPeriod(uint256 start, uint256 end, address account) external view returns (uint256) {
-        if (start < end) revert StartMustBeBeforeEnd();
-        if (end <= Time.blockNumber()) revert EndAfterCurrentBlock();
+        if (start > end) revert StartMustBeBeforeEnd();
+        if (end > Time.blockNumber()) revert EndAfterCurrentBlock();
         uint32 latestCheckpointPos = breadToken.numCheckpoints(account);
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
         latestCheckpointPos--;
