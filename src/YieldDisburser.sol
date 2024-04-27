@@ -23,7 +23,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error IncorrectNumberOfProjects();
     error InvalidSignature();
     error MustBeGreaterThanZero();
-    error MustEqualOneHundredPercent();
+    error MustEqualPermyriad();
     error NoCheckpointsForAccount();
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
@@ -68,7 +68,6 @@ contract YieldDisburser is OwnableUpgradeable {
         }
     }
 
-    // TODO: Is there any kind of access control to this function?
     function castVote(uint256[] calldata percentages) public {
         _castVote(percentages, msg.sender);
     }
@@ -141,7 +140,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i = 0; i < length; i++) {
             total += percentages[i];
         }
-        if (total != 100) revert MustEqualOneHundredPercent();
+        if (total != 10000) revert MustEqualPermyriad();
 
         if (holderToDistribution[holder].length > 0) {
             delete holderToDistribution[holder];
