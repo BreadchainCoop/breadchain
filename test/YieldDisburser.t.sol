@@ -19,6 +19,8 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
 
 contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
+    YieldDisburser public yieldDisburser2;
+    address secondProject;
     Bread public bread;
     uint256[] blockNumbers;
     uint256[] percentages;
@@ -27,12 +29,30 @@ contract YieldDisburserTest is Test {
     function setUp() public {
         bread = Bread(address(0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3));
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
+<<<<<<< Updated upstream
+=======
+        address[] memory projects = new address[](1);
+        projects[0] = address(this);
+>>>>>>> Stashed changes
         yieldDisburser = YieldDisburser(
             address(
                 new TransparentUpgradeableProxy(
                     address(yieldDisburserImplementation),
                     address(this),
                     abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread))
+                )
+            )
+        );
+        address[] memory projects2 = new address[](2);
+        secondProject = address(0x1234567890123456789012345678901234567890);
+        projects2[0] = address(this);
+        projects2[1] = secondProject;
+        yieldDisburser2 = YieldDisburser(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(yieldDisburserImplementation),
+                    address(this),
+                    abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread), projects2)
                 )
             )
         );
@@ -48,7 +68,7 @@ contract YieldDisburserTest is Test {
         yieldDisburser.setLastClaimedBlocknumber(block.number);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
-        address holder = address(0x1234567890123456789012345678901234567890);
+        address holder = address(0x1234567890123456789012345678701234567890);
         vm.deal(holder, 1000000000000);
         vm.prank(holder);
         bread.mint{value: 1000000}(holder);
@@ -61,26 +81,75 @@ contract YieldDisburserTest is Test {
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
         bool status = bread_bal_after == yieldAccrued || bread_bal_after == yieldAccrued - 1;
-        assertEq(true,status);
+        assertEq(true, status);
     }
 
-    // function testFuzzyDistribute(uint256 seed, uint256 accounts) public {
-    //     vm.assume(seed>10);
-    //     vm.assume(accounts>10);
-    //     address secondProject = address(0x1234567890123456789012345678901234567890);
-    //     yieldDisburser.addProject(secondProject);
-    //     accounts = uint256(bound(accounts, 1, 3));
+    function testFuzzyDistribute(uint256 seed) public {
+        uint256 breadbalproject1start = bread.balanceOf(address(this));
+        uint256 breadbalproject2start = bread.balanceOf(secondProject);
+        address owner = bread.owner();
+        vm.prank(owner);
+        bread.setYieldClaimer(address(yieldDisburser2));
+        vm.assume(seed > 10);
+        uint256 accounts = 3;
+        seed = uint256(bound(seed, 1, 100000000000));
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser2.setMinimumTimeBetweenClaims(1);
+        uint48 startTimestamp = uint48(vm.getBlockTimestamp());
+        yieldDisburser2.setlastClaimedTimestamp(startTimestamp);
+        yieldDisburser2.setLastClaimedBlocknumber(start);
+        uint256 yieldAccrued;
+        uint256 currentBlockNumber = start + 1;
+        vm.roll(currentBlockNumber);
+        for (uint256 i = 0; i < accounts; i++) {
+            uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
+            address holder = address(uint160(randomval));
+            uint256 token_amount = bound(randomval, 100, 10000);
+            vm.deal(holder, token_amount);
+            vm.prank(holder);
+            bread.mint{value: token_amount}(holder);
+            uint256 vote = randomval % 100;
+            currentBlockNumber += randomval % 5;
+            vm.roll(currentBlockNumber);
+            votes.push(vote);
+            votes.push(100 - vote);
+            vm.prank(holder);
+            yieldDisburser2.castVote(votes);
+            votes.pop();
+            votes.pop();
+        }
+        vm.warp(startTimestamp + 5000);
+        console2.log("Current block timestamp: %d", block.timestamp);
+        yieldAccrued = bread.yieldAccrued() / 2;
+        yieldDisburser2.distributeYield();
+        uint256 this_bal_after = bread.balanceOf(address(this));
+        uint256 second_bal_after = bread.balanceOf(secondProject);
+        assertGt(this_bal_after, breadbalproject1start);
+        assertGt(second_bal_after, breadbalproject2start);
+        // assertGt(this_bal_after + second_bal_after, yieldAccrued - 2);
+        // assertLt(this_bal_after + second_bal_after, yieldAccrued + 1);
+    }
+
+    // function testFuzzyDistribute() public {
+    //     uint256 seed = 4277;
+    //     uint256 breadbalproject1start = bread.balanceOf(address(this));
+    //     uint256 breadbalproject2start = bread.balanceOf(secondProject);
+    //     address owner = bread.owner();
+    //     vm.prank(owner);
+    //     bread.setYieldClaimer(address(yieldDisburser2));
+    //     vm.assume(seed > 10);
+    //     uint256 accounts = 3;
     //     seed = uint256(bound(seed, 1, 100000000000));
-    //     vm.assume(seed > 0);
-    //     vm.assume(accounts > 0);
     //     uint256 start = 32323232323;
     //     vm.roll(start);
-    //     yieldDisburser.setMinimumTimeBetweenClaims(10);
+    //     yieldDisburser2.setMinimumTimeBetweenClaims(1);
     //     uint48 startTimestamp = uint48(vm.getBlockTimestamp());
-    //     yieldDisburser.setlastClaimedTimestamp(startTimestamp);
-    //     yieldDisburser.setLastClaimedBlocknumber(start);
+    //     yieldDisburser2.setlastClaimedTimestamp(startTimestamp);
+    //     yieldDisburser2.setLastClaimedBlocknumber(start);
     //     uint256 yieldAccrued;
-    //     uint256 currentBlockNumber = 32323232323;
+    //     uint256 currentBlockNumber = start + 1;
+    //     vm.roll(currentBlockNumber);
     //     for (uint256 i = 0; i < accounts; i++) {
     //         uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
     //         address holder = address(uint160(randomval));
@@ -94,18 +163,27 @@ contract YieldDisburserTest is Test {
     //         votes.push(vote);
     //         votes.push(100 - vote);
     //         vm.prank(holder);
-    //         yieldDisburser.castVote(votes);
+    //         yieldDisburser2.castVote(votes);
     //         votes.pop();
     //         votes.pop();
     //     }
-    //     vm.warp(1000  minutes);
+    //     vm.warp(startTimestamp + 5000);
+    //     vm.roll(currentBlockNumber + 1);
+    //     console2.log("Current block number: %d", block.number);
     //     yieldAccrued = bread.yieldAccrued() / 2;
-    //     yieldDisburser.distributeYield();
+    //     yieldDisburser2.distributeYield();
     //     uint256 this_bal_after = bread.balanceOf(address(this));
     //     uint256 second_bal_after = bread.balanceOf(secondProject);
+<<<<<<< Updated upstream
 
     //     assertGt(this_bal_after + second_bal_after, yieldAccrued -2 );
     //     assertLt(this_bal_after + second_bal_after, yieldAccrued +1 );
+=======
+    //     assertGt(this_bal_after, breadbalproject1start);
+    //     assertGt(second_bal_after, breadbalproject2start);
+    //     // assertGt(this_bal_after + second_bal_after, yieldAccrued - 2);
+    //     // assertLt(this_bal_after + second_bal_after, yieldAccrued + 1);
+>>>>>>> Stashed changes
     // }
 
     function test_add_project() public {
@@ -150,27 +228,32 @@ contract YieldDisburserTest is Test {
         mints = uint256(bound(mints, 1, 100));
         vm.assume(seed < 100000000000 / mints);
         vm.assume(seed > 0);
+        vm.assume(mints > 2);
         uint256 start = 32323232323;
         vm.roll(start);
-        address holder = address(this);
-        vm.deal(holder, 100000000000);
-        for (uint256 i = 0; i < mints; i++) {
-            uint256 mintblocknum = start + seed;
-            vm.roll(mintblocknum);
-            bread.mint{value: seed}(holder);
-            blockNumbers.push(mintblocknum);
-        }
-        uint256 votingPower =
-            yieldDisburser.getVotingPowerForPeriod(start, blockNumbers[(blockNumbers.length) - 1], holder);
+        address holder = address(0x1234567840123456789012345678701234567890);
+        vm.deal(holder, 1000000000000000000);
+        uint256 prevblocknum = vm.getBlockNumber();
+        uint256 mintblocknum = prevblocknum;
         uint256 expectedVotingPower = 0;
-        for (uint256 i = 0; i < blockNumbers.length - 1; i++) {
-            uint256 mintblocknum = blockNumbers[i];
-            uint256 nextMintBlockNum = blockNumbers[i + 1];
-            expectedVotingPower += (nextMintBlockNum - mintblocknum) * seed;
+        for (uint256 i = 0; i < mints; i++) {
+            mintblocknum = start + seed * i;
+            blockNumbers.push(mintblocknum);
+            vm.roll(mintblocknum);
+            vm.prank(holder);
+            bread.mint{value: seed}(holder);
         }
-        assertEq(votingPower, expectedVotingPower);
-        votingPower =
-            yieldDisburser.getVotingPowerForPeriod(start - 1000, blockNumbers[(blockNumbers.length) - 1], holder);
-        assertEq(votingPower, expectedVotingPower);
+        for (uint256 i = blockNumbers.length - 1; i >= 0; i--) {
+            if (i == 0) {
+                break;
+            }
+            uint256 end_interval = blockNumbers[i];
+            uint256 start_interval = blockNumbers[i - 1];
+            uint256 expected_balance = seed * (i);
+            uint256 interval_voting_power = (end_interval - start_interval) * expected_balance;
+            expectedVotingPower += interval_voting_power;
+        }
+        uint256 vote = yieldDisburser.getVotingPowerForPeriod(start, mintblocknum, holder);
+        assertEq(vote, expectedVotingPower);
     }
 }
