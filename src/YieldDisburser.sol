@@ -20,7 +20,6 @@ contract YieldDisburser is OwnableUpgradeable {
     mapping(address => uint256[]) public holderToDistribution;
 
     event YieldDistributed(uint256 votedYield, uint256 baseYield, uint256 percentage, address indexed project);
-    event TotalVotesForProject(uint256 totalVotes, address indexed project);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -63,13 +62,13 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
-
+        uint256 percantage_of_total_vote;
+        uint256 votedSplit;
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
+            percantage_of_total_vote = projectDistributions[i] / totalVotes;
+            votedSplit = percantage_of_total_vote * halfBalance;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
-            emit YieldDistributed(
-                votedSplit, baseSplit, projectDistributions[i] / totalVotes, breadchainProjects[i]
-            );
+            emit YieldDistributed(votedSplit, baseSplit, percantage_of_total_vote, breadchainProjects[i]);
         }
     }
 
@@ -160,7 +159,6 @@ contract YieldDisburser is OwnableUpgradeable {
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
-        uint256[] memory projectVotes = new uint256[](projectCount);
         for (uint256 i; i < breadchainVoters.length; ++i) {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
@@ -169,12 +167,8 @@ contract YieldDisburser is OwnableUpgradeable {
                 uint256 vote = voterPower * voterDistribution[j];
                 projectDistributions[j] += vote;
                 totalVotes += vote;
-                projectVotes[j] += 1;
             }
             delete holderToDistribution[voter];
-        }
-        for (uint256 i; i < projectCount; ++i) {
-            emit TotalVotesForProject(projectVotes[i], breadchainProjects[i]);
         }
 
         return (projectDistributions, totalVotes);
