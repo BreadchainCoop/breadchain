@@ -20,6 +20,7 @@ contract YieldDisburser is OwnableUpgradeable {
     mapping(address => uint256[]) public holderToDistribution;
 
     event YieldDistributed(uint256 votedYield, uint256 baseYield, uint256 percentage, address indexed project);
+    event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -154,6 +155,7 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainVoters.push(holder);
         }
         holderToDistribution[holder] = percentages;
+        emit BreadHolderVoted(holder, percentages, breadchainProjects);
     }
 
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
