@@ -58,6 +58,27 @@ contract YieldDisburserTest is Test {
         bread.setYieldClaimer(address(yieldDisburser));
     }
 
+    function test_simple_distribute() public {
+        vm.roll(32323232323);
+        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlocknumber(block.number);
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        address holder = address(0x1234567890123456789012345678901234567890);
+        vm.deal(holder, 1000000000000);
+        vm.prank(holder);
+        bread.mint{value: 1000000}(holder);
+        vm.roll(32323332323);
+        uint256 vote = 100;
+        percentages.push(vote);
+        uint256 yieldAccrued = bread.yieldAccrued();
+        vm.prank(holder);
+        yieldDisburser.castVote(percentages);
+        yieldDisburser.distributeYield();
+        uint256 bread_bal_after = bread.balanceOf(address(this));
+        assertGt(bread_bal_after, yieldAccrued - 1);
+    }
+
     function test_fuzzy_distribute(uint256 seed) public {
         uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
