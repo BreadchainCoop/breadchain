@@ -15,7 +15,9 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
+    uint256 pointsMax = 100000;
     mapping(address => uint256[]) public holderToDistribution;
+    mapping(address => uint256) public holderToDistributionTotal;
 
     event BaseYieldDistributed(uint256 amount, address project);
 
@@ -23,7 +25,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error IncorrectNumberOfProjects();
     error InvalidSignature();
     error MustBeGreaterThanZero();
-    error MustEqualPermyriad();
+    error VotePointsTooLarge();
     error NoCheckpointsForAccount();
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
@@ -54,7 +56,8 @@ contract YieldDisburser is OwnableUpgradeable {
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
 
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
+        (uint256[] memory projectDistributions, uint256 totalVotes) =
+            _commitVotedDistribution(breadchainProjects.length);
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
@@ -68,8 +71,8 @@ contract YieldDisburser is OwnableUpgradeable {
         }
     }
 
-    function castVote(uint256[] calldata percentages) public {
-        _castVote(percentages, msg.sender);
+    function castVote(uint256[] calldata points) public {
+        _castVote(points, msg.sender);
     }
 
     /**
@@ -132,25 +135,25 @@ contract YieldDisburser is OwnableUpgradeable {
      *         Internal Functions        *
      *
      */
-    function _castVote(uint256[] calldata percentages, address holder) internal {
+    function _castVote(uint256[] calldata points, address holder) internal {
         uint256 length = breadchainProjects.length;
-        if (percentages.length != length) revert IncorrectNumberOfProjects();
-
-        uint256 total;
-        for (uint256 i = 0; i < length; i++) {
-            total += percentages[i];
-        }
-        if (total != 10000) revert MustEqualPermyriad();
+        if (points.length != length) revert IncorrectNumberOfProjects();
 
         if (holderToDistribution[holder].length > 0) {
             delete holderToDistribution[holder];
         } else {
             breadchainVoters.push(holder);
         }
-        holderToDistribution[holder] = percentages;
+        holderToDistribution[holder] = points;
+        uint256 total;
+        for (uint256 i; i < length; ++i) {
+            if (points[i] > pointsMax) revert VotePointsTooLarge();
+            total += points[i];
+        }
+        holderToDistributionTotal[holder] = total;
     }
 
-    function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
+    function _commitVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
 
@@ -158,12 +161,14 @@ contract YieldDisburser is OwnableUpgradeable {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
+            uint256 vote;
             for (uint256 j; j < projectCount; ++j) {
-                uint256 vote = voterPower * voterDistribution[j];
+                vote = voterPower * voterDistribution[j] / holderToDistributionTotal[voter];
                 projectDistributions[j] += vote;
                 totalVotes += vote;
             }
             delete holderToDistribution[voter];
+            delete holderToDistributionTotal[voter];
         }
 
         return (projectDistributions, totalVotes);
@@ -185,6 +190,10 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
+    }
+
+    function setPointsMax(uint256 _pointsMax) public onlyOwner {
+        pointsMax = _pointsMax;
     }
 
     function addProject(address projectAddress) public onlyOwner {

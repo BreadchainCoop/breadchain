@@ -69,7 +69,7 @@ contract YieldDisburserTest is Test {
         vm.prank(holder);
         bread.mint{value: 1000000}(holder);
         vm.roll(32323332323);
-        uint256 vote = 100;
+        uint256 vote = 10000;
         percentages.push(vote);
         uint256 yieldAccrued = bread.yieldAccrued();
         vm.prank(holder);
@@ -78,7 +78,7 @@ contract YieldDisburserTest is Test {
         uint256 bread_bal_after = bread.balanceOf(address(this));
         assertGt(bread_bal_after, yieldAccrued - 1);
     }
-    
+
     function test_fuzzy_distribute(uint256 seed) public {
         uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
@@ -104,11 +104,11 @@ contract YieldDisburserTest is Test {
             vm.deal(holder, token_amount);
             vm.prank(holder);
             bread.mint{value: token_amount}(holder);
-            uint256 vote = randomval % 1000;
+            uint256 vote = randomval % 10000;
             currentBlockNumber += randomval % 5;
             vm.roll(currentBlockNumber);
             votes.push(vote);
-            votes.push(100 - vote);
+            votes.push(10000 - vote);
             vm.prank(holder);
             yieldDisburser2.castVote(votes);
             votes.pop();
