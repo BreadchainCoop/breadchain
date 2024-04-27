@@ -54,16 +54,20 @@ contract YieldDisburser is OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
-
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
-
-        lastClaimedTimestamp = Time.timestamp();
-        lastClaimedBlocknumber = Time.blockNumber();
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjectsLength);
+        if (totalVotes == 0) {
+            projectDistributions = new uint256[](breadchainProjectsLength);
+            for (uint256 i; i < breadchainProjectsLength; ++i) {
+                projectDistributions[i] = 1;
+            }
+            totalVotes = breadchainProjectsLength;
+        }
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / breadchainProjects.length;
+        uint256 baseSplit = halfBalance / breadchainProjectsLength;
 
-        for (uint256 i; i < breadchainProjects.length; ++i) {
+        for (uint256 i; i < breadchainProjectsLength; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
@@ -71,6 +75,8 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainProjects = queuedBreadchainProjects;
             delete queuedBreadchainProjects;
         }
+        lastClaimedTimestamp = Time.timestamp();
+        lastClaimedBlocknumber = Time.blockNumber();
     }
 
     // TODO: Is there any kind of access control to this function?

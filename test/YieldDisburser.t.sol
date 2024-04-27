@@ -168,4 +168,31 @@ contract YieldDisburserTest is Test {
         uint256 vote = yieldDisburser.getVotingPowerForPeriod(start, mintblocknum, holder);
         assertEq(vote, expectedVotingPower);
     }
+
+    function test_adding_projects() public {
+        vm.expectRevert();
+        address projects_before_len;
+        projects_before_len = yieldDisburser.breadchainProjects(1);
+        address[] memory projects = new address[](2);
+        projects[0] = address(this);
+        projects[1] = secondProject;
+        yieldDisburser.setProjects(projects);
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        uint48 startTimestamp = uint48(vm.getBlockTimestamp());
+        yieldDisburser.setlastClaimedTimestamp(startTimestamp);
+        yieldDisburser.setLastClaimedBlocknumber(start);
+        vm.warp(startTimestamp + 5000);
+        vm.roll(start + 100000000);
+        // vm.deal(address(this), 1000000000000000000);
+        // bread.mint{value: 1000000}(address(this));
+        // vm.roll(start + 101);
+        // yieldDisburser.castVote([50]);
+        yieldDisburser.distributeYield();
+        address project_added_after = yieldDisburser.breadchainProjects(1);
+        assertEq(project_added_after, secondProject);
+        vm.expectRevert();
+        yieldDisburser.queuedBreadchainProjects(1);
+    }
 }
