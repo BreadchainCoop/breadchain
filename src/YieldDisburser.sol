@@ -4,8 +4,6 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
-// import foundry console library
-import "forge-std/console.sol";
 import {IBreadToken} from "./IBreadToken.sol";
 
 error AlreadyClaimed();
@@ -88,7 +86,6 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 balance = (breadToken.balanceOf(address(this)) + breadToken.yieldAccrued());
         if (balance < breadchainProjects.length) revert YieldTooLow(balance);
         if (_now < lastClaimedTimestamp + minimumTimeBetweenClaims) {
-            console.log(lastClaimedTimestamp);
             revert AlreadyClaimed();
         }
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
