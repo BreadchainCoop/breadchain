@@ -66,7 +66,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 baseSplit = halfBalance / breadchainProjects.length;
 
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
+            uint256 votedSplit = (halfBalance) * (projectDistributions[i]  / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
     }
