@@ -58,7 +58,7 @@ contract YieldDisburserTest is Test {
         bread.setYieldClaimer(address(yieldDisburser));
         yieldDisburser.addProject(address(this));
     }
-
+    
     function test_fuzzy_distribute(uint256 seed) public {
         uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
@@ -84,7 +84,7 @@ contract YieldDisburserTest is Test {
             vm.deal(holder, token_amount);
             vm.prank(holder);
             bread.mint{value: token_amount}(holder);
-            uint256 vote = randomval % 100;
+            uint256 vote = randomval % 1000;
             currentBlockNumber += randomval % 5;
             vm.roll(currentBlockNumber);
             votes.push(vote);
