@@ -119,8 +119,9 @@ contract YieldDisburserTest is Test {
 
     function test_voting_power() public {
         vm.roll(32323232323);
+        uint256 votingPowerBefore;
         vm.expectRevert();
-        uint256 votingPowerBefore = yieldDisburser.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
+        votingPowerBefore = yieldDisburser.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
         vm.deal(address(this), 1000000000000);
         vm.roll(42424242424);
         bread.mint{value: 1000000}(address(this));
