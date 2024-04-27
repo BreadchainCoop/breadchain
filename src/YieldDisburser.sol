@@ -17,7 +17,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public minimumTimeBetweenClaims;
     mapping(address => uint256[]) public holderToDistribution;
 
-    event YieldDistributed(uint256 votedYield, uint256 baseYield, uint256 percentage, address indexed project);
+    event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
     event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
     error EndAfterCurrentBlock();
@@ -61,14 +61,19 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
-        uint256 percantage_of_total_vote;
+        uint256 percentage_of_total_vote;
         uint256 votedSplit;
+        uint256[] memory votedSplits;
+        uint256[] memory percentages;
+
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            percantage_of_total_vote = projectDistributions[i] / totalVotes;
-            votedSplit = percantage_of_total_vote * halfBalance;
+            percentage_of_total_vote = projectDistributions[i] / totalVotes;
+            votedSplit = percentage_of_total_vote * halfBalance;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
-            emit YieldDistributed(votedSplit, baseSplit, percantage_of_total_vote, breadchainProjects[i]);
+            votedSplits[i] = votedSplit;
+            percentages[i] = percentage_of_total_vote;
         }
+        emit YieldDistributed(votedSplits, baseSplit, percentages, breadchainProjects);
     }
 
     // TODO: Is there any kind of access control to this function?
