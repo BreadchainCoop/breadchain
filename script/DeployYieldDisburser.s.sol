@@ -18,8 +18,12 @@ contract DeployYieldDisburser is Script {
             address(msg.sender),
             abi.encodeWithSelector(YieldDisburser.initialize.selector, 0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3)
         );
+<<<<<<< HEAD
         // TODO: add the breadchain projects
         console.log("Deployed YieldDisburser at address: %s", address(yieldDisburser));
+=======
+        console2.log("Deployed YieldDisburser at address: {}", address(yieldDisburser));
+>>>>>>> dev
         vm.stopBroadcast();
     }
 }
