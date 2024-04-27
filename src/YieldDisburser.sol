@@ -4,7 +4,8 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
-
+// import foundry console library
+import "forge-std/console.sol";
 import {IBreadToken} from "./IBreadToken.sol";
 
 error AlreadyClaimed();
@@ -35,8 +36,12 @@ contract YieldDisburser is OwnableUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address breadAddress) public initializer {
+    function initialize(address breadAddress, address[] memory _breadchainProjects) public initializer {
         breadToken = IBreadToken(breadAddress);
+        breadchainProjects = new address[](_breadchainProjects.length);
+        for (uint256 i; i < _breadchainProjects.length; ++i) {
+            breadchainProjects[i] = _breadchainProjects[i];
+        }
         __Ownable_init(msg.sender);
     }
 
@@ -85,8 +90,9 @@ contract YieldDisburser is OwnableUpgradeable {
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
         uint48 _now = Time.timestamp();
         uint256 balance = (breadToken.balanceOf(address(this)) + breadToken.yieldAccrued());
-        if (balance > breadchainProjects.length) revert YieldTooLow(balance);
+        if (balance < breadchainProjects.length) revert YieldTooLow(balance);
         if (_now < lastClaimedTimestamp + minimumTimeBetweenClaims) {
+            console.log(lastClaimedTimestamp);
             revert AlreadyClaimed();
         }
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
@@ -94,28 +100,40 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function getVotingPowerForPeriod(uint256 start, uint256 end, address account) external view returns (uint256) {
-        if (start < end) revert StartMustBeBeforeEnd();
-        if (end <= Time.blockNumber()) revert EndAfterCurrentBlock();
+        if (start > end) revert StartMustBeBeforeEnd();
+        if (end > Time.blockNumber()) revert EndAfterCurrentBlock();
         uint32 latestCheckpointPos = breadToken.numCheckpoints(account);
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
-        latestCheckpointPos--;
-        Checkpoints.Checkpoint208 memory intervalEnd = breadToken.checkpoints(account, latestCheckpointPos); // Subtract 1 for 0-indexed
+        latestCheckpointPos--; // Subtract 1 for 0-indexed array
+        Checkpoints.Checkpoint208 memory intervalEnd = breadToken.checkpoints(account, latestCheckpointPos);
         uint48 prevKey = intervalEnd._key;
         uint256 intervalEndValue = intervalEnd._value;
-        uint256 votingPower = intervalEndValue * (end - prevKey);
-        if (latestCheckpointPos == 0) return votingPower;
+        uint256 votingPower = intervalEndValue * ((end) - prevKey);
+        if (latestCheckpointPos == 0) {
+            if (end == prevKey) {
+                // If the latest checkpoint is exactly at the end of the interval, return the value at that checkpoint
+                return intervalEndValue;
+            } else {
+                return votingPower; // Otherwise, return the voting power calculated above, which is the value at the latest checkpoint multiplied by the length of the interval
+            }
+        }
+        uint256 interval_voting_power;
+        uint48 key;
+        uint256 value;
+        Checkpoints.Checkpoint208 memory checkpoint;
         // Iterate through checkpoints in reverse order, starting one before the latest checkpoint because we already handled it above
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
-            Checkpoints.Checkpoint208 memory checkpoint = breadToken.checkpoints(account, i);
-            uint48 key = checkpoint._key;
-            uint256 value = checkpoint._value;
+            checkpoint = breadToken.checkpoints(account, i);
+            key = checkpoint._key;
+            value = checkpoint._value;
+            interval_voting_power = value * (prevKey - key);
             if (key <= start) {
-                votingPower += value * (prevKey - start);
+                votingPower += interval_voting_power;
                 break;
+            } else {
+                votingPower += interval_voting_power;
             }
-            if (key > start) {
-                votingPower += value * (prevKey - key);
-            }
+            prevKey = key;
         }
         return votingPower;
     }
