@@ -67,6 +67,10 @@ contract YieldDisburser is OwnableUpgradeable {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
+        if (queuedBreadchainProjects.length > 0) {
+            breadchainProjects = queuedBreadchainProjects;
+            delete queuedBreadchainProjects;
+        }
     }
 
     // TODO: Is there any kind of access control to this function?
