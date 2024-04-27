@@ -38,7 +38,10 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function initialize(address breadAddress, address[] memory _breadchainProjects) public initializer {
         breadToken = IBreadToken(breadAddress);
-        breadchainProjects = _breadchainProjects;
+        breadchainProjects = new address[](_breadchainProjects.length);
+        for (uint256 i; i < _breadchainProjects.length; ++i) {
+            breadchainProjects[i] = _breadchainProjects[i];
+        }
         __Ownable_init(msg.sender);
     }
 
@@ -105,9 +108,7 @@ contract YieldDisburser is OwnableUpgradeable {
         Checkpoints.Checkpoint208 memory intervalEnd = breadToken.checkpoints(account, latestCheckpointPos);
         uint48 prevKey = intervalEnd._key;
         uint256 intervalEndValue = intervalEnd._value;
-
         uint256 votingPower = intervalEndValue * ((end) - prevKey);
-        console.log("init votingPower: %d", votingPower);
         if (latestCheckpointPos == 0) {
             if (end == prevKey) {
                 // If the latest checkpoint is exactly at the end of the interval, return the value at that checkpoint
