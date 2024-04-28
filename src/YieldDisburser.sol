@@ -209,4 +209,29 @@ contract YieldDisburser is OwnableUpgradeable {
             }
         }
     }
+
+    function currentVotesCasted() public view returns (address[] memory, uint256[][] memory) {
+        uint256[][] memory voterDistributions;
+        for (uint256 i; i < breadchainVoters.length; ++i) {
+            address voter = breadchainVoters[i];
+            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
+            uint256[] memory voterDistribution = holderToDistribution[voter];
+            uint256 vote;
+
+            for (uint256 j; j < breadchainProjects.length; ++j) {
+                vote = ((voterPower * voterDistribution[j] * PERCISION) / holderToDistributionTotal[voter]) / PERCISION;
+                voterDistributions[i][j] = vote;
+            }
+        }
+        return (breadchainVoters, voterDistributions);
+    }
+
+    function currentVoteCasted(address holder) public view returns (uint256[] memory) {
+        uint256[] memory percentages;
+        uint256 total = holderToDistributionTotal[holder];
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            percentages[i] = (holderToDistribution[holder][i] * PERCISION / total) / PERCISION;
+        }
+        return percentages;
+    }
 }

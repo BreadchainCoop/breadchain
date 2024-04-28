@@ -196,4 +196,24 @@ contract YieldDisburserTest is Test {
         uint256 vote = yieldDisburser.getVotingPowerForPeriod(start, mintblocknum, holder);
         assertEq(vote, expectedVotingPower);
     }
+
+    function test_current_votes_casted() public {
+        vm.roll(32323232323);
+        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlocknumber(block.number);
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        address holder = address(0x1234567890123456789012345678901234567890);
+        vm.deal(holder, 1000000000000);
+        vm.prank(holder);
+        bread.mint{value: 1000000}(holder);
+        vm.roll(32323332324);
+        uint256[] vote = [10000];
+        vm.prank(holder);
+        yieldDisburser.castVote(vote);
+        (address[] memory holders, uint256[][] memory currentVotesCasted) = yieldDisburser.currentVotesCasted();
+        assertEq(holders.length, 1);
+        assertEq(holders[0], holder);
+        assertEq(currentVotesCasted[0][0], 10000);
+    }
 }
