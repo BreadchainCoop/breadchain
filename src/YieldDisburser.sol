@@ -5,6 +5,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {IBreadToken} from "./IBreadToken.sol";
+import "forge-std/console.sol";
 
 error AlreadyClaimed();
 
@@ -18,6 +19,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 pointsMax = 100000;
     mapping(address => uint256[]) public holderToDistribution;
     mapping(address => uint256) public holderToDistributionTotal;
+    uint256 public constant PERCISION = 1e18;
 
     event BaseYieldDistributed(uint256 amount, address project);
 
@@ -64,9 +66,18 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
-
+        console.log("projectDistributions.length: %s", projectDistributions.length);
+        console.log("project distributions[0]: %s", projectDistributions[0]);
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = (halfBalance) * (projectDistributions[i]  / totalVotes);
+            uint256 scaledNumerator = projectDistributions[i] * PERCISION;
+            uint256 Denominator = totalVotes;
+            console.log("percision %s", PERCISION);
+            console.log("iterator i: %s", i);
+            console.log("scaledNumerator: %s", scaledNumerator);
+            console.log("Denominator: %s", Denominator);
+            console.log("halfBalance: %s", halfBalance);
+            uint256 votedSplit = halfBalance * (scaledNumerator / Denominator) / PERCISION;
+
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
     }
