@@ -15,6 +15,9 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
+    uint256 public sybilMinimum;
+    uint256 public maxVotes;
+    uint256 public currentVotes;
     mapping(address => uint256[]) public holderToDistribution;
 
     event BaseYieldDistributed(uint256 amount, address project);
@@ -28,6 +31,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
     error YieldTooLow(uint256);
+    error BelowSybilMinimum();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -40,6 +44,8 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
         }
+        sybilMinimum = 1e18;
+        maxVotes = 1e4;
         __Ownable_init(msg.sender);
     }
 
@@ -70,6 +76,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
     // TODO: Is there any kind of access control to this function?
     function castVote(uint256[] calldata percentages) public {
+        if (breadToken.balanceOf(msg.sender) < sybilMinimum) revert BelowSybilMinimum();
         _castVote(percentages, msg.sender);
     }
 
@@ -186,6 +193,10 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
+    }
+
+    function setSybilMinimum(uint256 _sybilMinimum) public onlyOwner {
+        sybilMinimum = _sybilMinimum;
     }
 
     function addProject(address projectAddress) public onlyOwner {
