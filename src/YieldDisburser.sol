@@ -73,10 +73,7 @@ contract YieldDisburser is OwnableUpgradeable {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
-        if (queuedBreadchainProjects.length > 0) {
-            breadchainProjects = queuedBreadchainProjects;
-            delete queuedBreadchainProjects;
-        }
+        _updateBreadchainProjects();
     }
 
     // TODO: Is there any kind of access control to this function?
@@ -161,7 +158,12 @@ contract YieldDisburser is OwnableUpgradeable {
         }
         holderToDistribution[holder] = percentages;
     }
-
+    function _updateBreadchainProjects() internal {
+        if (queuedBreadchainProjects.length > 0) {
+            breadchainProjects = queuedBreadchainProjects;
+            delete queuedBreadchainProjects;
+        }
+    }
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
