@@ -64,6 +64,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
+        currentVotes = 0;
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
@@ -156,6 +157,7 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainVoters.push(holder);
         }
         holderToDistribution[holder] = percentages;
+        currentVotes++;
     }
 
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
@@ -189,6 +191,14 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
         lastClaimedTimestamp = _lastClaimedTimestamp;
+    }
+
+    function setMaxVotes(uint256 _maxVotes) public onlyOwner {
+        maxVotes = _maxVotes;
+    }
+
+    function setCurrentVotes(uint256 _currentVotes) public onlyOwner {
+        currentVotes = _currentVotes;
     }
 
     function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
