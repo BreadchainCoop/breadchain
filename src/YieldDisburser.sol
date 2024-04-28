@@ -5,7 +5,6 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {IBreadToken} from "./IBreadToken.sol";
-import "forge-std/console.sol";
 
 error AlreadyClaimed();
 
@@ -16,7 +15,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
-    uint256 pointsMax = 100000;
+    uint256 public pointsMax;
     mapping(address => uint256[]) public holderToDistribution;
     mapping(address => uint256) public holderToDistributionTotal;
     uint256 public constant PERCISION = 1e18;
@@ -44,6 +43,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
         }
+        pointsMax = 100000;
         __Ownable_init(msg.sender);
     }
 
@@ -66,18 +66,8 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
-        console.log("projectDistributions.length: %s", projectDistributions.length);
-        console.log("project distributions[0]: %s", projectDistributions[0]);
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 scaledNumerator = projectDistributions[i] * PERCISION;
-            uint256 Denominator = totalVotes;
-            console.log("percision %s", PERCISION);
-            console.log("iterator i: %s", i);
-            console.log("scaledNumerator: %s", scaledNumerator);
-            console.log("Denominator: %s", Denominator);
-            console.log("halfBalance: %s", halfBalance);
-            uint256 votedSplit = halfBalance * (scaledNumerator / Denominator) / PERCISION;
-
+            uint256 votedSplit = halfBalance * (projectDistributions[i] * PERCISION / totalVotes) / PERCISION;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
     }
