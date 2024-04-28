@@ -67,6 +67,8 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjectsLength;
 
+        lastClaimedTimestamp = Time.timestamp();
+        lastClaimedBlocknumber = Time.blockNumber();
         for (uint256 i; i < breadchainProjectsLength; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
@@ -75,8 +77,6 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainProjects = queuedBreadchainProjects;
             delete queuedBreadchainProjects;
         }
-        lastClaimedTimestamp = Time.timestamp();
-        lastClaimedBlocknumber = Time.blockNumber();
     }
 
     // TODO: Is there any kind of access control to this function?
