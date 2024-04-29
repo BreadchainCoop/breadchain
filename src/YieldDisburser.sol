@@ -2,8 +2,7 @@
 pragma solidity ^0.8.22;
 
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import {Checkpoints} from
-    "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+import {Checkpoints} from "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
 
