@@ -242,18 +242,19 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function queueProjectRemoval(address project) public onlyOwner {
-        for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
-            if (queuedProjectsForRemoval[i] == project) {
-                revert ProjectExistsOrAlreadyQueued();
-            }
-        }
+        bool found = false;
         for (uint256 i; i < breadchainProjects.length; ++i) {
             if (breadchainProjects[i] == project) {
-                queuedProjectsForRemoval.push(project);
-                return;
+                found = true;
             }
         }
-        revert ProjectNotFound();
+        if (!found) revert ProjectNotFound();
+        for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
+            if (queuedProjectsForRemoval[i] == project) {
+                revert ProjectAlreadyQueued();
+            }
+        }
+        queuedProjectsForRemoval.push(project);
     }
 
     function getBreadchainProjectsLength() public view returns (uint256) {
