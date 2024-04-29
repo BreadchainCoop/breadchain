@@ -124,12 +124,6 @@ contract YieldDisburserTest is Test {
         assertGt(second_bal_after, breadbalproject2start);
     }
 
-    function test_add_project() public {
-        assert(yieldDisburser.breadchainProjects(0) == address(this));
-        yieldDisburser.removeProject(address(this));
-        assert(yieldDisburser.breadchainProjects(0) == address(0));
-    }
-
     function test_set_duration() public {
         uint48 TimeBetweenClaimsBefore = yieldDisburser.minimumTimeBetweenClaims();
         yieldDisburser.setMinimumTimeBetweenClaims(10);
@@ -194,5 +188,41 @@ contract YieldDisburserTest is Test {
         }
         uint256 vote = yieldDisburser.getVotingPowerForPeriod(start, mintblocknum, holder);
         assertEq(vote, expectedVotingPower);
+    }
+
+    function test_adding_removing_projects() public {
+        vm.expectRevert();
+        address projects_before_len;
+        projects_before_len = yieldDisburser.breadchainProjects(1);
+        address active_project = yieldDisburser.breadchainProjects(0);
+        assertEq(active_project, address(this));
+        yieldDisburser.queueProjectAddition(secondProject);
+        yieldDisburser.queueProjectRemoval(address(this));
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        uint48 startTimestamp = uint48(vm.getBlockTimestamp());
+        yieldDisburser.setlastClaimedTimestamp(startTimestamp);
+        yieldDisburser.setLastClaimedBlocknumber(start);
+        vm.warp(startTimestamp + 5000);
+        vm.roll(start + 100000000);
+        vm.deal(address(this), 1000000000000000000);
+        bread.mint{value: 10000000000000}(address(this));
+        vm.roll(start + 100000001);
+        votes = new uint256[](1);
+        votes[0] = 100;
+        yieldDisburser.castVote(votes);
+        yieldDisburser.distributeYield();
+        address project_added_after = yieldDisburser.breadchainProjects(0);
+        assertEq(project_added_after, secondProject);
+        vm.expectRevert();
+        yieldDisburser.queuedProjectsForAddition(0);
+        vm.expectRevert();
+        yieldDisburser.queuedProjectsForRemoval(0);
+        address random_project = address(0x1244567830123456789012345478901234567890);
+        vm.expectRevert();
+        yieldDisburser.queueProjectRemoval(random_project);
+        uint256 length = yieldDisburser.getBreadchainProjectsLength();
+        assertEq(length, 1);
     }
 }

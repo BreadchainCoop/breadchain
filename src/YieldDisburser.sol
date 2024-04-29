@@ -10,6 +10,8 @@ error AlreadyClaimed();
 
 contract YieldDisburser is OwnableUpgradeable {
     address[] public breadchainProjects;
+    address[] public queuedProjectsForAddition;
+    address[] public queuedProjectsForRemoval;
     address[] public breadchainVoters;
     Bread public breadToken;
     uint48 public lastClaimedTimestamp;
@@ -18,6 +20,8 @@ contract YieldDisburser is OwnableUpgradeable {
     mapping(address => uint256[]) public holderToDistribution;
 
     event BaseYieldDistributed(uint256 amount, address project);
+    event ProjectAdded(address project);
+    event ProjectRemoved(address project);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -28,6 +32,8 @@ contract YieldDisburser is OwnableUpgradeable {
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
     error YieldTooLow(uint256);
+    error ProjectNotFound();
+    error ProjectExistsOrAlreadyQueued();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -53,19 +59,26 @@ contract YieldDisburser is OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjectsLength);
+        if (totalVotes == 0) {
+            projectDistributions = new uint256[](breadchainProjectsLength);
+            for (uint256 i; i < breadchainProjectsLength; ++i) {
+                projectDistributions[i] = 1;
+            }
+            totalVotes = breadchainProjectsLength;
+        }
 
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
+        uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
+        uint256 baseSplit = halfBalance / breadchainProjectsLength;
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
-
-        uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / breadchainProjects.length;
-
-        for (uint256 i; i < breadchainProjects.length; ++i) {
+        for (uint256 i; i < breadchainProjectsLength; ++i) {
             uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
+        _updateBreadchainProjects();
     }
 
     // TODO: Is there any kind of access control to this function?
@@ -151,6 +164,31 @@ contract YieldDisburser is OwnableUpgradeable {
         holderToDistribution[holder] = percentages;
     }
 
+    function _updateBreadchainProjects() internal {
+        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
+            address project = queuedProjectsForAddition[i];
+            breadchainProjects.push(project);
+            emit ProjectAdded(project);
+        }
+        delete queuedProjectsForAddition;
+        address[] memory oldBreadChainProjects = breadchainProjects;
+        delete breadchainProjects;
+        for (uint256 i; i < oldBreadChainProjects.length; ++i) {
+            address project = oldBreadChainProjects[i];
+            bool remove;
+            for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
+                if (project == queuedProjectsForRemoval[j]) {
+                    remove = true;
+                    break;
+                }
+            }
+            if (!remove) {
+                breadchainProjects.push(project);
+            }
+        }
+        delete queuedProjectsForRemoval;
+    }
+
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
@@ -188,16 +226,36 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
 
-    function addProject(address projectAddress) public onlyOwner {
-        breadchainProjects.push(projectAddress);
-    }
-
-    function removeProject(address projectAddress) public onlyOwner {
-        for (uint256 i = 0; i < breadchainProjects.length; i++) {
-            if (breadchainProjects[i] == projectAddress) {
-                delete breadchainProjects[i];
-                break;
+    function queueProjectAddition(address project) public onlyOwner {
+        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
+            if (queuedProjectsForAddition[i] == project) {
+                revert ProjectNotFound();
             }
         }
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            if (breadchainProjects[i] == project) {
+                revert ProjectExistsOrAlreadyQueued();
+            }
+        }
+        queuedProjectsForAddition.push(project);
+    }
+
+    function queueProjectRemoval(address project) public onlyOwner {
+        for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
+            if (queuedProjectsForRemoval[i] == project) {
+                revert ProjectExistsOrAlreadyQueued();
+            }
+        }
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            if (breadchainProjects[i] == project) {
+                queuedProjectsForRemoval.push(project);
+                return;
+            }
+        }
+        revert ProjectNotFound();
+    }
+
+    function getBreadchainProjectsLength() public view returns (uint256) {
+        return breadchainProjects.length;
     }
 }
