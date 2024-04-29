@@ -18,6 +18,12 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
     uint256 public pointsMax;
+    uint256 public minRequiredVotingPower;
+    uint256 public maxVotes;
+    uint256 public currentVotes;
+    uint256 public minVotingAmount;
+    uint256 public minVotingHoldingDuration;
+    uint256 constant BLOCKTIME = 5;
     mapping(address => uint256[]) public holderToDistribution;
     mapping(address => uint256) public holderToDistributionTotal;
     uint256 public constant PRECISION = 1e18;
@@ -37,6 +43,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error YieldTooLow(uint256);
     error ProjectNotFound();
     error ProjectExistsOrAlreadyQueued();
+    error BelowMinRequiredVotingPower();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -50,6 +57,10 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainProjects[i] = _breadchainProjects[i];
         }
         pointsMax = 100000;
+        minVotingAmount = 5; // must hold atleast 5 bread
+        minVotingHoldingDuration = 10 days; // must hold for atleast 10 days
+        minRequiredVotingPower = 1e18 * minVotingAmount * minVotingHoldingDuration / BLOCKTIME; // Holding 10 bread for 5 days , assuming a 5 second block time
+        maxVotes = 1e4;
         __Ownable_init(msg.sender);
     }
 
@@ -77,6 +88,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
+        currentVotes = 0;
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjectsLength;
@@ -87,8 +99,14 @@ contract YieldDisburser is OwnableUpgradeable {
         _updateBreadchainProjects();
     }
 
-    function castVote(uint256[] calldata points) public {
-        _castVote(points, msg.sender);
+    // TODO: Is there any kind of access control to this function?
+    function castVote(uint256[] calldata percentages) public {
+        if (
+            this.getVotingPowerForPeriod(
+                block.number - (minVotingHoldingDuration / BLOCKTIME), block.number, msg.sender
+            ) < minRequiredVotingPower
+        ) revert BelowMinRequiredVotingPower();
+        _castVote(percentages, msg.sender);
     }
 
     /**
@@ -167,6 +185,7 @@ contract YieldDisburser is OwnableUpgradeable {
             total += points[i];
         }
         holderToDistributionTotal[holder] = total;
+        currentVotes++;
     }
 
     function _updateBreadchainProjects() internal {
@@ -229,6 +248,14 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedTimestamp = _lastClaimedTimestamp;
     }
 
+    function setMaxVotes(uint256 _maxVotes) public onlyOwner {
+        maxVotes = _maxVotes;
+    }
+
+    function setCurrentVotes(uint256 _currentVotes) public onlyOwner {
+        currentVotes = _currentVotes;
+    }
+
     function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
@@ -268,5 +295,16 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setPointsMax(uint256 _pointsMax) public onlyOwner {
         pointsMax = _pointsMax;
+    }
+
+    function setMinVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
+        minVotingHoldingDuration = _minVotingHoldingDuration;
+    }
+
+    function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
+        minVotingAmount = _minVotingAmount;
+    }
+    function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
+        minRequiredVotingPower = _minRequiredVotingPower;
     }
 }
