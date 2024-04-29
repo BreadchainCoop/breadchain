@@ -54,19 +54,19 @@ contract YieldDisburser is OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
-
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjectsLength);
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / breadchainProjects.length;
+        uint256 baseSplit = halfBalance / breadchainProjectsLength;
         uint256 percentageOfTotalVote;
         uint256 votedSplit;
-        uint256[] memory votedSplits;
-        uint256[] memory percentages;
+        uint256[] memory votedSplits = new uint256[](breadchainProjectsLength);
+        uint256[] memory percentages = new uint256[](breadchainProjectsLength);
 
-        for (uint256 i; i < breadchainProjects.length; ++i) {
+        for (uint256 i; i < breadchainProjectsLength; ++i) {
             percentageOfTotalVote = projectDistributions[i] / totalVotes;
             votedSplit = percentageOfTotalVote * halfBalance;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
