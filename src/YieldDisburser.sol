@@ -231,11 +231,11 @@ contract YieldDisburser is OwnableUpgradeable {
         }
     }
 
-    function setminVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
+    function setMinVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
         minVotingHoldingDuration = _minVotingHoldingDuration;
     }
 
-    function setminVotingAmount(uint256 _minVotingAmount) public onlyOwner {
+    function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
         minVotingAmount = _minVotingAmount;
     }
 }
