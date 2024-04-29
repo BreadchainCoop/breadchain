@@ -33,7 +33,8 @@ contract YieldDisburser is OwnableUpgradeable {
     error YieldNotResolved();
     error YieldTooLow(uint256);
     error ProjectNotFound();
-    error ProjectExistsOrAlreadyQueued();
+    error ProjectAlreadyQueued();
+    error AlreadyMemberProject();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -227,14 +228,14 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function queueProjectAddition(address project) public onlyOwner {
-        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
-            if (queuedProjectsForAddition[i] == project) {
-                revert ProjectNotFound();
-            }
-        }
         for (uint256 i; i < breadchainProjects.length; ++i) {
             if (breadchainProjects[i] == project) {
-                revert ProjectExistsOrAlreadyQueued();
+                revert AlreadyMemberProject();
+            }
+        }
+        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
+            if (queuedProjectsForAddition[i] == project) {
+                revert ProjectAlreadyQueued();
             }
         }
         queuedProjectsForAddition.push(project);
