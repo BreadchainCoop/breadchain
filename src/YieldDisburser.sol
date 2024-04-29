@@ -2,7 +2,8 @@
 pragma solidity ^0.8.22;
 
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import {Checkpoints} from "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+import {Checkpoints} from
+    "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
 
@@ -75,8 +76,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
         uint256 breadchainProjectsLength = breadchainProjects.length;
-        (uint256[] memory projectDistributions, uint256 totalVotes) =
-            _commitVotedDistribution(breadchainProjectsLength);
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _commitVotedDistribution(breadchainProjectsLength);
         if (totalVotes == 0) {
             projectDistributions = new uint256[](breadchainProjectsLength);
             for (uint256 i; i < breadchainProjectsLength; ++i) {
@@ -84,7 +84,6 @@ contract YieldDisburser is OwnableUpgradeable {
             }
             totalVotes = breadchainProjectsLength;
         }
-
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
@@ -304,22 +303,26 @@ contract YieldDisburser is OwnableUpgradeable {
     function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
         minVotingAmount = _minVotingAmount;
     }
+
     function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
         minRequiredVotingPower = _minRequiredVotingPower;
     }
 
     function currentVotesCasted() public view returns (address[] memory, uint256[][] memory) {
-        uint256[][] memory voterDistributions;
-        for (uint256 i; i < breadchainVoters.length; ++i) {
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        uint256 breadchainVotersLength = breadchainVoters.length;
+        uint256[][] memory voterDistributions = new uint256[][](breadchainVotersLength);
+        for (uint256 i; i < breadchainVotersLength; ++i) {
+            uint256[] memory votes = new uint256[](breadchainProjectsLength);
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
             uint256 vote;
-
-            for (uint256 j; j < breadchainProjects.length; ++j) {
-                vote = ((voterPower * voterDistribution[j] * PERCISION) / holderToDistributionTotal[voter]) / PERCISION;
-                voterDistributions[i][j] = vote;
+            for (uint256 j; j < breadchainProjectsLength; ++j) {
+                vote = ((voterPower * voterDistribution[j] * PRECISION) / holderToDistributionTotal[voter]) / PRECISION;
+                votes[j] = vote;
             }
+            voterDistributions[i] = votes;
         }
         return (breadchainVoters, voterDistributions);
     }
@@ -328,7 +331,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256[] memory percentages;
         uint256 total = holderToDistributionTotal[holder];
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            percentages[i] = (holderToDistribution[holder][i] * PERCISION / total) / PERCISION;
+            percentages[i] = (holderToDistribution[holder][i] * PRECISION / total) / PRECISION;
         }
         return percentages;
     }
