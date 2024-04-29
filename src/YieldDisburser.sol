@@ -231,11 +231,11 @@ contract YieldDisburser is OwnableUpgradeable {
         }
     }
 
-    function setMinimumTimeBetweenClaims(_minimumTimeBetweenClaims) public onlyOwner {
-        minimumTimeBetweenClaims = _minimumTimeBetweenClaims;
+    function setminVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
+        minVotingHoldingDuration = _minVotingHoldingDuration;
     }
 
-    function setMinRequiredVotingPower(_minRequiredVotingPower) public onlyOwner {
-        minRequiredVotingPower = _minRequiredVotingPower;
+    function setminVotingAmount(uint256 _minVotingAmount) public onlyOwner {
+        minVotingAmount = _minVotingAmount;
     }
 }
