@@ -5,7 +5,6 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {IBreadToken} from "./IBreadToken.sol";
-import "forge-std/console.sol";
 
 error AlreadyClaimed();
 
@@ -174,21 +173,16 @@ contract YieldDisburser is OwnableUpgradeable {
         delete queuedProjectsForAddition;
         address[] memory oldBreadChainProjects = breadchainProjects;
         delete breadchainProjects;
-        console.log("newBreadchainProjects length: %d", oldBreadChainProjects.length);
         for (uint256 i; i < oldBreadChainProjects.length; ++i) {
             address project = oldBreadChainProjects[i];
-            console.log("project: %s", project);
-            console.log("index: %d", i);
             bool remove;
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
-                console.log("queuedProjectsForRemoval[j]: %s", queuedProjectsForRemoval[j]);
                 if (project == queuedProjectsForRemoval[j]) {
                     remove = true;
                     break;
                 }
             }
             if (!remove) {
-                console.log("retaining project: %s", project);
                 breadchainProjects.push(project);
             }
         }
