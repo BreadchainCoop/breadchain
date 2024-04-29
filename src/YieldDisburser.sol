@@ -15,9 +15,12 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
-    uint256 public sybilMinimum;
+    uint256 public minRequiredVotingPower;
     uint256 public maxVotes;
     uint256 public currentVotes;
+    uint256 public minVotingAmount;
+    uint256 public minVotingHoldingDuration;
+    uint256 constant BLOCKTIME = 5;
     mapping(address => uint256[]) public holderToDistribution;
 
     event BaseYieldDistributed(uint256 amount, address project);
@@ -31,7 +34,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
     error YieldTooLow(uint256);
-    error BelowSybilMinimum();
+    error BelowMinRequiredVotingPower();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -44,7 +47,9 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
         }
-        sybilMinimum = 1e18;
+        minVotingAmount = 5; // must hold atleast 5 bread
+        minVotingHoldingDuration = 10 days; // must hold for atleast 10 days
+        minRequiredVotingPower = 1e18 * minVotingAmount * minVotingHoldingDuration / BLOCKTIME; // Holding 10 bread for 5 days , assuming a 5 second block time
         maxVotes = 1e4;
         __Ownable_init(msg.sender);
     }
@@ -77,7 +82,11 @@ contract YieldDisburser is OwnableUpgradeable {
 
     // TODO: Is there any kind of access control to this function?
     function castVote(uint256[] calldata percentages) public {
-        if (breadToken.balanceOf(msg.sender) < sybilMinimum) revert BelowSybilMinimum();
+        if (
+            this.getVotingPowerForPeriod(
+                block.number - (minVotingHoldingDuration / BLOCKTIME), block.number, msg.sender
+            ) < minRequiredVotingPower
+        ) revert BelowMinRequiredVotingPower();
         _castVote(percentages, msg.sender);
     }
 
@@ -205,8 +214,8 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
 
-    function setSybilMinimum(uint256 _sybilMinimum) public onlyOwner {
-        sybilMinimum = _sybilMinimum;
+    function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
+        minRequiredVotingPower = _minRequiredVotingPower;
     }
 
     function addProject(address projectAddress) public onlyOwner {
@@ -220,5 +229,13 @@ contract YieldDisburser is OwnableUpgradeable {
                 break;
             }
         }
+    }
+
+    function setMinimumTimeBetweenClaims(_minimumTimeBetweenClaims) public onlyOwner {
+        minimumTimeBetweenClaims = _minimumTimeBetweenClaims;
+    }
+
+    function setMinRequiredVotingPower(_minRequiredVotingPower) public onlyOwner {
+        minRequiredVotingPower = _minRequiredVotingPower;
     }
 }
