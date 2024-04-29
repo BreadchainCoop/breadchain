@@ -18,7 +18,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public pointsMax;
     mapping(address => uint256[]) public holderToDistribution;
     mapping(address => uint256) public holderToDistributionTotal;
-    uint256 public constant PERCISION = 1e18;
+    uint256 public constant PRECISION = 1e18;
 
     event BaseYieldDistributed(uint256 amount, address project);
 
@@ -67,7 +67,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / breadchainProjects.length;
         for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = halfBalance * (projectDistributions[i] * PERCISION / totalVotes) / PERCISION;
+            uint256 votedSplit = halfBalance * (projectDistributions[i] * PRECISION / totalVotes) / PRECISION;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
         }
     }
