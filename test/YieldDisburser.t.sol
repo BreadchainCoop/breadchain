@@ -204,11 +204,10 @@ contract YieldDisburserTest is Test {
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
         yieldDisburser.setlastClaimedTimestamp(startTimestamp);
         yieldDisburser.setLastClaimedBlocknumber(start);
+        vm.deal(address(this), 5 * 1e18);
+        bread.mint{value: 5 * 1e18}(address(this));
+        vm.roll(start + 11 days / 5);
         vm.warp(startTimestamp + 5000);
-        vm.roll(start + 100000000);
-        vm.deal(address(this), 1000000000000000000);
-        bread.mint{value: 10000000000000}(address(this));
-        vm.roll(start + 100000001);
         votes = new uint256[](1);
         votes[0] = 100;
         yieldDisburser.castVote(votes);
@@ -224,6 +223,8 @@ contract YieldDisburserTest is Test {
         yieldDisburser.queueProjectRemoval(random_project);
         uint256 length = yieldDisburser.getBreadchainProjectsLength();
         assertEq(length, 1);
+    }
+
     function test_below_min_required_voting_power() public {
         uint256 start = 32323232323;
         vm.roll(start);
