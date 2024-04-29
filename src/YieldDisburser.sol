@@ -5,12 +5,14 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {IBreadToken} from "./IBreadToken.sol";
+import "forge-std/console.sol";
 
 error AlreadyClaimed();
 
 contract YieldDisburser is OwnableUpgradeable {
     address[] public breadchainProjects;
-    address[] public queuedBreadchainProjects;
+    address[] public queuedProjectsForAddition;
+    address[] public queuedProjectsForRemoval;
     address[] public breadchainVoters;
     IBreadToken public breadToken;
     uint48 public lastClaimedTimestamp;
@@ -19,6 +21,8 @@ contract YieldDisburser is OwnableUpgradeable {
     mapping(address => uint256[]) public holderToDistribution;
 
     event BaseYieldDistributed(uint256 amount, address project);
+    event ProjectAdded(address project);
+    event ProjectRemoved(address project);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -29,6 +33,8 @@ contract YieldDisburser is OwnableUpgradeable {
     error StartMustBeBeforeEnd();
     error YieldNotResolved();
     error YieldTooLow(uint256);
+    error ProjectNotFound();
+    error ProjectExistsOrAlreadyQueued();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -158,12 +164,37 @@ contract YieldDisburser is OwnableUpgradeable {
         }
         holderToDistribution[holder] = percentages;
     }
+
     function _updateBreadchainProjects() internal {
-        if (queuedBreadchainProjects.length > 0) {
-            breadchainProjects = queuedBreadchainProjects;
-            delete queuedBreadchainProjects;
+        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
+            address project = queuedProjectsForAddition[i];
+            breadchainProjects.push(project);
+            emit ProjectAdded(project);
         }
+        delete queuedProjectsForAddition;
+        address[] memory oldBreadChainProjects = breadchainProjects;
+        delete breadchainProjects;
+        console.log("newBreadchainProjects length: %d", oldBreadChainProjects.length);
+        for (uint256 i; i < oldBreadChainProjects.length; ++i) {
+            address project = oldBreadChainProjects[i];
+            console.log("project: %s", project);
+            console.log("index: %d", i);
+            bool remove;
+            for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
+                console.log("queuedProjectsForRemoval[j]: %s", queuedProjectsForRemoval[j]);
+                if (project == queuedProjectsForRemoval[j]) {
+                    remove = true;
+                    break;
+                }
+            }
+            if (!remove) {
+                console.log("retaining project: %s", project);
+                breadchainProjects.push(project);
+            }
+        }
+        delete queuedProjectsForRemoval;
     }
+
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
@@ -201,7 +232,36 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
 
-    function setProjects(address[] calldata _projects) public onlyOwner {
-        queuedBreadchainProjects = _projects;
+    function queueProjectAddition(address project) public onlyOwner {
+        for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
+            if (queuedProjectsForAddition[i] == project) {
+                revert ProjectNotFound();
+            }
+        }
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            if (breadchainProjects[i] == project) {
+                revert ProjectExistsOrAlreadyQueued();
+            }
+        }
+        queuedProjectsForAddition.push(project);
+    }
+
+    function queueProjectRemoval(address project) public onlyOwner {
+        for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
+            if (queuedProjectsForRemoval[i] == project) {
+                revert ProjectExistsOrAlreadyQueued();
+            }
+        }
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            if (breadchainProjects[i] == project) {
+                queuedProjectsForRemoval.push(project);
+                return;
+            }
+        }
+        revert ProjectNotFound();
+    }
+
+    function getBreadchainProjectsLength() public view returns (uint256) {
+        return breadchainProjects.length;
     }
 }
