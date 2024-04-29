@@ -2,16 +2,16 @@
 pragma solidity ^0.8.22;
 
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import {Checkpoints} from "openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+import {Checkpoints} from "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
-import {IBreadToken} from "./IBreadToken.sol";
+import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
 
 error AlreadyClaimed();
 
 contract YieldDisburser is OwnableUpgradeable {
     address[] public breadchainProjects;
     address[] public breadchainVoters;
-    IBreadToken public breadToken;
+    Bread public breadToken;
     uint48 public lastClaimedTimestamp;
     uint256 public lastClaimedBlocknumber;
     uint48 public minimumTimeBetweenClaims;
@@ -35,7 +35,7 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function initialize(address breadAddress, address[] memory _breadchainProjects) public initializer {
-        breadToken = IBreadToken(breadAddress);
+        breadToken = Bread(breadAddress);
         breadchainProjects = new address[](_breadchainProjects.length);
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
