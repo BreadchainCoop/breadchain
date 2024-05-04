@@ -20,7 +20,8 @@ contract YieldDisburser is OwnableUpgradeable {
     mapping(address => uint256) public holderToDistributionTotal;
     uint256 public constant PRECISION = 1e18;
 
-    event BaseYieldDistributed(uint256 amount, address project);
+    event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
+    event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -61,15 +62,24 @@ contract YieldDisburser is OwnableUpgradeable {
         (uint256[] memory projectDistributions, uint256 totalVotes) =
             _commitVotedDistribution(breadchainProjects.length);
 
+        uint256 breadchainProjectsLength = breadchainProjects.length;
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / breadchainProjects.length;
-        for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = halfBalance * (projectDistributions[i] * PRECISION / totalVotes) / PRECISION;
+        uint256 baseSplit = halfBalance / breadchainProjectsLength;
+        uint256 percentageOfTotalVote;
+        uint256 votedSplit;
+        uint256[] memory votedSplits = new uint256[](breadchainProjectsLength);
+        uint256[] memory percentages = new uint256[](breadchainProjectsLength);
+        for (uint256 i; i < breadchainProjectsLength; ++i) {
+            percentageOfTotalVote = projectDistributions[i] / totalVotes;
+            votedSplit = halfBalance * (projectDistributions[i] * PRECISION / totalVotes) / PRECISION;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
+            votedSplits[i] = votedSplit;
+            percentages[i] = percentageOfTotalVote;
         }
+        emit YieldDistributed(votedSplits, baseSplit, percentages, breadchainProjects);
     }
 
     function castVote(uint256[] calldata points) public {
@@ -152,12 +162,12 @@ contract YieldDisburser is OwnableUpgradeable {
             total += points[i];
         }
         holderToDistributionTotal[holder] = total;
+        emit BreadHolderVoted(holder, points, breadchainProjects);
     }
 
     function _commitVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
-
         for (uint256 i; i < breadchainVoters.length; ++i) {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
