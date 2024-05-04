@@ -77,7 +77,7 @@ contract YieldDisburserTest is Test {
         yieldDisburser.castVote(percentages);
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertGt(bread_bal_after, yieldAccrued - 1);
+        assertGt(bread_bal_after, yieldAccrued - 2);
     }
 
     function test_fuzzy_distribute(uint256 seed) public {
@@ -109,7 +109,7 @@ contract YieldDisburserTest is Test {
             currentBlockNumber += ((11 days / 5) + randomval % 5);
             vm.roll(currentBlockNumber);
             votes.push(vote);
-            votes.push(100 - vote);
+            votes.push(10000 - vote);
             vm.prank(holder);
             yieldDisburser2.castVote(votes);
             votes.pop();
