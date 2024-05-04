@@ -17,7 +17,8 @@ contract YieldDisburser is OwnableUpgradeable {
     uint48 public minimumTimeBetweenClaims;
     mapping(address => uint256[]) public holderToDistribution;
 
-    event BaseYieldDistributed(uint256 amount, address project);
+    event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
+    event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
     error EndAfterCurrentBlock();
     error IncorrectNumberOfProjects();
@@ -53,19 +54,26 @@ contract YieldDisburser is OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
-
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjects.length);
-
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _getVotedDistribution(breadchainProjectsLength);
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / breadchainProjects.length;
+        uint256 baseSplit = halfBalance / breadchainProjectsLength;
+        uint256 percentageOfTotalVote;
+        uint256 votedSplit;
+        uint256[] memory votedSplits = new uint256[](breadchainProjectsLength);
+        uint256[] memory percentages = new uint256[](breadchainProjectsLength);
 
-        for (uint256 i; i < breadchainProjects.length; ++i) {
-            uint256 votedSplit = ((projectDistributions[i] * halfBalance) / totalVotes);
+        for (uint256 i; i < breadchainProjectsLength; ++i) {
+            percentageOfTotalVote = projectDistributions[i] / totalVotes;
+            votedSplit = percentageOfTotalVote * halfBalance;
             breadToken.transfer(breadchainProjects[i], votedSplit + baseSplit);
+            votedSplits[i] = votedSplit;
+            percentages[i] = percentageOfTotalVote;
         }
+        emit YieldDistributed(votedSplits, baseSplit, percentages, breadchainProjects);
     }
 
     // TODO: Is there any kind of access control to this function?
@@ -149,12 +157,12 @@ contract YieldDisburser is OwnableUpgradeable {
             breadchainVoters.push(holder);
         }
         holderToDistribution[holder] = percentages;
+        emit BreadHolderVoted(holder, percentages, breadchainProjects);
     }
 
     function _getVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
         uint256[] memory projectDistributions = new uint256[](projectCount);
-
         for (uint256 i; i < breadchainVoters.length; ++i) {
             address voter = breadchainVoters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
