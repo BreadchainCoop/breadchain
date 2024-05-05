@@ -124,12 +124,6 @@ contract YieldDisburserTest is Test {
         assertGt(second_bal_after, breadbalproject2start);
     }
 
-    function test_add_project() public {
-        assert(yieldDisburser.breadchainProjects(0) == address(this));
-        yieldDisburser.removeProject(address(this));
-        assert(yieldDisburser.breadchainProjects(0) == address(0));
-    }
-
     function test_set_duration() public {
         uint48 TimeBetweenClaimsBefore = yieldDisburser.minimumTimeBetweenClaims();
         yieldDisburser.setMinimumTimeBetweenClaims(10);
@@ -216,6 +210,42 @@ contract YieldDisburserTest is Test {
         assertEq(holders.length, 1);
         assertEq(holders[0], holder);
         assertEq(currentVotesCasted[0][0],11 days / 5 * (5 * 1e18) );
+    }
+    function test_adding_removing_projects() public {
+        vm.expectRevert();
+        address projects_before_len;
+        projects_before_len = yieldDisburser.breadchainProjects(1);
+        address active_project = yieldDisburser.breadchainProjects(0);
+        assertEq(active_project, address(this));
+        yieldDisburser.queueProjectAddition(secondProject);
+        yieldDisburser.queueProjectRemoval(address(this));
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        uint48 startTimestamp = uint48(vm.getBlockTimestamp());
+        yieldDisburser.setlastClaimedTimestamp(startTimestamp);
+        yieldDisburser.setLastClaimedBlocknumber(start);
+        vm.warp(startTimestamp + 5000);
+        vm.deal(address(this), 5 * 1e18);
+        bread.mint{value: 5 * 1e18}(address(this));
+        vm.roll(start + 11 days / 5);
+        uint256 vote = 100;
+        percentages.push(vote);
+        votes = new uint256[](1);
+        votes[0] = 100;
+        yieldDisburser.castVote(votes);
+        yieldDisburser.distributeYield();
+        address project_added_after = yieldDisburser.breadchainProjects(0);
+        assertEq(project_added_after, secondProject);
+        vm.expectRevert();
+        yieldDisburser.queuedProjectsForAddition(0);
+        vm.expectRevert();
+        yieldDisburser.queuedProjectsForRemoval(0);
+        address random_project = address(0x1244567830123456789012345478901234567890);
+        vm.expectRevert();
+        yieldDisburser.queueProjectRemoval(random_project);
+        uint256 length = yieldDisburser.getBreadchainProjectsLength();
+        assertEq(length, 1);
     }
     function test_below_min_required_voting_power() public {
         uint256 start = 32323232323;
