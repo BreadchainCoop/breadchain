@@ -59,25 +59,25 @@ contract YieldDisburserTest is Test {
     }
 
     function test_simple_distribute() public {
-        vm.roll(32323232323);
+        uint256 start = 32323232323;
+        vm.roll(start);
         yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
         yieldDisburser.setLastClaimedBlocknumber(block.number);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
-        vm.deal(holder, 1000000000000);
+        vm.deal(holder, 5 * 1e18);
         vm.prank(holder);
-        bread.mint{value: 1000000}(holder);
-        vm.roll(32323332323);
-        uint256 vote = 10000;
+        bread.mint{value: 5 * 1e18}(holder);
+        vm.roll(start + 11 days / 5);
+        uint256 vote = 100;
         percentages.push(vote);
         uint256 yieldAccrued = bread.yieldAccrued();
         vm.prank(holder);
         yieldDisburser.castVote(percentages);
         yieldDisburser.distributeYield();
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        bool status = bread_bal_after > yieldAccrued - 1 || bread_bal_after > yieldAccrued - 2;
-        assertEq(status, true);
+        assertGt(bread_bal_after, yieldAccrued - 2);
     }
 
     function test_fuzzy_distribute(uint256 seed) public {
@@ -101,12 +101,12 @@ contract YieldDisburserTest is Test {
         for (uint256 i = 0; i < accounts; i++) {
             uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
             address holder = address(uint160(randomval));
-            uint256 token_amount = bound(randomval, 100, 10000);
+            uint256 token_amount = bound(randomval, 5 * 1e18, 1000 * 1e18);
             vm.deal(holder, token_amount);
             vm.prank(holder);
             bread.mint{value: token_amount}(holder);
-            uint256 vote = randomval % 10000;
-            currentBlockNumber += randomval % 5;
+            uint256 vote = randomval % 100;
+            currentBlockNumber += ((11 days / 5) + randomval % 5);
             vm.roll(currentBlockNumber);
             votes.push(vote);
             votes.push(10000 - vote);
@@ -116,7 +116,6 @@ contract YieldDisburserTest is Test {
             votes.pop();
         }
         vm.warp(startTimestamp + 5000);
-        console2.log("Current block timestamp: %d", block.timestamp);
         yieldAccrued = bread.yieldAccrued() / 2;
         yieldDisburser2.distributeYield();
         uint256 this_bal_after = bread.balanceOf(address(this));
@@ -217,5 +216,24 @@ contract YieldDisburserTest is Test {
         assertEq(holders.length, 1);
         assertEq(holders[0], holder);
         assertEq(currentVotesCasted[0][0],11 days / 5 * (5 * 1e18) );
+    }
+    function test_below_min_required_voting_power() public {
+        uint256 start = 32323232323;
+        vm.roll(start);
+        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlocknumber(block.number);
+        address holder = address(0x1234567890123356789012345672901234567890);
+        vm.deal(holder, 5 * 1e18);
+        vm.prank(holder);
+        bread.mint{value: 5 * 1e18}(holder);
+        vm.roll(start + 9 days / 5);
+        uint256 vote = 100;
+        percentages.push(vote);
+        vm.expectRevert();
+        vm.prank(holder);
+        yieldDisburser.castVote(percentages);
+        vm.roll(start + 11 days / 5);
+        vm.prank(holder);
+        yieldDisburser.castVote(percentages);
     }
 }
