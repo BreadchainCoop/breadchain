@@ -309,6 +309,33 @@ contract YieldDisburser is OwnableUpgradeable {
         return breadchainProjects.length;
     }
 
+    function currentVotesCasted() public view returns (address[] memory, uint256[][] memory) {
+        uint256 breadchainProjectsLength = breadchainProjects.length;
+        uint256 breadchainVotersLength = breadchainVoters.length;
+        uint256[][] memory voterDistributions = new uint256[][](breadchainVotersLength);
+        for (uint256 i; i < breadchainVotersLength; ++i) {
+            uint256[] memory votes = new uint256[](breadchainProjectsLength);
+            address voter = breadchainVoters[i];
+            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
+            uint256[] memory voterDistribution = holderToDistribution[voter];
+            uint256 vote;
+            for (uint256 j; j < breadchainProjectsLength; ++j) {
+                vote = ((voterPower * voterDistribution[j] * PRECISION) / holderToDistributionTotal[voter]) / PRECISION;
+                votes[j] = vote;
+            }
+            voterDistributions[i] = votes;
+        }
+        return (breadchainVoters, voterDistributions);
+    }
+
+    function currentVoteCasted(address holder) public view returns (uint256[] memory) {
+        uint256[] memory percentages;
+        uint256 total = holderToDistributionTotal[holder];
+        for (uint256 i; i < breadchainProjects.length; ++i) {
+            percentages[i] = (holderToDistribution[holder][i] * PRECISION / total) / PRECISION;
+        }
+        return percentages;
+    }
     function setMinVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
         minVotingHoldingDuration = _minVotingHoldingDuration;
     }
