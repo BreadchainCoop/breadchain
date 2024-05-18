@@ -7,7 +7,7 @@ import "forge-std/console.sol";
 import "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 
-import {YieldDisburser} from "../src/YieldDisburser.sol";
+import {YieldDisburser} from "../../src/YieldDisburser.sol";
 
 contract DeployYieldDisburser is Script {
     function run() external {
