@@ -113,7 +113,7 @@ contract YieldDisburser is OwnableUpgradeable {
         PRECISION = _precision;
         minVotingAmount = _minVotingAmount;
         minVotingHoldingDuration = _minVotingHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
-        minRequiredVotingPower = (minVotingAmount * minVotingHoldingDuration) * PRECISION / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
+        minRequiredVotingPower = ((minVotingAmount * minVotingHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
         maxVotes = _maxVotes;
         pointsMax = _pointsMax;
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 days;
