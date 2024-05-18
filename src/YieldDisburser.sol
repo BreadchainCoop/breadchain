@@ -10,42 +10,80 @@ import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
 error AlreadyClaimed();
 
 contract YieldDisburser is OwnableUpgradeable {
-    address[] public breadchainProjects;
-    address[] public queuedProjectsForAddition;
-    address[] public queuedProjectsForRemoval;
-    address[] public breadchainVoters;
+    // Storage of intristic , assumed constants
+    // @notice The address of the Bread token contract
     Bread public breadToken;
-    uint48 public lastClaimedTimestamp;
-    uint256 public lastClaimedBlocknumber;
-    uint48 public minimumTimeBetweenClaims;
-    uint256 public minRequiredVotingPower;
-    uint256 public maxVotes;
-    uint256 public currentVotes;
-    uint256 public minVotingAmount;
-    uint256 public minVotingHoldingDuration;
-    uint256 constant BLOCKTIME = 5;
-    uint256 public pointsMax;
-    mapping(address => uint256[]) public holderToDistribution;
-    mapping(address => uint256) public holderToDistributionTotal;
-    uint256 public constant PRECISION = 1e18;
+    // @notice The block time of the evm in seconds
+    uint256 public BLOCKTIME;
+    // @notice The precision to use for calculations
+    uint256 public PRECISION;
 
+    // Storage of configuration variables
+    // @notice The minimum time between claims in seconds
+    uint48 public minimumTimeBetweenClaims;
+    // @notice The minimum required voting power participants must have to vote
+    uint256 public minRequiredVotingPower;
+    // @notice The maximum number of votes in a distribution cycle
+    uint256 public maxVotes;
+    // @notice The minimum amount of bread required to vote
+    uint256 public minVotingAmount;
+    // @notice The minimum amount of time a user must hold minVotingAmount
+    uint256 public minVotingHoldingDuration;
+    // @notice The maximum number of points a user can allocate to a project
+    uint256 public pointsMax;
+
+    // Storage of state variables
+    // @notice The array of breadchain projects eligible for yield distribution
+    address[] public breadchainProjects;
+    // @notice The array of projects queued for addition
+    address[] public queuedProjectsForAddition;
+    // @notice The array of projects queued for removal
+    address[] public queuedProjectsForRemoval;
+    // @notice The array of voters who have cast votes in the current cycle
+    address[] public breadchainVoters;
+    // @notice The timestamp of the last yield distribution
+    uint48 public lastClaimedTimestamp;
+    // @notice The block number of the last yield distribution
+    uint256 public lastClaimedBlocknumber;
+    // @notice The number of votes cast in the current cycle
+    uint256 public currentVotes;
+    // @notice The mapping of holders to their vote distributions
+    mapping(address => uint256[]) public holderToDistribution;
+    // @notice The mapping of holders to their total vote distribution
+    mapping(address => uint256) public holderToDistributionTotal;
+
+    // @notice The event emitted when a project is added as eligibile for yield distribution
     event ProjectAdded(address project);
+    // @notice The event emitted when a project is removed as eligibile for yield distribution
     event ProjectRemoved(address project);
+    // @notice The event emitted when yield is distributed
     event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
+    // @notice The event emitted when a holder casts a vote
     event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
+    // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
+    // @notice The error emitted when attempting to vote with an incorrect number of projects
     error IncorrectNumberOfProjects();
-    error InvalidSignature();
+    // @notice The error emitted when attempting to instantiate a variable with a zero value
     error MustBeGreaterThanZero();
+    // @notice The error emitted when attempting to vote with a point value greater than pointsMax
     error VotePointsTooLarge();
+    // @notice The error emitted when a voter has never held bread before
     error NoCheckpointsForAccount();
+    // @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
+    // @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
+    // @notice The error emitted when attempting to distribute yield with a balance less than the number of projects
     error YieldTooLow(uint256);
+    // @notice The error emitted when attempting to remove a project that is not in the breadchainProjects array
     error ProjectNotFound();
+    // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
     error ProjectAlreadyQueued();
+    // @notice The error emitted when attempting to add a project that is already in the breadchainProjects array
     error AlreadyMemberProject();
+    // @notice The error emitted when a user attempts to vote without the minimum required voting power
     error BelowMinRequiredVotingPower();
     error ZeroVotePoints();
 
@@ -54,17 +92,34 @@ contract YieldDisburser is OwnableUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address breadAddress, address[] memory _breadchainProjects) public initializer {
+    function initialize(
+        address breadAddress,
+        address[] memory _breadchainProjects,
+        uint256 _blocktime,
+        uint256 _minVotingAmount,
+        uint256 _minVotingHoldingDuration,
+        uint256 _maxVotes,
+        uint256 _pointsMax,
+        uint48 _minimumTimeBetweenClaims,
+        uint48 _lastClaimedTimestamp,
+        uint256 _lastClaimedBlocknumber,
+        uint256 _precision
+    ) public initializer {
         breadToken = Bread(breadAddress);
         breadchainProjects = new address[](_breadchainProjects.length);
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
         }
-        minVotingAmount = 5; // must hold atleast 5 bread
-        minVotingHoldingDuration = 10 days; // must hold for atleast 10 days
-        minRequiredVotingPower = 1e18 * minVotingAmount * minVotingHoldingDuration / BLOCKTIME; // Holding 10 bread for 5 days , assuming a 5 second block time
-        maxVotes = 1e4;
-        pointsMax = 100000;
+        BLOCKTIME = _blocktime;
+        PRECISION = _precision;
+        minVotingAmount = _minVotingAmount;
+        minVotingHoldingDuration = _minVotingHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
+        minRequiredVotingPower = (minVotingAmount * minVotingHoldingDuration) * PRECISION / BLOCKTIME; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a BLOCKTIME second block time
+        maxVotes = _maxVotes;
+        pointsMax = _pointsMax;
+        minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 days;
+        lastClaimedTimestamp = _lastClaimedTimestamp;
+        lastClaimedBlocknumber = _lastClaimedBlocknumber;
         __Ownable_init(msg.sender);
     }
 
@@ -343,5 +398,9 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
         minVotingAmount = _minVotingAmount;
+    }
+
+    function setBlockTime(uint256 _blocktime) public onlyOwner {
+        BLOCKTIME = _blocktime;
     }
 }
