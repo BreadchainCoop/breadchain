@@ -23,7 +23,6 @@ contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
     YieldDisburser public yieldDisburser2;
     address secondProject;
-    Bread public bread;
     uint256[] blockNumbers;
     uint256[] percentages;
     uint256[] votes;
@@ -31,32 +30,34 @@ contract YieldDisburserTest is Test {
     string config_data = vm.readFile(deployConfigPath);
     bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
     address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
+    address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
+    uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
+    uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
+    uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
+    uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
+    uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
+    uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
+    uint256 _precision = stdJson.readUint(config_data, "._precision");
+    uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
+    uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
+    Bread public bread = Bread(address(breadAddress));
 
     function setUp() public {
-        address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
-        uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
-        uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
-        uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
-        uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
-        uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
-        uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
-        uint256 _precision = stdJson.readUint(config_data, "._precision");
-        bread = Bread(address(breadAddress));
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
         address[] memory projects = new address[](1);
         projects[0] = address(this);
         bytes memory initData = abi.encodeWithSelector(
             YieldDisburser.initialize.selector,
             address(bread),
-            breadchainProjects,
+            projects,
             _blocktime,
             _minVotingAmount,
             _minVotingHoldingDuration,
             _maxVotes,
             _pointsMax,
             _minimumTimeBetweenClaims,
-            0,
-            0,
+            _lastClaimedTimestamp,
+            _lastClaimedBlocknumber,
             _precision
         );
         yieldDisburser = YieldDisburser(
@@ -76,8 +77,8 @@ contract YieldDisburserTest is Test {
             _maxVotes,
             _pointsMax,
             _minimumTimeBetweenClaims,
-            0,
-            0,
+            _lastClaimedTimestamp,
+            _lastClaimedBlocknumber,
             _precision
         );
         yieldDisburser2 = YieldDisburser(

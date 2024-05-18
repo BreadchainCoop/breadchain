@@ -20,7 +20,7 @@
     "_maxVotes": 2500,
     "_pointsMax": 10000,
     "_minimumTimeBetweenClaims": 1,
-    "_lastClaimedTimestamp": "",
-    "_lastClaimedBlocknumber": "",
+    "_lastClaimedTimestamp": 0,
+    "_lastClaimedBlocknumber": 0,
     "_precision": 1000000000000000000
 }

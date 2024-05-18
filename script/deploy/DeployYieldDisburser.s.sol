@@ -6,9 +6,9 @@ import "forge-std/StdJson.sol";
 import "forge-std/console.sol";
 import "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import "forge-std/StdJson.sol";
 
 import {YieldDisburser} from "../../src/YieldDisburser.sol";
-import "forge-std/StdJson.sol";
 
 contract DeployYieldDisburser is Script {
     string public deployConfigPath = string(bytes("./script/deploy/config/deploy.json"));
@@ -21,8 +21,8 @@ contract DeployYieldDisburser is Script {
     uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
     uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
-    uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._precision");
-    uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._precision");
+    uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
+    uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
     bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
     address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
@@ -43,10 +43,8 @@ contract DeployYieldDisburser is Script {
     function run() external {
         vm.startBroadcast();
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
-        TransparentUpgradeableProxy yieldDisburser = new TransparentUpgradeableProxy(
-            address(yieldDisburserImplementation),
-            address(msg.sender),
-            abi.encodeWithSelector(YieldDisburser.initialize.selector, initData)
+        YieldDisburser yieldDisburser = YieldDisburser(
+            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
         console2.log("Deployed YieldDisburser at address: {}", address(yieldDisburser));
         vm.stopBroadcast();
