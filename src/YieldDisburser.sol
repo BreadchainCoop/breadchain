@@ -400,6 +400,7 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function setBlockTime(uint256 _blockTime) public onlyOwner {
+        require(_blockTime > 0, "Block time must be greater than 0");
         blockTime = _blockTime;
     }
 }
