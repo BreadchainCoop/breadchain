@@ -28,9 +28,11 @@ contract YieldDisburserTest is Test {
     uint256[] percentages;
     uint256[] votes;
     string public deployConfigPath = string(bytes("./test/test_deploy.json"));
+    string config_data = vm.readFile(deployConfigPath);
+    bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
+    address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
 
     function setUp() public {
-        string memory config_data = vm.readFile(deployConfigPath);
         address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
         uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
         uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
@@ -46,7 +48,7 @@ contract YieldDisburserTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             YieldDisburser.initialize.selector,
             address(bread),
-            projects,
+            breadchainProjects,
             _blocktime,
             _minVotingAmount,
             _minVotingHoldingDuration,
