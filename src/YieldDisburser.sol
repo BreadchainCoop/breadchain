@@ -47,6 +47,7 @@ contract YieldDisburser is OwnableUpgradeable {
     error ProjectAlreadyQueued();
     error AlreadyMemberProject();
     error BelowMinRequiredVotingPower();
+    error ZeroVotePoints();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -194,6 +195,7 @@ contract YieldDisburser is OwnableUpgradeable {
             if (points[i] > pointsMax) revert VotePointsTooLarge();
             total += points[i];
         }
+        if (total == 0) revert ZeroVotePoints();
         holderToDistributionTotal[holder] = total;
         emit BreadHolderVoted(holder, points, breadchainProjects);
     }
