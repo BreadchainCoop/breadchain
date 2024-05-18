@@ -53,7 +53,7 @@ $ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv
 ### Deploy
 
 ```shell
-$ forge script script/script/DeployYieldDisburser.s.sol:DeployYieldDisburser --rpc-url "https://rpc.gnosis.gateway.fm" --private-key <your_private_key> --verify --etherscan-api-key <gnosis_scan_key> --chain 100
+forge script script/deploy/DeployYieldDisburser.s.sol:DeployYieldDisburser --rpc-url "https://rpc.gnosis.gateway.fm" --broadcast --private-key <pk>
 ```
 
 ### Cast

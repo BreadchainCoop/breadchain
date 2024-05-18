@@ -2,6 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
+import "forge-std/StdJson.sol";
+
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -21,37 +23,66 @@ contract YieldDisburserTest is Test {
     YieldDisburser public yieldDisburser;
     YieldDisburser public yieldDisburser2;
     address secondProject;
-    Bread public bread;
     uint256[] blockNumbers;
     uint256[] percentages;
     uint256[] votes;
+    string public deployConfigPath = string(bytes("./test/test_deploy.json"));
+    string config_data = vm.readFile(deployConfigPath);
+    bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
+    address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
+    address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
+    uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
+    uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
+    uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
+    uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
+    uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
+    uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
+    uint256 _precision = stdJson.readUint(config_data, "._precision");
+    uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
+    uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
+    Bread public bread = Bread(address(breadAddress));
 
     function setUp() public {
-        bread = Bread(address(0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3));
         YieldDisburser yieldDisburserImplementation = new YieldDisburser();
         address[] memory projects = new address[](1);
         projects[0] = address(this);
+        bytes memory initData = abi.encodeWithSelector(
+            YieldDisburser.initialize.selector,
+            address(bread),
+            projects,
+            _blocktime,
+            _minVotingAmount,
+            _minVotingHoldingDuration,
+            _maxVotes,
+            _pointsMax,
+            _minimumTimeBetweenClaims,
+            _lastClaimedTimestamp,
+            _lastClaimedBlocknumber,
+            _precision
+        );
         yieldDisburser = YieldDisburser(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(yieldDisburserImplementation),
-                    address(this),
-                    abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread), projects)
-                )
-            )
+            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
         secondProject = address(0x1234567890123456789012345678901234567890);
         address[] memory projects2 = new address[](2);
         projects2[0] = address(this);
         projects2[1] = secondProject;
+        initData = abi.encodeWithSelector(
+            YieldDisburser.initialize.selector,
+            address(bread),
+            projects2,
+            _blocktime,
+            _minVotingAmount,
+            _minVotingHoldingDuration,
+            _maxVotes,
+            _pointsMax,
+            _minimumTimeBetweenClaims,
+            _lastClaimedTimestamp,
+            _lastClaimedBlocknumber,
+            _precision
+        );
         yieldDisburser2 = YieldDisburser(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(yieldDisburserImplementation),
-                    address(this),
-                    abi.encodeWithSelector(YieldDisburser.initialize.selector, address(bread), projects2)
-                )
-            )
+            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
         address owner = bread.owner();
         vm.prank(owner);
@@ -61,8 +92,9 @@ contract YieldDisburserTest is Test {
     function test_simple_distribute() public {
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
-        yieldDisburser.setLastClaimedBlocknumber(block.number);
+        yieldDisburser.setlastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
+        yieldDisburser.setLastClaimedBlocknumber(vm.getBlockNumber());
+        yieldDisburser.setMinimumTimeBetweenClaims(1);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
@@ -70,6 +102,7 @@ contract YieldDisburserTest is Test {
         vm.prank(holder);
         bread.mint{value: 5 * 1e18}(holder);
         vm.roll(start + 11 days / 5);
+        vm.warp((start / 5) + 11 days);
         uint256 vote = 100;
         percentages.push(vote);
         uint256 yieldAccrued = bread.yieldAccrued();
@@ -125,10 +158,9 @@ contract YieldDisburserTest is Test {
     }
 
     function test_set_duration() public {
-        uint48 TimeBetweenClaimsBefore = yieldDisburser.minimumTimeBetweenClaims();
         yieldDisburser.setMinimumTimeBetweenClaims(10);
         uint48 TimeBetweenClaimsAfter = yieldDisburser.minimumTimeBetweenClaims();
-        assertEq(TimeBetweenClaimsBefore + 10 minutes, TimeBetweenClaimsAfter);
+        assertEq(10 * 1 minutes, TimeBetweenClaimsAfter);
     }
 
     function test_voting_power() public {
@@ -209,8 +241,9 @@ contract YieldDisburserTest is Test {
         (address[] memory holders, uint256[][] memory currentVotesCasted) = yieldDisburser.currentVotesCasted();
         assertEq(holders.length, 1);
         assertEq(holders[0], holder);
-        assertEq(currentVotesCasted[0][0],11 days / 5 * (5 * 1e18) );
+        assertEq(currentVotesCasted[0][0], 11 days / 5 * (5 * 1e18));
     }
+
     function test_adding_removing_projects() public {
         vm.expectRevert();
         address projects_before_len;
@@ -247,6 +280,7 @@ contract YieldDisburserTest is Test {
         uint256 length = yieldDisburser.getBreadchainProjectsLength();
         assertEq(length, 1);
     }
+
     function test_below_min_required_voting_power() public {
         uint256 start = 32323232323;
         vm.roll(start);
