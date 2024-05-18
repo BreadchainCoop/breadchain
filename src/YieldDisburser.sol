@@ -14,7 +14,7 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The address of the Bread token contract
     Bread public breadToken;
     // @notice The block time of the evm in seconds
-    uint256 public BLOCKTIME;
+    uint256 public blockTime;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
 
@@ -95,7 +95,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function initialize(
         address breadAddress,
         address[] memory _breadchainProjects,
-        uint256 _blocktime,
+        uint256 _blockTime,
         uint256 _minVotingAmount,
         uint256 _minVotingHoldingDuration,
         uint256 _maxVotes,
@@ -110,11 +110,11 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < _breadchainProjects.length; ++i) {
             breadchainProjects[i] = _breadchainProjects[i];
         }
-        BLOCKTIME = _blocktime;
+        blockTime = _blockTime;
         PRECISION = _precision;
         minVotingAmount = _minVotingAmount;
         minVotingHoldingDuration = _minVotingHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
-        minRequiredVotingPower = (minVotingAmount * minVotingHoldingDuration) * PRECISION / BLOCKTIME; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a BLOCKTIME second block time
+        minRequiredVotingPower = ((minVotingAmount * minVotingHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
         maxVotes = _maxVotes;
         pointsMax = _pointsMax;
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 days;
@@ -168,7 +168,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function castVote(uint256[] calldata percentages) public {
         if (
             this.getVotingPowerForPeriod(
-                block.number - (minVotingHoldingDuration / BLOCKTIME), block.number, msg.sender
+                block.number - (minVotingHoldingDuration / blockTime), block.number, msg.sender
             ) < minRequiredVotingPower
         ) revert BelowMinRequiredVotingPower();
         _castVote(percentages, msg.sender);
@@ -270,6 +270,7 @@ contract YieldDisburser is OwnableUpgradeable {
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
                 if (project == queuedProjectsForRemoval[j]) {
                     remove = true;
+                    emit ProjectRemoved(project);
                     break;
                 }
             }
@@ -400,7 +401,8 @@ contract YieldDisburser is OwnableUpgradeable {
         minVotingAmount = _minVotingAmount;
     }
 
-    function setBlockTime(uint256 _blocktime) public onlyOwner {
-        BLOCKTIME = _blocktime;
+    function setBlockTime(uint256 _blockTime) public onlyOwner {
+        if (_blockTime == 0) revert MustBeGreaterThanZero();
+        blockTime = _blockTime;
     }
 }
