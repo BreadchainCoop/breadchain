@@ -2,7 +2,8 @@
 pragma solidity ^0.8.22;
 
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
-import {Checkpoints} from "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+import {Checkpoints} from
+    "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
 
@@ -77,7 +78,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
         breadToken.claimYield(breadToken.yieldAccrued(), address(this));
         uint256 breadchainProjectsLength = breadchainProjects.length;
-    (uint256[] memory projectDistributions, uint256 totalVotes) =
+        (uint256[] memory projectDistributions, uint256 totalVotes) =
             _commitVotedDistribution(breadchainProjects.length);
         if (totalVotes == 0) {
             projectDistributions = new uint256[](breadchainProjectsLength);
@@ -87,7 +88,6 @@ contract YieldDisburser is OwnableUpgradeable {
             totalVotes = breadchainProjectsLength;
         }
 
-    
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlocknumber = Time.blockNumber();
         currentVotes = 0;
@@ -273,7 +273,6 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < breadchainProjects.length; ++i) {
             if (breadchainProjects[i] == project) {
                 revert AlreadyMemberProject();
-
             }
         }
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
@@ -283,12 +282,15 @@ contract YieldDisburser is OwnableUpgradeable {
         }
         queuedProjectsForAddition.push(project);
     }
-        function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
+
+    function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
         minRequiredVotingPower = _minRequiredVotingPower;
     }
+
     function setPointsMax(uint256 _pointsMax) public onlyOwner {
         pointsMax = _pointsMax;
     }
+
     function queueProjectRemoval(address project) public onlyOwner {
         bool found = false;
         for (uint256 i; i < breadchainProjects.length; ++i) {
@@ -328,14 +330,11 @@ contract YieldDisburser is OwnableUpgradeable {
         return (breadchainVoters, voterDistributions);
     }
 
-    function currentVoteCasted(address holder) public view returns (uint256[] memory) {
-        uint256[] memory percentages;
-        uint256 total = holderToDistributionTotal[holder];
-        for (uint256 i; i < breadchainProjects.length; ++i) {
-            percentages[i] = (holderToDistribution[holder][i] * PRECISION / total) / PRECISION;
-        }
-        return percentages;
+    function currentVoteCast(address holder) public view returns (uint256[] memory) {
+        uint256[] memory vote = holderToDistribution[holder];
+        return vote;
     }
+
     function setMinVotingHoldingDuration(uint256 _minVotingHoldingDuration) public onlyOwner {
         minVotingHoldingDuration = _minVotingHoldingDuration;
     }
