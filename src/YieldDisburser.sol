@@ -268,6 +268,7 @@ contract YieldDisburser is OwnableUpgradeable {
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
                 if (project == queuedProjectsForRemoval[j]) {
                     remove = true;
+                    emit ProjectRemoved(project);
                     break;
                 }
             }
