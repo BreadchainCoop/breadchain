@@ -16,12 +16,12 @@ contract DeployYieldDisburser is Script {
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
     uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
-    uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
     uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
     uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
     uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
+    uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
     address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
@@ -31,9 +31,8 @@ contract DeployYieldDisburser is Script {
         _blocktime,
         _minVotingAmount,
         _minVotingHoldingDuration,
-        _maxVotes,
         _pointsMax,
-        _minimumTimeBetweenClaims,
+        _cycleLength,
         _lastClaimedTimestamp,
         _lastClaimedBlocknumber,
         _precision

@@ -34,12 +34,11 @@ contract YieldDisburserTest is Test {
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
     uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
-    uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
     uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
-    uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
     uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
+    uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     Bread public bread = Bread(address(breadAddress));
 
     function setUp() public {
@@ -53,9 +52,8 @@ contract YieldDisburserTest is Test {
             _blocktime,
             _minVotingAmount,
             _minVotingHoldingDuration,
-            _maxVotes,
             _pointsMax,
-            _minimumTimeBetweenClaims,
+            _cycleLength,
             _lastClaimedTimestamp,
             _lastClaimedBlocknumber,
             _precision
@@ -74,9 +72,8 @@ contract YieldDisburserTest is Test {
             _blocktime,
             _minVotingAmount,
             _minVotingHoldingDuration,
-            _maxVotes,
             _pointsMax,
-            _minimumTimeBetweenClaims,
+            _cycleLength,
             _lastClaimedTimestamp,
             _lastClaimedBlocknumber,
             _precision
@@ -94,7 +91,7 @@ contract YieldDisburserTest is Test {
         vm.roll(start);
         yieldDisburser.setlastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
         yieldDisburser.setLastClaimedBlocknumber(vm.getBlockNumber());
-        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        yieldDisburser.setCycleLength(1);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
@@ -124,7 +121,7 @@ contract YieldDisburserTest is Test {
         seed = uint256(bound(seed, 1, 100000000000));
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser2.setMinimumTimeBetweenClaims(1);
+        yieldDisburser2.setCycleLength(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
         yieldDisburser2.setlastClaimedTimestamp(startTimestamp);
         yieldDisburser2.setLastClaimedBlocknumber(start);
@@ -158,9 +155,9 @@ contract YieldDisburserTest is Test {
     }
 
     function test_set_duration() public {
-        yieldDisburser.setMinimumTimeBetweenClaims(10);
-        uint48 TimeBetweenClaimsAfter = yieldDisburser.minimumTimeBetweenClaims();
-        assertEq(10 * 1 minutes, TimeBetweenClaimsAfter);
+        yieldDisburser.setCycleLength(10);
+        uint256 cycleLength = yieldDisburser.cycleLength();
+        assertEq(10, cycleLength);
     }
 
     function test_voting_power() public {
@@ -222,28 +219,6 @@ contract YieldDisburserTest is Test {
         assertEq(vote, expectedVotingPower);
     }
 
-    function test_current_votes_casted() public {
-        uint256 start = 32323232323;
-        vm.roll(start);
-        yieldDisburser.setlastClaimedTimestamp(uint48(start));
-        yieldDisburser.setLastClaimedBlocknumber(start);
-        uint256 bread_bal_before = bread.balanceOf(address(this));
-        assertEq(bread_bal_before, 0);
-        address holder = address(0x1234567890123456789012345678901234567890);
-        vm.deal(holder, 5 * 1e18);
-        vm.prank(holder);
-        bread.mint{value: 5 * 1e18}(holder);
-        vm.roll(start + 11 days / 5);
-        uint256[] memory vote = new uint256[](1);
-        vote[0] = 10000;
-        vm.prank(holder);
-        yieldDisburser.castVote(vote);
-        (address[] memory holders, uint256[][] memory currentVotesCasted) = yieldDisburser.currentVotesCasted();
-        assertEq(holders.length, 1);
-        assertEq(holders[0], holder);
-        assertEq(currentVotesCasted[0][0], 11 days / 5 * (5 * 1e18));
-    }
-
     function test_adding_removing_projects() public {
         vm.expectRevert();
         address projects_before_len;
@@ -254,7 +229,7 @@ contract YieldDisburserTest is Test {
         yieldDisburser.queueProjectRemoval(address(this));
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        yieldDisburser.setCycleLength(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
         yieldDisburser.setlastClaimedTimestamp(startTimestamp);
         yieldDisburser.setLastClaimedBlocknumber(start);
