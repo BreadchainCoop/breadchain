@@ -1,13 +1,13 @@
 {
-    "breadAddress": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
-    "_breadchainProjectsNames": [
+    "_breadAddress": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
+    "_projectsNames": [
         "laborDao",
         "Dandelion",
         "CCA",
         "Breadchain Treasury",
         "Breadchain Devs"
     ],
-    "_breadchainProjects": [
+    "_projectAddresses": [
         "0x7E1367998e1fe8Fab8f0bbF41e97cD6E0C891B64",
         "0x5405e2D4D12AAdB57579E780458c9a1151b560F1",
         "0x5c22B3F03b3d8FFf56C9B2e90151512Cb3F3dE0F",
@@ -16,10 +16,10 @@
     ],
     "_blocktime": 5,
     "_minVotingAmount": 5,
-    "_minVotingHoldingDuration": 10,
+    "_minHoldingDuration": 10,
     "_maxVotes": 2500,
     "_pointsMax": 10000,
-    "_minimumTimeBetweenClaims": 1,
+    "_minTimeBetweenClaims": 1,
     "_lastClaimedTimestamp": 0,
     "_lastClaimedBlocknumber": 0,
     "_precision": 1000000000000000000
