@@ -15,25 +15,25 @@ contract DeployYieldDisburser is Script {
     address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
-    uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
+    uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
-    uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
-    uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
+    uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
+    uint256 _minTimeBetweenClaims = stdJson.readUint(config_data, "._minTimeBetweenClaims");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
     uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
-    bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
-    address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
+    bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
+    address[] projects = abi.decode(projectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
         YieldDisburser.initialize.selector,
         breadAddress,
-        breadchainProjects,
+        projects,
         _blocktime,
         _minVotingAmount,
-        _minVotingHoldingDuration,
+        _minHoldingDuration,
         _maxVotes,
-        _pointsMax,
-        _minimumTimeBetweenClaims,
+        _maxPoints,
+        _minTimeBetweenClaims,
         _lastClaimedTimestamp,
         _lastClaimedBlocknumber,
         _precision

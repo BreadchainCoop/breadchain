@@ -29,15 +29,15 @@ contract YieldDisburserTest is Test {
     uint256[] votes;
     string public deployConfigPath = string(bytes("./test/test_deploy.json"));
     string config_data = vm.readFile(deployConfigPath);
-    bytes breadchainProjectsRaw = stdJson.parseRaw(config_data, "._breadchainProjects");
-    address[] breadchainProjects = abi.decode(breadchainProjectsRaw, (address[]));
+    bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
+    address[] projects = abi.decode(projectsRaw, (address[]));
     address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
-    uint256 _minVotingHoldingDuration = stdJson.readUint(config_data, "._minVotingHoldingDuration");
+    uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _maxVotes = stdJson.readUint(config_data, "._maxVotes");
-    uint256 _pointsMax = stdJson.readUint(config_data, "._pointsMax");
-    uint256 _minimumTimeBetweenClaims = stdJson.readUint(config_data, "._minimumTimeBetweenClaims");
+    uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
+    uint256 _minTimeBetweenClaims = stdJson.readUint(config_data, "._minTimeBetweenClaims");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
     uint256 _lastClaimedBlocknumber = stdJson.readUint(config_data, "._lastClaimedBlocknumber");
@@ -45,18 +45,18 @@ contract YieldDisburserTest is Test {
 
     function setUp() public {
         YieldDisburserTestWrapper yieldDisburserImplementation = new YieldDisburserTestWrapper();
-        address[] memory projects = new address[](1);
-        projects[0] = address(this);
+        address[] memory projects1 = new address[](1);
+        projects1[0] = address(this);
         bytes memory initData = abi.encodeWithSelector(
             YieldDisburser.initialize.selector,
             address(bread),
-            projects,
+            projects1,
             _blocktime,
             _minVotingAmount,
-            _minVotingHoldingDuration,
+            _minHoldingDuration,
             _maxVotes,
-            _pointsMax,
-            _minimumTimeBetweenClaims,
+            _maxPoints,
+            _minTimeBetweenClaims,
             _lastClaimedTimestamp,
             _lastClaimedBlocknumber,
             _precision
@@ -74,10 +74,10 @@ contract YieldDisburserTest is Test {
             projects2,
             _blocktime,
             _minVotingAmount,
-            _minVotingHoldingDuration,
+            _minHoldingDuration,
             _maxVotes,
-            _pointsMax,
-            _minimumTimeBetweenClaims,
+            _maxPoints,
+            _minTimeBetweenClaims,
             _lastClaimedTimestamp,
             _lastClaimedBlocknumber,
             _precision
@@ -95,7 +95,7 @@ contract YieldDisburserTest is Test {
         vm.roll(start);
         yieldDisburser.setLastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
         yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
-        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        yieldDisburser.setMinTimeBetweenClaims(1);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
@@ -125,7 +125,7 @@ contract YieldDisburserTest is Test {
         seed = uint256(bound(seed, 1, 100000000000));
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser2.setMinimumTimeBetweenClaims(1);
+        yieldDisburser2.setMinTimeBetweenClaims(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
         yieldDisburser2.setLastClaimedTimestamp(startTimestamp);
         yieldDisburser2.setLastClaimedBlockNumber(start);
@@ -159,8 +159,8 @@ contract YieldDisburserTest is Test {
     }
 
     function test_set_duration() public {
-        yieldDisburser.setMinimumTimeBetweenClaims(10);
-        uint48 TimeBetweenClaimsAfter = yieldDisburser.minimumTimeBetweenClaims();
+        yieldDisburser.setMinTimeBetweenClaims(10);
+        uint48 TimeBetweenClaimsAfter = yieldDisburser.minTimeBetweenClaims();
         assertEq(10 * 1 minutes, TimeBetweenClaimsAfter);
     }
 
@@ -248,14 +248,14 @@ contract YieldDisburserTest is Test {
     function test_adding_removing_projects() public {
         vm.expectRevert();
         address projects_before_len;
-        projects_before_len = yieldDisburser.breadchainProjects(1);
-        address active_project = yieldDisburser.breadchainProjects(0);
+        projects_before_len = yieldDisburser.projects(1);
+        address active_project = yieldDisburser.projects(0);
         assertEq(active_project, address(this));
         yieldDisburser.queueProjectAddition(secondProject);
         yieldDisburser.queueProjectRemoval(address(this));
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setMinimumTimeBetweenClaims(1);
+        yieldDisburser.setMinTimeBetweenClaims(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
         yieldDisburser.setLastClaimedTimestamp(startTimestamp);
         yieldDisburser.setLastClaimedBlockNumber(start);
@@ -269,7 +269,7 @@ contract YieldDisburserTest is Test {
         votes[0] = 100;
         yieldDisburser.castVote(votes);
         yieldDisburser.distributeYield();
-        address project_added_after = yieldDisburser.breadchainProjects(0);
+        address project_added_after = yieldDisburser.projects(0);
         assertEq(project_added_after, secondProject);
         vm.expectRevert();
         yieldDisburser.queuedProjectsForAddition(0);
@@ -278,7 +278,7 @@ contract YieldDisburserTest is Test {
         address random_project = address(0x1244567830123456789012345478901234567890);
         vm.expectRevert();
         yieldDisburser.queueProjectRemoval(random_project);
-        uint256 length = yieldDisburser.getBreadchainProjectsLength();
+        uint256 length = yieldDisburser.getProjectsLength();
         assertEq(length, 1);
     }
 
