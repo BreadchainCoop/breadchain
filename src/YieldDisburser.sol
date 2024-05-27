@@ -168,11 +168,11 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Return the current votes cast by a specified holder
-     * @param holder Holder to return the current votes cast of
+     * @param _holder Holder to return the current votes cast of
      * @return uint256[] Distribution of votes cast by the specified holder
      */
-    function currentVoteCast(address holder) public view returns (uint256[] memory) {
-        uint256[] memory vote = holderToDistribution[holder];
+    function currentVoteCast(address _holder) public view returns (uint256[] memory) {
+        uint256[] memory vote = holderToDistribution[_holder];
         return vote;
     }
 
@@ -194,23 +194,23 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Return the voting power for a specified user during a specified period of time
-     * @param start Start time of the period to return the voting power for
-     * @param end End time of the period to return the voting power for
-     * @param account User to return the voting power for
+     * @param _start Start time of the period to return the voting power for
+     * @param _end End time of the period to return the voting power for
+     * @param _account Address of user to return the voting power for
      * @return uint256 Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(uint256 start, uint256 end, address account) external view returns (uint256) {
-        if (start > end) revert StartMustBeBeforeEnd();
-        if (end > Time.blockNumber()) revert EndAfterCurrentBlock();
-        uint32 latestCheckpointPos = BREAD.numCheckpoints(account);
+    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
+        if (_start > _end) revert StartMustBeBeforeEnd();
+        if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
+        uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
         latestCheckpointPos--; // Subtract 1 for 0-indexed array
-        Checkpoints.Checkpoint208 memory intervalEnd = BREAD.checkpoints(account, latestCheckpointPos);
+        Checkpoints.Checkpoint208 memory intervalEnd = BREAD.checkpoints(_account, latestCheckpointPos);
         uint48 prevKey = intervalEnd._key;
         uint256 intervalEndValue = intervalEnd._value;
-        uint256 votingPower = intervalEndValue * ((end) - prevKey);
+        uint256 votingPower = intervalEndValue * (_end - prevKey);
         if (latestCheckpointPos == 0) {
-            if (end == prevKey) {
+            if (_end == prevKey) {
                 // If the latest checkpoint is exactly at the end of the interval, return the value at that checkpoint
                 return intervalEndValue;
             } else {
@@ -223,11 +223,11 @@ contract YieldDisburser is OwnableUpgradeable {
         Checkpoints.Checkpoint208 memory checkpoint;
         // Iterate through checkpoints in reverse order, starting one before the latest checkpoint because we already handled it above
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
-            checkpoint = BREAD.checkpoints(account, i);
+            checkpoint = BREAD.checkpoints(_account, i);
             key = checkpoint._key;
             value = checkpoint._value;
             interval_voting_power = value * (prevKey - key);
-            if (key <= start) {
+            if (key <= _start) {
                 votingPower += interval_voting_power;
                 break;
             } else {
@@ -247,7 +247,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         uint256 projectsLength = projects.length;
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _commitVotedDistribution(projects.length);
+        (uint256[] memory projectDistributions, uint256 totalVotes) = _commitVotedDistribution();
         if (totalVotes == 0) {
             projectDistributions = new uint256[](projectsLength);
             for (uint256 i; i < projectsLength; ++i) {
@@ -279,57 +279,57 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Cast votes for the distribution of $BREAD yield
-     * @param percentages List of percentages as integers for each project
+     * @param _percentages List of percentages as integers for each project
      */
-    function castVote(uint256[] calldata percentages) public {
+    function castVote(uint256[] calldata _percentages) public {
         if (
             this.getVotingPowerForPeriod(block.number - (minHoldingDuration / blockTime), block.number, msg.sender)
                 < minRequiredVotingPower
         ) revert BelowMinRequiredVotingPower();
-        _castVote(percentages, msg.sender);
+
+        _castVote(msg.sender, _percentages);
     }
 
     /**
      * @notice Internal function for casting votes for a specified user
-     * @param points Basis points for calculating the amount of votes cast
-     * @param holder User to cast votes for
+     * @param _account Address of user to cast votes for
+     * @param _points Basis points for calculating the amount of votes cast
      */
-    function _castVote(uint256[] calldata points, address holder) internal {
+    function _castVote(address _account, uint256[] calldata _points) internal {
         uint256 length = projects.length;
-        if (points.length != length) revert IncorrectNumberOfProjects();
+        if (_points.length != length) revert IncorrectNumberOfProjects();
 
-        if (holderToDistribution[holder].length > 0) {
-            delete holderToDistribution[holder];
+        if (holderToDistribution[_account].length > 0) {
+            delete holderToDistribution[_account];
         } else {
-            voters.push(holder);
+            voters.push(_account);
         }
         currentVotes++;
-        holderToDistribution[holder] = points;
+        holderToDistribution[_account] = _points;
         uint256 total;
         for (uint256 i; i < length; ++i) {
-            if (points[i] > maxPoints) revert VotePointsTooLarge();
-            total += points[i];
+            if (_points[i] > maxPoints) revert VotePointsTooLarge();
+            total += _points[i];
         }
         if (total == 0) revert ZeroVotePoints();
-        holderToDistributionTotal[holder] = total;
-        emit BreadHolderVoted(holder, points, projects);
+        holderToDistributionTotal[_account] = total;
+        emit BreadHolderVoted(_account, _points, projects);
     }
 
     /**
      * @notice Internal function for committing the voted distributions for projects
-     * @param projectCount Number of projects to commit distributions for
      * @return uint256[] Distribution of votes for projects
      * @return uint256 Total number of votes cast
      */
-    function _commitVotedDistribution(uint256 projectCount) internal returns (uint256[] memory, uint256) {
+    function _commitVotedDistribution() internal returns (uint256[] memory, uint256) {
         uint256 totalVotes;
-        uint256[] memory projectDistributions = new uint256[](projectCount);
+        uint256[] memory projectDistributions = new uint256[](projects.length);
         for (uint256 i; i < voters.length; ++i) {
             address voter = voters[i];
             uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlockNumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
             uint256 vote;
-            for (uint256 j; j < projectCount; ++j) {
+            for (uint256 j; j < projects.length; ++j) {
                 vote = voterPower * voterDistribution[j] / holderToDistributionTotal[voter];
                 projectDistributions[j] += vote;
                 totalVotes += vote;
@@ -372,40 +372,40 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Queue a new project to be added to the project list
-     * @param project Project to be added to the project list
+     * @param _project Project to be added to the project list
      */
-    function queueProjectAddition(address project) public onlyOwner {
+    function queueProjectAddition(address _project) public onlyOwner {
         for (uint256 i; i < projects.length; ++i) {
-            if (projects[i] == project) {
+            if (projects[i] == _project) {
                 revert AlreadyMemberProject();
             }
         }
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
-            if (queuedProjectsForAddition[i] == project) {
+            if (queuedProjectsForAddition[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
-        queuedProjectsForAddition.push(project);
+        queuedProjectsForAddition.push(_project);
     }
 
     /**
      * @notice Queue an existing project to be removed from the project list
-     * @param project Project to be removed from the project list
+     * @param _project Project to be removed from the project list
      */
-    function queueProjectRemoval(address project) public onlyOwner {
+    function queueProjectRemoval(address _project) public onlyOwner {
         bool found = false;
         for (uint256 i; i < projects.length; ++i) {
-            if (projects[i] == project) {
+            if (projects[i] == _project) {
                 found = true;
             }
         }
         if (!found) revert ProjectNotFound();
         for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
-            if (queuedProjectsForRemoval[i] == project) {
+            if (queuedProjectsForRemoval[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
-        queuedProjectsForRemoval.push(project);
+        queuedProjectsForRemoval.push(_project);
     }
 
     /**
