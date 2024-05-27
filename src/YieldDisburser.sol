@@ -5,9 +5,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {Checkpoints} from
     "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
-import {Bread} from "../lib/bread-token-v2/src/Bread.sol";
-
-error AlreadyClaimed();
+import {Bread} from "bread-token/src/Bread.sol";
 
 contract YieldDisburser is OwnableUpgradeable {
     // Storage of intristic , assumed constants
@@ -44,7 +42,7 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The timestamp of the last yield distribution
     uint48 public lastClaimedTimestamp;
     // @notice The block number of the last yield distribution
-    uint256 public lastClaimedBlocknumber;
+    uint256 public lastClaimedBlockNumber;
     // @notice The number of votes cast in the current cycle
     uint256 public currentVotes;
     // @notice The mapping of holders to their vote distributions
@@ -61,6 +59,8 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The event emitted when a holder casts a vote
     event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
 
+    // @notice The error emitted when the yield for the distribution period has already been claimed
+    error AlreadyClaimed();
     // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
     // @notice The error emitted when attempting to vote with an incorrect number of projects
@@ -102,7 +102,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _pointsMax,
         uint48 _minimumTimeBetweenClaims,
         uint48 _lastClaimedTimestamp,
-        uint256 _lastClaimedBlocknumber,
+        uint256 _lastClaimedBlockNumber,
         uint256 _precision
     ) public initializer {
         breadToken = Bread(breadAddress);
@@ -119,7 +119,7 @@ contract YieldDisburser is OwnableUpgradeable {
         pointsMax = _pointsMax;
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 days;
         lastClaimedTimestamp = _lastClaimedTimestamp;
-        lastClaimedBlocknumber = _lastClaimedBlocknumber;
+        lastClaimedBlockNumber = _lastClaimedBlockNumber;
         __Ownable_init(msg.sender);
     }
 
@@ -145,7 +145,7 @@ contract YieldDisburser is OwnableUpgradeable {
         }
 
         lastClaimedTimestamp = Time.timestamp();
-        lastClaimedBlocknumber = Time.blockNumber();
+        lastClaimedBlockNumber = Time.blockNumber();
         currentVotes = 0;
 
         uint256 halfBalance = breadToken.balanceOf(address(this)) / 2;
@@ -286,7 +286,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256[] memory projectDistributions = new uint256[](projectCount);
         for (uint256 i; i < breadchainVoters.length; ++i) {
             address voter = breadchainVoters[i];
-            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
+            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlockNumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
             uint256 vote;
             for (uint256 j; j < projectCount; ++j) {
@@ -311,20 +311,8 @@ contract YieldDisburser is OwnableUpgradeable {
         minimumTimeBetweenClaims = _minimumTimeBetweenClaims * 1 minutes;
     }
 
-    function setlastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
-        lastClaimedTimestamp = _lastClaimedTimestamp;
-    }
-
     function setMaxVotes(uint256 _maxVotes) public onlyOwner {
         maxVotes = _maxVotes;
-    }
-
-    function setCurrentVotes(uint256 _currentVotes) public onlyOwner {
-        currentVotes = _currentVotes;
-    }
-
-    function setLastClaimedBlocknumber(uint256 _lastClaimedBlocknumber) public onlyOwner {
-        lastClaimedBlocknumber = _lastClaimedBlocknumber;
     }
 
     function queueProjectAddition(address project) public onlyOwner {
@@ -376,7 +364,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < breadchainVotersLength; ++i) {
             uint256[] memory votes = new uint256[](breadchainProjectsLength);
             address voter = breadchainVoters[i];
-            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlocknumber, Time.blockNumber(), voter);
+            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlockNumber, Time.blockNumber(), voter);
             uint256[] memory voterDistribution = holderToDistribution[voter];
             uint256 vote;
             for (uint256 j; j < breadchainProjectsLength; ++j) {

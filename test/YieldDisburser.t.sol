@@ -11,6 +11,7 @@ import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {YieldDisburser} from "../src/YieldDisburser.sol";
+import {YieldDisburserTestWrapper} from "../src/test/YieldDisburserTestWrapper.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
@@ -20,8 +21,8 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
 }
 
 contract YieldDisburserTest is Test {
-    YieldDisburser public yieldDisburser;
-    YieldDisburser public yieldDisburser2;
+    YieldDisburserTestWrapper public yieldDisburser;
+    YieldDisburserTestWrapper public yieldDisburser2;
     address secondProject;
     uint256[] blockNumbers;
     uint256[] percentages;
@@ -43,7 +44,7 @@ contract YieldDisburserTest is Test {
     Bread public bread = Bread(address(breadAddress));
 
     function setUp() public {
-        YieldDisburser yieldDisburserImplementation = new YieldDisburser();
+        YieldDisburserTestWrapper yieldDisburserImplementation = new YieldDisburserTestWrapper();
         address[] memory projects = new address[](1);
         projects[0] = address(this);
         bytes memory initData = abi.encodeWithSelector(
@@ -60,7 +61,7 @@ contract YieldDisburserTest is Test {
             _lastClaimedBlocknumber,
             _precision
         );
-        yieldDisburser = YieldDisburser(
+        yieldDisburser = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
         secondProject = address(0x1234567890123456789012345678901234567890);
@@ -81,7 +82,7 @@ contract YieldDisburserTest is Test {
             _lastClaimedBlocknumber,
             _precision
         );
-        yieldDisburser2 = YieldDisburser(
+        yieldDisburser2 = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
         address owner = bread.owner();
@@ -92,8 +93,8 @@ contract YieldDisburserTest is Test {
     function test_simple_distribute() public {
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setlastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
-        yieldDisburser.setLastClaimedBlocknumber(vm.getBlockNumber());
+        yieldDisburser.setLastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
+        yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
         yieldDisburser.setMinimumTimeBetweenClaims(1);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
@@ -126,8 +127,8 @@ contract YieldDisburserTest is Test {
         vm.roll(start);
         yieldDisburser2.setMinimumTimeBetweenClaims(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
-        yieldDisburser2.setlastClaimedTimestamp(startTimestamp);
-        yieldDisburser2.setLastClaimedBlocknumber(start);
+        yieldDisburser2.setLastClaimedTimestamp(startTimestamp);
+        yieldDisburser2.setLastClaimedBlockNumber(start);
         uint256 yieldAccrued;
         uint256 currentBlockNumber = start + 1;
         vm.roll(currentBlockNumber);
@@ -225,8 +226,8 @@ contract YieldDisburserTest is Test {
     function test_current_votes_casted() public {
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setlastClaimedTimestamp(uint48(start));
-        yieldDisburser.setLastClaimedBlocknumber(start);
+        yieldDisburser.setLastClaimedTimestamp(uint48(start));
+        yieldDisburser.setLastClaimedBlockNumber(start);
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
         address holder = address(0x1234567890123456789012345678901234567890);
@@ -256,8 +257,8 @@ contract YieldDisburserTest is Test {
         vm.roll(start);
         yieldDisburser.setMinimumTimeBetweenClaims(1);
         uint48 startTimestamp = uint48(vm.getBlockTimestamp());
-        yieldDisburser.setlastClaimedTimestamp(startTimestamp);
-        yieldDisburser.setLastClaimedBlocknumber(start);
+        yieldDisburser.setLastClaimedTimestamp(startTimestamp);
+        yieldDisburser.setLastClaimedBlockNumber(start);
         vm.warp(startTimestamp + 5000);
         vm.deal(address(this), 5 * 1e18);
         bread.mint{value: 5 * 1e18}(address(this));
@@ -284,8 +285,8 @@ contract YieldDisburserTest is Test {
     function test_below_min_required_voting_power() public {
         uint256 start = 32323232323;
         vm.roll(start);
-        yieldDisburser.setlastClaimedTimestamp(uint48(block.timestamp));
-        yieldDisburser.setLastClaimedBlocknumber(block.number);
+        yieldDisburser.setLastClaimedTimestamp(uint48(block.timestamp));
+        yieldDisburser.setLastClaimedBlockNumber(block.number);
         address holder = address(0x1234567890123356789012345672901234567890);
         vm.deal(holder, 5 * 1e18);
         vm.prank(holder);
