@@ -81,6 +81,8 @@ contract YieldDisburserTest is Test {
         yieldDisburser2 = YieldDisburser(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
         );
+        yieldDisburser.setCycleLength(1);
+        yieldDisburser2.setCycleLength(1);
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(yieldDisburser));

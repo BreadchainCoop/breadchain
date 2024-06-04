@@ -45,8 +45,8 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public lastClaimedBlocknumber;
     // @notice The number of votes cast in the current cycle
     uint256 public totalVotes;
-    // @notice the last block number a voter cast a vote
-    mapping(address => uint256) public holderToLastVoted;
+    // @notice the last timestamp a voter cast a vote
+    mapping(address => uint48) public holderToLastVoted;
     // @notice the voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
 
@@ -157,7 +157,7 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function castVote(uint256[] calldata percentages) public {
-        if (holderToLastVoted[msg.sender] + cycleLength < block.number) revert AlreadyVotedInCycle();
+        if (holderToLastVoted[msg.sender] > lastClaimedTimestamp) revert AlreadyVotedInCycle();
         uint256 votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlocknumber - cycleLength, lastClaimedBlocknumber, msg.sender);
         if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
@@ -234,7 +234,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < length; ++i) {
             projectDistributions[i] += ((points[i] * votingPower * PRECISION) / total) / PRECISION;
         }
-        holderToLastVoted[holder] = block.number;
+        holderToLastVoted[holder] = Time.timestamp();
         totalVotes += votingPower;
         emit BreadHolderVoted(holder, points, breadchainProjects);
     }
