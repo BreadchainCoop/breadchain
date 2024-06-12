@@ -126,7 +126,7 @@ contract YieldDisburser is OwnableUpgradeable {
         minHoldingDuration = _minHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
         minRequiredVotingPower = ((minVotingAmount * minHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
         maxPoints = _maxPoints;
-        cycleLength = _cycleLength;
+        cycleLength = (_cycleLength * 1 days) / blockTime;
         lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
 
