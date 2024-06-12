@@ -17,10 +17,9 @@
     "_blocktime": 5,
     "_minVotingAmount": 5,
     "_minHoldingDuration": 10,
-    "_maxVotes": 2500,
+    "_cycleLength": 10,
     "_maxPoints": 10000,
-    "_minTimeBetweenClaims": 1,
     "_lastClaimedTimestamp": 0,
-    "_lastClaimedBlocknumber": 0,
+    "_lastClaimedBlockNumber": 0,
     "_precision": 1000000000000000000
 }

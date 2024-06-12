@@ -20,6 +20,8 @@ import {Bread} from "bread-token/src/Bread.sol";
 contract YieldDisburser is OwnableUpgradeable {
     // @notice The error emitted when the yield for the distribution period has already been claimed
     error AlreadyClaimed();
+    // @notice the error emitted when attemping to vote in the same cycle twice
+    error AlreadyVotedInCycle();
     // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
     // @notice The error emitted when attempting to vote with an incorrect number of projects
@@ -60,9 +62,8 @@ contract YieldDisburser is OwnableUpgradeable {
     Bread public BREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
-
-    // @notice The minimum time between claims in seconds
-    uint48 public minTimeBetweenClaims;
+    // @notice The minimum blocks between yield distributions
+    uint256 public cycleLength;
     // @notice The minimum required voting power participants must have to vote
     uint256 public minRequiredVotingPower;
     // @notice The minimum amount of bread required to vote
@@ -90,10 +91,10 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public lastClaimedBlockNumber;
     // @notice The number of votes cast in the current cycle
     uint256 public currentVotes;
-    // @notice The mapping of holders to their vote distributions
-    mapping(address => uint256[]) public holderToDistribution;
-    // @notice The mapping of holders to their total vote distribution
-    mapping(address => uint256) public holderToDistributionTotal;
+   // @notice the voting power allocated to projects by voters in the current cycle
+    uint256[] public projectDistributions;
+    // @notice the last timestamp a voter cast a vote
+    mapping(address => uint48) public holderToLastVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -106,32 +107,28 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _blockTime,
         uint256 _minVotingAmount,
         uint256 _minHoldingDuration,
-        uint256 _maxVotes,
         uint256 _maxPoints,
-        uint48 _minTimeBetweenClaims,
+        uint256 _cycleLength,
         uint48 _lastClaimedTimestamp,
         uint256 _lastClaimedBlockNumber,
         uint256 _precision
     ) public initializer {
-        __Ownable_init(msg.sender);
-
         BREAD = Bread(breadAddress);
-        PRECISION = _precision;
-
-        projects = new address[](_projects.length);
-        for (uint256 i; i < _projects.length; ++i) {
+        uint256 projectLength = _projects.length;
+        projects = new address[](projectLength);
+        for (uint256 i; i < projectLength; ++i) {
             projects[i] = _projects[i];
         }
-
         blockTime = _blockTime;
+        PRECISION = _precision;
         minVotingAmount = _minVotingAmount;
-        minHoldingDuration = _minHoldingDuration * 1 days;
-        minRequiredVotingPower = ((minVotingAmount * minHoldingDuration) * PRECISION) / blockTime;
-        maxVotes = _maxVotes;
+        minHoldingDuration = _minHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
+        minRequiredVotingPower = ((minVotingAmount * minHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
         maxPoints = _maxPoints;
-        minTimeBetweenClaims = _minTimeBetweenClaims * 1 days;
+        cycleLength = _cycleLength;
         lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
+        __Ownable_init(msg.sender);
     }
 
     /**
@@ -142,39 +139,6 @@ contract YieldDisburser is OwnableUpgradeable {
         return projects.length;
     }
 
-    /**
-     * @notice Return the current votes cast
-     * @return address[] Array of voters
-     * @return uint256[][] Array of vote distributions
-     */
-    function currentVotesCasted() public view returns (address[] memory, uint256[][] memory) {
-        uint256 projectsLength = projects.length;
-        uint256 votersLength = voters.length;
-        uint256[][] memory voterDistributions = new uint256[][](votersLength);
-        for (uint256 i; i < votersLength; ++i) {
-            uint256[] memory votes = new uint256[](projectsLength);
-            address voter = voters[i];
-            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlockNumber, Time.blockNumber(), voter);
-            uint256[] memory voterDistribution = holderToDistribution[voter];
-            uint256 vote;
-            for (uint256 j; j < projectsLength; ++j) {
-                vote = ((voterPower * voterDistribution[j] * PRECISION) / holderToDistributionTotal[voter]) / PRECISION;
-                votes[j] = vote;
-            }
-            voterDistributions[i] = votes;
-        }
-        return (voters, voterDistributions);
-    }
-
-    /**
-     * @notice Return the current votes cast by a specified holder
-     * @param _holder Holder to return the current votes cast of
-     * @return uint256[] Distribution of votes cast by the specified holder
-     */
-    function currentVoteCast(address _holder) public view returns (uint256[] memory) {
-        uint256[] memory vote = holderToDistribution[_holder];
-        return vote;
-    }
 
     /**
      * @notice Determine if the yield distribution is available
@@ -182,10 +146,9 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return bytes Function selector used to distribute the yield
      */
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
-        uint48 _now = Time.timestamp();
         uint256 balance = (BREAD.balanceOf(address(this)) + BREAD.yieldAccrued());
         if (balance < projects.length) revert YieldTooLow(balance);
-        if (_now < lastClaimedTimestamp + minTimeBetweenClaims) {
+        if (block.number < lastClaimedTimestamp + cycleLength) {
             revert AlreadyClaimed();
         }
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
@@ -241,24 +204,16 @@ contract YieldDisburser is OwnableUpgradeable {
     /**
      * @notice Distribute $BREAD yield to projects based on cast votes
      */
-    function distributeYield() public {
+     function distributeYield() public {
         (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         uint256 projectsLength = projects.length;
-        (uint256[] memory projectDistributions, uint256 totalVotes) = _commitVotedDistribution();
-        if (totalVotes == 0) {
-            projectDistributions = new uint256[](projectsLength);
-            for (uint256 i; i < projectsLength; ++i) {
-                projectDistributions[i] = 1;
-            }
-            totalVotes = projectsLength;
-        }
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlockNumber = Time.blockNumber();
-        currentVotes = 0;
+        // logic here to create projectDistributions
 
         uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / projectsLength;
@@ -267,13 +222,15 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256[] memory votedSplits = new uint256[](projectsLength);
         uint256[] memory percentages = new uint256[](projectsLength);
         for (uint256 i; i < projectsLength; ++i) {
-            percentageOfTotalVote = projectDistributions[i] / totalVotes;
-            votedSplit = halfBalance * (projectDistributions[i] * PRECISION / totalVotes) / PRECISION;
+            percentageOfTotalVote = projectDistributions[i] / currentVotes;
+            votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
             BREAD.transfer(projects[i], votedSplit + baseSplit);
             votedSplits[i] = votedSplit;
             percentages[i] = percentageOfTotalVote;
         }
         _updateBreadchainProjects();
+        delete  currentVotes;
+        delete projectDistributions;
         emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
     }
 
@@ -282,12 +239,11 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _percentages List of percentages as integers for each project
      */
     function castVote(uint256[] calldata _percentages) public {
-        if (
-            this.getVotingPowerForPeriod(block.number - (minHoldingDuration / blockTime), block.number, msg.sender)
-                < minRequiredVotingPower
-        ) revert BelowMinRequiredVotingPower();
-
-        _castVote(msg.sender, _percentages);
+        if (holderToLastVoted[msg.sender] > lastClaimedTimestamp) revert AlreadyVotedInCycle();
+        uint256 votingPower =
+            this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
+        if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
+        _castVote(msg.sender,_percentages, votingPower);
     }
 
     /**
@@ -295,24 +251,21 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _account Address of user to cast votes for
      * @param _points Basis points for calculating the amount of votes cast
      */
-    function _castVote(address _account, uint256[] calldata _points) internal {
+    function _castVote(address _account, uint256[] calldata _points,uint256 _votingPower) internal {
         uint256 length = projects.length;
         if (_points.length != length) revert IncorrectNumberOfProjects();
 
-        if (holderToDistribution[_account].length > 0) {
-            delete holderToDistribution[_account];
-        } else {
-            voters.push(_account);
-        }
-        currentVotes++;
-        holderToDistribution[_account] = _points;
         uint256 total;
         for (uint256 i; i < length; ++i) {
             if (_points[i] > maxPoints) revert VotePointsTooLarge();
             total += _points[i];
         }
         if (total == 0) revert ZeroVotePoints();
-        holderToDistributionTotal[_account] = total;
+        for (uint256 i; i < length; ++i) {
+            projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / total) / PRECISION;
+        }
+        holderToLastVoted[_account] = Time.timestamp();
+        currentVotes += _votingPower;
         emit BreadHolderVoted(_account, _points, projects);
     }
 
@@ -321,25 +274,6 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256[] Distribution of votes for projects
      * @return uint256 Total number of votes cast
      */
-    function _commitVotedDistribution() internal returns (uint256[] memory, uint256) {
-        uint256 totalVotes;
-        uint256[] memory projectDistributions = new uint256[](projects.length);
-        for (uint256 i; i < voters.length; ++i) {
-            address voter = voters[i];
-            uint256 voterPower = this.getVotingPowerForPeriod(lastClaimedBlockNumber, Time.blockNumber(), voter);
-            uint256[] memory voterDistribution = holderToDistribution[voter];
-            uint256 vote;
-            for (uint256 j; j < projects.length; ++j) {
-                vote = voterPower * voterDistribution[j] / holderToDistributionTotal[voter];
-                projectDistributions[j] += vote;
-                totalVotes += vote;
-            }
-            delete holderToDistribution[voter];
-            delete holderToDistributionTotal[voter];
-        }
-
-        return (projectDistributions, totalVotes);
-    }
 
     /**
      * @notice Internal function for updating the project list
@@ -441,16 +375,6 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Set the minimum time between claims in seconds
-     * @param _minTimeBetweenClaims New minimum time between claims in seconds
-     */
-    function setMinTimeBetweenClaims(uint48 _minTimeBetweenClaims) public onlyOwner {
-        if (_minTimeBetweenClaims == 0) revert MustBeGreaterThanZero();
-
-        minTimeBetweenClaims = _minTimeBetweenClaims * 1 minutes;
-    }
-
-    /**
      * @notice Set the maximum number of votes in a distribution cycle
      * @param _maxVotes New maximum number of votes in a distribution cycle
      */
@@ -466,5 +390,13 @@ contract YieldDisburser is OwnableUpgradeable {
         if (_blockTime == 0) revert MustBeGreaterThanZero();
 
         blockTime = _blockTime;
+    }
+    /**
+     * @notice Set a new cycle length
+     * @param _cycleLength New cycle length
+     */
+    function setCycleLength(uint256 _cycleLength) public onlyOwner {
+        if (_cycleLength == 0) revert MustBeGreaterThanZero();
+        cycleLength = _cycleLength;
     }
 }
