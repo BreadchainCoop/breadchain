@@ -32,6 +32,8 @@ contract YieldDisburser is OwnableUpgradeable {
     error VotePointsTooLarge();
     // @notice The error emitted when a voter has never held $BREAD before
     error NoCheckpointsForAccount();
+    // @notice The error emitted when attempting to distribute yield without any votes casted
+    error NoVotesCasted();
     // @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
     // @notice The error emitted when attempting to distribute yield when access conditions are not met
@@ -147,6 +149,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return bytes Function selector used to distribute the yield
      */
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
+        if (currentVotes == 0) revert NoVotesCasted();
         uint256 balance = (BREAD.balanceOf(address(this)) + BREAD.yieldAccrued());
         if (balance < projects.length) revert YieldTooLow(balance);
         if (block.number < lastClaimedTimestamp + cycleLength) {
