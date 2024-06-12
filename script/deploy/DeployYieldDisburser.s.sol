@@ -34,7 +34,7 @@ contract DeployYieldDisburser is Script {
         _maxPoints,
         _cycleLength,
         _lastClaimedTimestamp,
-        _lastClaimedBlocknumber,
+        _lastClaimedBlockNumber,
         _precision
     );
 
