@@ -21,6 +21,6 @@
     "_cycleLength": 30,
     "_minTimeBetweenClaims": 30,
     "_lastClaimedTimestamp": 0,
-    "_lastClaimedBlocknumber": 0,
+    "_lastClaimedBlockNumber": 0,
     "_precision": 1000000000000000000
 }
