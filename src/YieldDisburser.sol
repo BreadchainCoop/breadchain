@@ -45,7 +45,7 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The error emitted when attempting to add a project that is already in the `projects` array
     error AlreadyMemberProject();
     // @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower();
+    error BelowMinRequiredVotingPower(uint256 minimum);
     // @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
 
@@ -91,7 +91,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public lastClaimedBlockNumber;
     // @notice The number of votes cast in the current cycle
     uint256 public currentVotes;
-   // @notice the voting power allocated to projects by voters in the current cycle
+    // @notice the voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
     // @notice the last timestamp a voter cast a vote
     mapping(address => uint48) public holderToLastVoted;
@@ -119,6 +119,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < projectLength; ++i) {
             projects[i] = _projects[i];
         }
+        projectDistributions = new uint256[](projectLength);
         blockTime = _blockTime;
         PRECISION = _precision;
         minVotingAmount = _minVotingAmount;
@@ -128,6 +129,7 @@ contract YieldDisburser is OwnableUpgradeable {
         cycleLength = _cycleLength;
         lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
+
         __Ownable_init(msg.sender);
     }
 
@@ -138,7 +140,6 @@ contract YieldDisburser is OwnableUpgradeable {
     function getProjectsLength() public view returns (uint256) {
         return projects.length;
     }
-
 
     /**
      * @notice Determine if the yield distribution is available
@@ -204,7 +205,7 @@ contract YieldDisburser is OwnableUpgradeable {
     /**
      * @notice Distribute $BREAD yield to projects based on cast votes
      */
-     function distributeYield() public {
+    function distributeYield() public {
         (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
@@ -213,8 +214,6 @@ contract YieldDisburser is OwnableUpgradeable {
 
         lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlockNumber = Time.blockNumber();
-        // logic here to create projectDistributions
-
         uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / projectsLength;
         uint256 percentageOfTotalVote;
@@ -231,6 +230,7 @@ contract YieldDisburser is OwnableUpgradeable {
         _updateBreadchainProjects();
         delete  currentVotes;
         delete projectDistributions;
+        projectDistributions = new uint256[](projects.length);
         emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
     }
 
@@ -242,8 +242,8 @@ contract YieldDisburser is OwnableUpgradeable {
         if (holderToLastVoted[msg.sender] > lastClaimedTimestamp) revert AlreadyVotedInCycle();
         uint256 votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
-        if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
-        _castVote(msg.sender,_percentages, votingPower);
+        if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower(minRequiredVotingPower);
+        _castVote(msg.sender, _percentages, votingPower);
     }
 
     /**
@@ -251,7 +251,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _account Address of user to cast votes for
      * @param _points Basis points for calculating the amount of votes cast
      */
-    function _castVote(address _account, uint256[] calldata _points,uint256 _votingPower) internal {
+    function _castVote(address _account, uint256[] calldata _points, uint256 _votingPower) internal {
         uint256 length = projects.length;
         if (_points.length != length) revert IncorrectNumberOfProjects();
 
@@ -395,6 +395,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @notice Set a new cycle length
      * @param _cycleLength New cycle length
      */
+
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
         cycleLength = _cycleLength;
