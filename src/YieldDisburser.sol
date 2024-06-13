@@ -247,7 +247,7 @@ contract YieldDisburser is OwnableUpgradeable {
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
         if (votingPower < minRequiredVotingPower) {
             if (BREAD.balanceOf(msg.sender) > 0 ){
-                _castVote(msg.sender, _percentages, 10000);
+                _castVote(msg.sender, _percentages, maxPoints);
             }
             else {
                 revert BelowMinRequiredVotingPower(minRequiredVotingPower);
