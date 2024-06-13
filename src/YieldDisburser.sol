@@ -140,7 +140,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return address[] The current breadchain projects
      * @return uint256[] The current distribution of voting power for projects
      */
-    function getCurrentVotingDistribution() public view returns (address[]memory, uint256[] memory) {
+    function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
         return (projects, projectDistributions);
     }
 
@@ -158,7 +158,6 @@ contract YieldDisburser is OwnableUpgradeable {
      * @notice Return the number of projects
      * @return uint256 Number of projects
      */
-
     function getProjectsLength() public view returns (uint256) {
         return projects.length;
     }
