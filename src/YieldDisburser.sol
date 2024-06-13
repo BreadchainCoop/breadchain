@@ -136,9 +136,29 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
+     * @notice Returns the current distribution of voting power for projects
+     * @return address[] The current breadchain projects
+     * @return uint256[] The current distribution of voting power for projects
+     */
+    function getCurrentVotingDistribution() public view returns (address[]memory, uint256[] memory) {
+        return (projects, projectDistributions);
+    }
+
+    /**
+     * @notice Return the current voting power of a user
+     * @return uint256 The voting power of the user
+     */
+    function getCurrentVotingPower(address _account) public view returns (uint256) {
+        uint256 votingPower =
+            this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
+        return (votingPower < minRequiredVotingPower ? 0 : votingPower);
+    }
+
+    /**
      * @notice Return the number of projects
      * @return uint256 Number of projects
      */
+
     function getProjectsLength() public view returns (uint256) {
         return projects.length;
     }
