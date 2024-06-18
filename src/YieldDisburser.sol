@@ -166,7 +166,11 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _account Address of user to return the voting power for
      * @return votingPowerTotal  Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256 votingPowerTotal) {
+    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account)
+        external
+        view
+        returns (uint256 votingPowerTotal)
+    {
         // Check if the start time is before the end time
         if (_start > _end) revert StartMustBeBeforeEnd();
         // Check if the end time is after the current block
@@ -192,7 +196,7 @@ contract YieldDisburser is OwnableUpgradeable {
                 break;
             }
         }
-        
+
         // We are now at a position where the checkpoint is within the interval
         // Calculate the voting power for the interval
         intervalEndValue = intervalEnd._value;
@@ -201,22 +205,24 @@ contract YieldDisburser is OwnableUpgradeable {
         if (latestCheckpointPos == 0) {
             return _end == prevKey ? intervalEndValue : votingPowerTotal;
         }
-        uint256 interval_voting_power;
         uint48 key;
         uint256 value;
         Checkpoints.Checkpoint208 memory checkpoint;
         // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
+
+            // Getting current checkpoint and its key and value
             checkpoint = BREAD.checkpoints(_account, i);
             key = checkpoint._key;
             value = checkpoint._value;
-            interval_voting_power = value * (prevKey - key);
-            if (key <= _start) {
-                votingPowerTotal += interval_voting_power;
-                break;
-            } else {
-                votingPowerTotal += interval_voting_power;
-            }
+
+            // Adding the voting power for the sub interval to the total 
+            votingPowerTotal += value * (prevKey - key);
+            
+            // If we reached the start of the interval, return the voting power and break
+            if (key <= _start) break;
+
+            // Otherwise update the previous key and continue to the next checkpoint
             prevKey = key;
         }
         return votingPowerTotal;
