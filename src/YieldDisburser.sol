@@ -146,6 +146,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Return the current voting power of a user
+     * @param _account Address of the user to return the voting power for
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
