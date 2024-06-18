@@ -210,17 +210,19 @@ contract YieldDisburser is OwnableUpgradeable {
         Checkpoints.Checkpoint208 memory checkpoint;
         // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
-
             // Getting current checkpoint and its key and value
             checkpoint = BREAD.checkpoints(_account, i);
             key = checkpoint._key;
             value = checkpoint._value;
 
-            // Adding the voting power for the sub interval to the total 
+            // Adding the voting power for the sub interval to the total
             votingPowerTotal += value * (prevKey - key);
-            
-            // If we reached the start of the interval, return the voting power and break
-            if (key <= _start) break;
+
+            // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
+            if (key <= _start) {
+                votingPowerTotal -= value * (_start - key);
+                break;
+            }
 
             // Otherwise update the previous key and continue to the next checkpoint
             prevKey = key;
