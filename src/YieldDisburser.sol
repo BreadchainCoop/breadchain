@@ -169,6 +169,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
         if (_start > _end) revert StartMustBeBeforeEnd();
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
+        if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
         uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
         latestCheckpointPos--; // Subtract 1 for 0-indexed array
