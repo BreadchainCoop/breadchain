@@ -164,46 +164,62 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _start Start time of the period to return the voting power for
      * @param _end End time of the period to return the voting power for
      * @param _account Address of user to return the voting power for
-     * @return uint256 Voting power of the specified user at the specified period of time
+     * @return votingPowerTotal  Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
+    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256 votingPowerTotal) {
+        // Check if the start time is before the end time
         if (_start > _end) revert StartMustBeBeforeEnd();
+        // Check if the end time is after the current block
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
-        if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
+        // Get the latest checkpoint for the user
         uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
+        // Check if the user has ever held $BREAD
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
-        latestCheckpointPos--; // Subtract 1 for 0-indexed array
-        Checkpoints.Checkpoint208 memory intervalEnd = BREAD.checkpoints(_account, latestCheckpointPos);
-        uint48 prevKey = intervalEnd._key;
-        uint256 intervalEndValue = intervalEnd._value;
-        uint256 votingPower = intervalEndValue * (_end - prevKey);
-        if (latestCheckpointPos == 0) {
-            if (_end == prevKey) {
-                // If the latest checkpoint is exactly at the end of the interval, return the value at that checkpoint
-                return intervalEndValue;
-            } else {
-                return votingPower; // Otherwise, return the voting power calculated above, which is the value at the latest checkpoint multiplied by the length of the interval
+        // Check if the user has ever held $BREAD in the interval by comparing the first mint to the end of the interval
+        if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
+        // Starting to filter out irrelevant checkpoints that are not in the interval
+
+        uint256 intervalEndValue;
+        Checkpoints.Checkpoint208 memory intervalEnd;
+        uint48 prevKey;
+
+        // Find the latest checkpoint that is within the interval
+        while (true) {
+            latestCheckpointPos--;
+            intervalEnd = BREAD.checkpoints(_account, latestCheckpointPos);
+            prevKey = intervalEnd._key;
+            if (prevKey <= _end) {
+                break;
             }
+        }
+        
+        // We are now at a position where the checkpoint is within the interval
+        // Calculate the voting power for the interval
+        intervalEndValue = intervalEnd._value;
+        votingPowerTotal = intervalEndValue * (_end - prevKey);
+        // If there's a single checkpoint in the interval, return the voting power from the interval (including the edge case where the interval ends at the first checkpoint)
+        if (latestCheckpointPos == 0) {
+            return _end == prevKey ? intervalEndValue : votingPowerTotal;
         }
         uint256 interval_voting_power;
         uint48 key;
         uint256 value;
         Checkpoints.Checkpoint208 memory checkpoint;
-        // Iterate through checkpoints in reverse order, starting one before the latest checkpoint because we already handled it above
+        // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
             checkpoint = BREAD.checkpoints(_account, i);
             key = checkpoint._key;
             value = checkpoint._value;
             interval_voting_power = value * (prevKey - key);
             if (key <= _start) {
-                votingPower += interval_voting_power;
+                votingPowerTotal += interval_voting_power;
                 break;
             } else {
-                votingPower += interval_voting_power;
+                votingPowerTotal += interval_voting_power;
             }
             prevKey = key;
         }
-        return votingPower;
+        return votingPowerTotal;
     }
 
     /**
