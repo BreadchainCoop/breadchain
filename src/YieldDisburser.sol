@@ -164,12 +164,12 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _start Start time of the period to return the voting power for
      * @param _end End time of the period to return the voting power for
      * @param _account Address of user to return the voting power for
-     * @return votingPowerTotal  Voting power of the specified user at the specified period of time
+     * @return uint256  Voting power of the specified user at the specified period of time
      */
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account)
         external
         view
-        returns (uint256 votingPowerTotal)
+        returns (uint256)
     {
         // Check if the start time is before the end time
         if (_start > _end) revert StartMustBeBeforeEnd();
@@ -200,7 +200,7 @@ contract YieldDisburser is OwnableUpgradeable {
         // We are now at a position where the checkpoint is within the interval
         // Calculate the voting power for the interval
         intervalEndValue = intervalEnd._value;
-        votingPowerTotal = intervalEndValue * (_end - prevKey);
+        uint256 votingPowerTotal = intervalEndValue * (_end - prevKey);
         // If there's a single checkpoint in the interval, return the voting power from the interval (including the edge case where the interval ends at the first checkpoint)
         if (latestCheckpointPos == 0) {
             return _end == prevKey ? intervalEndValue : votingPowerTotal;
