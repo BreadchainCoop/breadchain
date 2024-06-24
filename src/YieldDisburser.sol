@@ -256,7 +256,7 @@ contract YieldDisburser is OwnableUpgradeable {
             percentages[i] = percentageOfTotalVote;
         }
         _updateBreadchainProjects();
-        delete  currentVotes;
+        delete currentVotes;
         delete projectDistributions;
         projectDistributions = new uint256[](projects.length);
         emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
