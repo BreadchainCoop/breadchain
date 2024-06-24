@@ -297,11 +297,6 @@ contract YieldDisburser is OwnableUpgradeable {
         emit BreadHolderVoted(_account, _points, projects);
     }
 
-    /**
-     * @notice Internal function for committing the voted distributions for projects
-     * @return uint256[] Distribution of votes for projects
-     * @return uint256 Total number of votes cast
-     */
 
     /**
      * @notice Internal function for updating the project list
