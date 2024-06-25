@@ -115,6 +115,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _lastClaimedBlockNumber,
         uint256 _precision
     ) public initializer {
+        __Ownable_init(msg.sender);
         BREAD = Bread(breadAddress);
         uint256 projectLength = _projects.length;
         projects = new address[](projectLength);
@@ -132,7 +133,6 @@ contract YieldDisburser is OwnableUpgradeable {
         lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
 
-        __Ownable_init(msg.sender);
     }
 
     /**
