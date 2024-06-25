@@ -421,6 +421,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
+        
         cycleLength = _cycleLength;
     }
 }
