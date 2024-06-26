@@ -389,16 +389,6 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Set a new block time
-     * @param _blockTime New block time
-     */
-    function setBlockTime(uint256 _blockTime) public onlyOwner {
-        if (_blockTime == 0) revert MustBeGreaterThanZero();
-
-        blockTime = _blockTime;
-    }
-    
-    /**
      * @notice Set a new cycle length
      * @param _cycleLength New cycle length
      */
