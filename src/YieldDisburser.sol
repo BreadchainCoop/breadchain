@@ -39,7 +39,7 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
     // @notice The error emitted when attempting to distribute yield with a balance less than the number of projects
-    error YieldTooLow(uint256);
+    error YieldTooLow();
     // @notice The error emitted when attempting to remove a project that is not in the `projects` array
     error ProjectNotFound();
     // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
@@ -68,10 +68,6 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public cycleLength;
     // @notice The minimum required voting power participants must have to vote
     uint256 public minRequiredVotingPower;
-    // @notice The minimum amount of $BREAD required to vote
-    uint256 public minVotingAmount;
-    // @notice The minimum amount of time a user must hold minVotingAmount
-    uint256 public minHoldingDuration;
     // @notice The maximum number of points a user can allocate to a project
     uint256 public maxPoints;
     // @notice The block time of the EVM in seconds
@@ -142,22 +138,6 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Determine if the yield distribution is available
-     * @return bool Flag indicating if the yield distribution is able to be claimed
-     * @return bytes Function selector used to distribute the yield
-     */
-    function resolveYieldDistribution() public view returns (bool, bytes memory) {
-        if (currentVotes == 0) revert NoVotesCasted();
-        uint256 balance = (BREAD.balanceOf(address(this)) + BREAD.yieldAccrued());
-        if (balance < projects.length) revert YieldTooLow(balance);
-        if (block.number < lastClaimedBlockNumber + cycleLength) {
-            revert AlreadyClaimed();
-        }
-        bytes memory ret = abi.encodePacked(this.distributeYield.selector);
-        return (true, ret);
-    }
-
-    /**
      * @notice Return the voting power for a specified user during a specified period of time
      * @param _start Start time of the period to return the voting power for
      * @param _end End time of the period to return the voting power for
@@ -206,15 +186,33 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
+     * @notice Determine if the yield distribution is available
+     * @dev Resolver function required for Powerpool job registration. For more details, see the Powerpool documentation:
+     * @dev https://docs.powerpool.finance/powerpool-and-poweragent-network/power-agent/user-guides-and-instructions/i-want-to-automate-my-tasks/job-registration-guide#resolver-job
+     * @return bool Flag indicating if the yield is able to be distributed
+     * @return bytes Calldata used by the resolver to distribute the yield
+     */
+    function resolveYieldDistribution() public view returns (bool, bytes memory) {
+        if (
+            currentVotes == 0 || // No votes were cast
+            block.number < lastClaimedBlockNumber + cycleLength || // Already claimed this cycle
+            BREAD.balanceOf(address(this)) + BREAD.yieldAccrued() < projects.length // Yield is insufficient
+        ) {
+            return (false, new bytes(0));
+        } else {
+            return (true, abi.encodePacked(this.distributeYield.selector));
+        }
+    }
+
+    /**
      * @notice Distribute $BREAD yield to projects based on cast votes
      */
     function distributeYield() public {
-        (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
+        (bool _resolved,) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         uint256 projectsLength = projects.length;
-
         lastClaimedBlockNumber = Time.blockNumber();
         uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / projectsLength;
@@ -222,6 +220,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 votedSplit;
         uint256[] memory votedSplits = new uint256[](projectsLength);
         uint256[] memory percentages = new uint256[](projectsLength);
+
         for (uint256 i; i < projectsLength; ++i) {
             percentageOfTotalVote = ((projectDistributions[i] * PRECISION) / currentVotes) / PRECISION;
             votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
@@ -229,10 +228,13 @@ contract YieldDisburser is OwnableUpgradeable {
             votedSplits[i] = votedSplit;
             percentages[i] = percentageOfTotalVote;
         }
+
         _updateBreadchainProjects();
+
         delete currentVotes;
         delete projectDistributions;
         projectDistributions = new uint256[](projects.length);
+
         emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
     }
 
@@ -245,11 +247,9 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
-        if (_currentVotingPower < minRequiredVotingPower) {
-            revert BelowMinRequiredVotingPower();
-        } else {
-            _castVote(msg.sender, _percentages, _currentVotingPower);
-        }
+        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
+
+        _castVote(msg.sender, _percentages, _currentVotingPower);
     }
 
     /**
@@ -258,20 +258,24 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _points Basis points for calculating the amount of votes cast
      */
     function _castVote(address _account, uint256[] calldata _points, uint256 _votingPower) internal {
-        uint256 length = projects.length;
-        if (_points.length != length) revert IncorrectNumberOfProjects();
+        if (_points.length != projects.length) revert IncorrectNumberOfProjects();
 
-        uint256 total;
-        for (uint256 i; i < length; ++i) {
+        uint256 _totalPoints;
+
+        for (uint256 i; i < _points.length; ++i) {
             if (_points[i] > maxPoints) revert VotePointsTooLarge();
-            total += _points[i];
+            _totalPoints += _points[i];
         }
-        if (total == 0) revert ZeroVotePoints();
-        for (uint256 i; i < length; ++i) {
-            projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / total) / PRECISION;
+
+        if (_totalPoints == 0) revert ZeroVotePoints();
+
+        for (uint256 i; i < _points.length; ++i) {
+            projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
         }
+
         holderToLastVoted[_account] = block.number;
         currentVotes += _votingPower;
+
         emit BreadHolderVoted(_account, _points, projects);
     }
 
@@ -343,26 +347,12 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Set a new minimum amount of time to hold the minimum voting amount
-     * @param _minHoldingDuration New minimum amount of time to hold the minimum voting amount
-     */
-    function setMinHoldingDuration(uint256 _minHoldingDuration) public onlyOwner {
-        minHoldingDuration = _minHoldingDuration;
-    }
-
-    /**
-     * @notice Set a new minimum voting amount
-     * @param _minVotingAmount New minimum voting amount
-     */
-    function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
-        minVotingAmount = _minVotingAmount;
-    }
-
-    /**
      * @notice Set a new minimum required voting power a user must have to vote
      * @param _minRequiredVotingPower New minimum required voting power a user must have to vote
      */
     function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
+        if (_minRequiredVotingPower == 0) revert MustBeGreaterThanZero();
+
         minRequiredVotingPower = _minRequiredVotingPower;
     }
 
@@ -371,6 +361,8 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _maxPoints New maximum number of points a user can allocate to a project
      */
     function setMaxPoints(uint256 _maxPoints) public onlyOwner {
+        if (_maxPoints == 0) revert MustBeGreaterThanZero();
+
         maxPoints = _maxPoints;
     }
 
