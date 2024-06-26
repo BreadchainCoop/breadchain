@@ -226,7 +226,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256[] memory votedSplits = new uint256[](projectsLength);
         uint256[] memory percentages = new uint256[](projectsLength);
         for (uint256 i; i < projectsLength; ++i) {
-            percentageOfTotalVote = projectDistributions[i] / currentVotes;
+            percentageOfTotalVote = ((projectDistributions[i] *  PRECISION) / currentVotes) / PRECISION;
             votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
             BREAD.transfer(projects[i], votedSplit + baseSplit);
             votedSplits[i] = votedSplit;
