@@ -79,9 +79,9 @@ contract YieldDisburserTest is Test {
             address(bread),
             projects2,
             _blocktime,
+            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _minRequiredVotingPower,
             _lastClaimedBlockNumber,
             _precision
         );
