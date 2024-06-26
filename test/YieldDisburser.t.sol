@@ -34,16 +34,24 @@ contract YieldDisburserTest is Test {
     address[] projects = abi.decode(projectsRaw, (address[]));
     address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
-    uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
-    uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
+    uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
+    uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
-    uint256 minHoldingDuration = _minHoldingDuration * 1 days;
-    uint256 minHoldingDurationInBlocks = minHoldingDuration / _blocktime;
     Bread public bread = Bread(address(breadAddress));
+    uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
+
+        
+    // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
+    // uint256 minHoldingDuration = 10 days; 
+    // uint256 blockTime = 5;  
+    // uint256 minRequiredVotingPower = (minVotingAmount * minHoldingDuration) / blockTime; // We can assume that blockTime is small enough
+
+    uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
+    
     function setUp() public {
         YieldDisburserTestWrapper yieldDisburserImplementation = new YieldDisburserTestWrapper();
         address[] memory projects1 = new address[](1);
@@ -53,8 +61,7 @@ contract YieldDisburserTest is Test {
             address(bread),
             projects1,
             _blocktime,
-            _minVotingAmount,
-            _minHoldingDuration,
+            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
             _lastClaimedBlockNumber,
@@ -72,10 +79,9 @@ contract YieldDisburserTest is Test {
             address(bread),
             projects2,
             _blocktime,
-            _minVotingAmount,
-            _minHoldingDuration,
             _maxPoints,
             _cycleLength,
+            _minRequiredVotingPower,
             _lastClaimedBlockNumber,
             _precision
         );

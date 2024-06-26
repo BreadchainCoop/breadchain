@@ -101,8 +101,7 @@ contract YieldDisburser is OwnableUpgradeable {
         address breadAddress,
         address[] memory _projects,
         uint256 _blockTime,
-        uint256 _minVotingAmount,
-        uint256 _minHoldingDuration,
+        uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
         uint256 _lastClaimedBlockNumber,
@@ -118,11 +117,9 @@ contract YieldDisburser is OwnableUpgradeable {
         projectDistributions = new uint256[](projectLength);
         blockTime = _blockTime;
         PRECISION = _precision;
-        minVotingAmount = _minVotingAmount;
-        minHoldingDuration = _minHoldingDuration * 1 days; // must hold for atleast _minVotingHoldingDuration  days
-        minRequiredVotingPower = ((minVotingAmount * minHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
+        minRequiredVotingPower =_minRequiredVotingPower;
         maxPoints = _maxPoints;
-        cycleLength = (_cycleLength * 1 days) / blockTime;
+        cycleLength = _cycleLength;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
     }
 
