@@ -274,6 +274,9 @@ contract YieldDisburser is OwnableUpgradeable {
                 revert BelowMinRequiredVotingPower(minRequiredVotingPower);
             }
         }
+        else{
+            _castVote(msg.sender, _percentages, votingPower);
+        }
     }
 
     /**
