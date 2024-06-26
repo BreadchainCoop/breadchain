@@ -306,17 +306,11 @@ contract YieldDisburserTest is Test {
         setUpForCycle(yieldDisburser);
         uint256 vote = 100;
         percentages.push(vote);
-        vm.expectRevert();
         vm.prank(account);
         // Casting vote, should revert because account has not met the minimum required voting power
         yieldDisburser.castVote(percentages);
 
         // Checking to see if the account has the correct voting power
-        assertEq(
-            yieldDisburser.getVotingPowerForPeriod(
-                START - (minHoldingDurationInBlocks - 1), vm.getBlockNumber(), account
-            ),
-            ( 5 * 1e4) * (minHoldingDurationInBlocks - 1)
-        );
+        assertEq(yieldDisburser.getCurrentVotingPower(account), _maxPoints * yieldDisburser.getProjectsLength());
     }
 }

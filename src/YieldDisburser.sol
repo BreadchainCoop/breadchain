@@ -140,15 +140,7 @@ contract YieldDisburser is OwnableUpgradeable {
     function getCurrentVotingPower(address _account) public view returns (uint256) {
         uint256 _votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
-        return (_votingPower < minRequiredVotingPower ? 0 : _votingPower);
-    }
-
-    /**
-     * @notice Return the number of projects
-     * @return uint256 Number of projects
-     */
-    function getProjectsLength() public view returns (uint256) {
-        return projects.length;
+        return (votingPower < minRequiredVotingPower ? maxPoints * projects.length : votingPower);
     }
 
     /**
@@ -253,15 +245,16 @@ contract YieldDisburser is OwnableUpgradeable {
     function castVote(uint256[] calldata _percentages) public {
         if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
 
-        uint256 votingPower =
-            this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
+        uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
-        if (votingPower < minRequiredVotingPower) {
+        if (_currentVotingPower == maxPoints * projects.length) {
             if (BREAD.balanceOf(msg.sender) > 0) {
-                _castVote(msg.sender, _percentages, maxPoints);
+                _castVote(msg.sender, _percentages, votingPower);
             } else {
                 revert BelowMinRequiredVotingPower(minRequiredVotingPower);
             }
+        } else {
+            _castVote(msg.sender, _percentages, votingPower);
         }
     }
 

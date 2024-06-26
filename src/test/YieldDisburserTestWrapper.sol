@@ -21,4 +21,12 @@ contract YieldDisburserTestWrapper is YieldDisburser {
     function setLastClaimedBlockNumber(uint256 _lastClaimedBlockNumber) public onlyOwner {
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
     }
+
+    /**
+     * @notice Return the number of projects
+     * @return uint256 Number of projects
+     */
+    function getProjectsLength() public view returns (uint256) {
+        return projects.length;
+    }
 }
