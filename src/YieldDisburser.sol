@@ -74,8 +74,6 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public minHoldingDuration;
     // @notice The maximum number of points a user can allocate to a project
     uint256 public maxPoints;
-    // @notice The maximum number of votes in a distribution cycle
-    uint256 public maxVotes;
     // @notice The block time of the EVM in seconds
     uint256 public blockTime;
 
@@ -391,14 +389,6 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Set the maximum number of votes in a distribution cycle
-     * @param _maxVotes New maximum number of votes in a distribution cycle
-     */
-    function setMaxVotes(uint256 _maxVotes) public onlyOwner {
-        maxVotes = _maxVotes;
-    }
-
-    /**
      * @notice Set a new block time
      * @param _blockTime New block time
      */
@@ -407,11 +397,11 @@ contract YieldDisburser is OwnableUpgradeable {
 
         blockTime = _blockTime;
     }
+    
     /**
      * @notice Set a new cycle length
      * @param _cycleLength New cycle length
      */
-
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
 
