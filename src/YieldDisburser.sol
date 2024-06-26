@@ -266,8 +266,14 @@ contract YieldDisburser is OwnableUpgradeable {
         if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
         uint256 votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
-        if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower(minRequiredVotingPower);
-        _castVote(msg.sender, _percentages, votingPower);
+        if (votingPower < minRequiredVotingPower) {
+            if (BREAD.balanceOf(msg.sender) > 0 ){
+                _castVote(msg.sender, _percentages, maxPoints);
+            }
+            else {
+                revert BelowMinRequiredVotingPower(minRequiredVotingPower);
+            }
+        }
     }
 
     /**
