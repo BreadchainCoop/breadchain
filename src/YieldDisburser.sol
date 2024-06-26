@@ -188,8 +188,8 @@ contract YieldDisburser is OwnableUpgradeable {
         uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
         uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
 
-        for (uint32 i = _currentCheckpointIndex; i > 0; --i) {
-            // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index
+        for (uint32 i = _currentCheckpointIndex; i > 0;) {
+            // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
             _currentCheckpoint = BREAD.checkpoints(_account, --i);
 
             // Add voting power for the sub-interval to the total
