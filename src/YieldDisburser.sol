@@ -175,49 +175,44 @@ contract YieldDisburser is OwnableUpgradeable {
 
         // Starting to filter out irrelevant checkpoints that are not in the interval
 
-        uint256 intervalEndValue;
-        Checkpoints.Checkpoint208 memory intervalEnd;
-        uint48 prevKey;
+        uint256 value;
+        Checkpoints.Checkpoint208 memory checkpoint;
+        uint48 lastKey;
 
         // Find the latest checkpoint that is within the interval
-        while (true) {
+        while (lastKey <= _end){
             latestCheckpointPos--;
-            intervalEnd = BREAD.checkpoints(_account, latestCheckpointPos);
-            prevKey = intervalEnd._key;
-            if (prevKey <= _end) {
-                break;
-            }
+            checkpoint = BREAD.checkpoints(_account, latestCheckpointPos);
+            lastKey = checkpoint._key;
         }
 
         // We are now at a position where the checkpoint is within the interval
         // Calculate the voting power for the interval
-        intervalEndValue = intervalEnd._value;
-        uint256 votingPowerTotal = intervalEndValue * (_end - prevKey);
-        // If there's a single checkpoint in the interval, return the voting power from the interval (including the edge case where the interval ends at the first checkpoint)
-        if (latestCheckpointPos == 0) {
-            return _end == prevKey ? intervalEndValue : votingPowerTotal;
-        }
-        uint48 key;
-        uint256 value;
-        Checkpoints.Checkpoint208 memory checkpoint;
+        value = checkpoint._value;
+        lastKey = uint48((lastKey < _start ? _start : lastKey));
+        uint256 votingPowerTotal = value * (_end - lastKey);
+        // If there's a single checkpoint in the interval, return the voting power from the interval 
+        if (latestCheckpointPos == 0 || lastKey < _start) return votingPowerTotal;
+        
+        uint48 currentKey;
         // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
             // Getting current checkpoint and its key and value
             checkpoint = BREAD.checkpoints(_account, i);
-            key = checkpoint._key;
+            currentKey = checkpoint._key;
             value = checkpoint._value;
 
             // Adding the voting power for the sub interval to the total
-            votingPowerTotal += value * (prevKey - key);
+            votingPowerTotal += value * (lastKey - currentKey);
 
             // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
-            if (key <= _start) {
-                votingPowerTotal -= value * (_start - key);
+            if (currentKey <= _start) {
+                votingPowerTotal -= value * (_start - currentKey);
                 break;
             }
 
             // Otherwise update the previous key and continue to the next checkpoint
-            prevKey = key;
+            lastKey = currentKey;
         }
         return votingPowerTotal;
     }
