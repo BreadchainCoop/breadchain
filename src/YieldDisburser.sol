@@ -117,7 +117,7 @@ contract YieldDisburser is OwnableUpgradeable {
         projectDistributions = new uint256[](projectLength);
         blockTime = _blockTime;
         PRECISION = _precision;
-        minRequiredVotingPower =_minRequiredVotingPower;
+        minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
@@ -167,11 +167,11 @@ contract YieldDisburser is OwnableUpgradeable {
         if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
 
         uint256 value;
-        uint48 lastKey;
+        uint48 lastKey = type(uint48).max;
         Checkpoints.Checkpoint208 memory checkpoint;
 
         // Find the latest checkpoint that is within the interval
-        while (lastKey <= _end) {
+        while (lastKey > _end) {
             latestCheckpointPos--;
             checkpoint = BREAD.checkpoints(_account, latestCheckpointPos);
             lastKey = checkpoint._key;
@@ -225,7 +225,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256[] memory votedSplits = new uint256[](projectsLength);
         uint256[] memory percentages = new uint256[](projectsLength);
         for (uint256 i; i < projectsLength; ++i) {
-            percentageOfTotalVote = ((projectDistributions[i] *  PRECISION) / currentVotes) / PRECISION;
+            percentageOfTotalVote = ((projectDistributions[i] * PRECISION) / currentVotes) / PRECISION;
             votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
             BREAD.transfer(projects[i], votedSplit + baseSplit);
             votedSplits[i] = votedSplit;
