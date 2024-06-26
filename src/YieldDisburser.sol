@@ -83,18 +83,14 @@ contract YieldDisburser is OwnableUpgradeable {
     address[] public queuedProjectsForAddition;
     // @notice The array of projects queued for removal
     address[] public queuedProjectsForRemoval;
-    // @notice The array of voters who have cast votes in the current cycle
-    address[] public voters;
-    // @notice The timestamp of the last yield distribution
-    uint48 public lastClaimedTimestamp;
     // @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
     // @notice The number of votes cast in the current cycle
     uint256 public currentVotes;
     // @notice the voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
-    // @notice the last timestamp a voter cast a vote
-    mapping(address => uint48) public holderToLastVoted;
+    // @notice the last blocknumber a voter cast a vote
+    mapping(address => uint256) public holderToLastVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -109,7 +105,6 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _minHoldingDuration,
         uint256 _maxPoints,
         uint256 _cycleLength,
-        uint48 _lastClaimedTimestamp,
         uint256 _lastClaimedBlockNumber,
         uint256 _precision
     ) public initializer {
@@ -128,7 +123,6 @@ contract YieldDisburser is OwnableUpgradeable {
         minRequiredVotingPower = ((minVotingAmount * minHoldingDuration) * PRECISION) / blockTime; // Holding minVotingAmount bread for minVotingHoldingDuration days , assuming a blockTime second block time
         maxPoints = _maxPoints;
         cycleLength = (_cycleLength * 1 days) / blockTime;
-        lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
     }
 
@@ -149,7 +143,7 @@ contract YieldDisburser is OwnableUpgradeable {
         if (currentVotes == 0) revert NoVotesCasted();
         uint256 balance = (BREAD.balanceOf(address(this)) + BREAD.yieldAccrued());
         if (balance < projects.length) revert YieldTooLow(balance);
-        if (block.number < lastClaimedTimestamp + cycleLength) {
+        if (block.number < lastClaimedBlockNumber + cycleLength) {
             revert AlreadyClaimed();
         }
         bytes memory ret = abi.encodePacked(this.distributeYield.selector);
@@ -180,7 +174,7 @@ contract YieldDisburser is OwnableUpgradeable {
         Checkpoints.Checkpoint208 memory checkpoint;
 
         // Find the latest checkpoint that is within the interval
-        while (lastKey <= _end){
+        while (lastKey <= _end) {
             latestCheckpointPos--;
             checkpoint = BREAD.checkpoints(_account, latestCheckpointPos);
             lastKey = checkpoint._key;
@@ -191,9 +185,9 @@ contract YieldDisburser is OwnableUpgradeable {
         value = checkpoint._value;
         lastKey = uint48((lastKey < _start ? _start : lastKey));
         uint256 votingPowerTotal = value * (_end - lastKey);
-        // If there's a single checkpoint in the interval, return the voting power from the interval 
+        // If there's a single checkpoint in the interval, return the voting power from the interval
         if (latestCheckpointPos == 0 || lastKey < _start) return votingPowerTotal;
-        
+
         uint48 currentKey;
         // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
         for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
@@ -207,7 +201,6 @@ contract YieldDisburser is OwnableUpgradeable {
 
             // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
             if (currentKey <= _start) {
-                
                 votingPowerTotal -= value * (_start - currentKey);
                 break;
             }
@@ -228,7 +221,6 @@ contract YieldDisburser is OwnableUpgradeable {
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         uint256 projectsLength = projects.length;
 
-        lastClaimedTimestamp = Time.timestamp();
         lastClaimedBlockNumber = Time.blockNumber();
         uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
         uint256 baseSplit = halfBalance / projectsLength;
@@ -255,7 +247,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _percentages List of percentages as integers for each project
      */
     function castVote(uint256[] calldata _percentages) public {
-        if (holderToLastVoted[msg.sender] > lastClaimedTimestamp) revert AlreadyVotedInCycle();
+        if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
         uint256 votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
         if (votingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower(minRequiredVotingPower);

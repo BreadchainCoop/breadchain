@@ -39,7 +39,6 @@ contract YieldDisburserTest is Test {
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
-    uint256 _lastClaimedTimestamp = stdJson.readUint(config_data, "._lastClaimedTimestamp");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 minHoldingDuration = _minHoldingDuration * 1 days;
     uint256 minHoldingDurationInBlocks = minHoldingDuration / _blocktime;
@@ -58,7 +57,6 @@ contract YieldDisburserTest is Test {
             _minHoldingDuration,
             _maxPoints,
             _cycleLength,
-            _lastClaimedTimestamp,
             _lastClaimedBlockNumber,
             _precision
         );
@@ -78,7 +76,6 @@ contract YieldDisburserTest is Test {
             _minHoldingDuration,
             _maxPoints,
             _cycleLength,
-            _lastClaimedTimestamp,
             _lastClaimedBlockNumber,
             _precision
         );
@@ -92,7 +89,6 @@ contract YieldDisburserTest is Test {
 
     function setUpForCycle(YieldDisburserTestWrapper _yieldDisburser) public {
         vm.roll(START);
-        _yieldDisburser.setLastClaimedTimestamp(uint48(vm.getBlockTimestamp()));
         _yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
         address owner = bread.owner();
         vm.prank(owner);

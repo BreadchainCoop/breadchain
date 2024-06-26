@@ -15,14 +15,6 @@ contract YieldDisburserTestWrapper is YieldDisburser {
     }
 
     /**
-     * @notice Set a new timestamp of the most recent yield distribution
-     * @param _lastClaimedTimestamp New timestamp of the most recent yield distribution
-     */
-    function setLastClaimedTimestamp(uint48 _lastClaimedTimestamp) public onlyOwner {
-        lastClaimedTimestamp = _lastClaimedTimestamp;
-    }
-
-    /**
      * @notice Set a new block number of the most recent yield distribution
      * @param _lastClaimedBlockNumber New block number of the most recent yield distribution
      */
