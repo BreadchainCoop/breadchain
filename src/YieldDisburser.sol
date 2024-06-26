@@ -166,18 +166,18 @@ contract YieldDisburser is OwnableUpgradeable {
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
         // Checking if the start time is before the end time, if the end time is after the current
         // block and if the user has ever held $BREAD comparing the first mint to the end of the interval
-
         if (_start > _end) revert StartMustBeBeforeEnd();
+
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
+
         uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
+
         if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
 
-        // Starting to filter out irrelevant checkpoints that are not in the interval
-
         uint256 value;
-        Checkpoints.Checkpoint208 memory checkpoint;
         uint48 lastKey;
+        Checkpoints.Checkpoint208 memory checkpoint;
 
         // Find the latest checkpoint that is within the interval
         while (lastKey <= _end){
@@ -207,6 +207,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
             // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
             if (currentKey <= _start) {
+                
                 votingPowerTotal -= value * (_start - currentKey);
                 break;
             }
