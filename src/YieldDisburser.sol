@@ -47,7 +47,7 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The error emitted when attempting to add a project that is already in the `projects` array
     error AlreadyMemberProject();
     // @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower(uint256 minimum);
+    error BelowMinRequiredVotingPower();
     // @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
 
@@ -138,9 +138,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        uint256 _votingPower =
-            this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
-        return (_votingPower < minRequiredVotingPower ? maxPoints * projects.length : _votingPower);
+        return this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
     }
 
     /**
@@ -247,12 +245,8 @@ contract YieldDisburser is OwnableUpgradeable {
 
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
-        if (_currentVotingPower == maxPoints * projects.length) {
-            if (BREAD.balanceOf(msg.sender) > 0) {
-                _castVote(msg.sender, _percentages, _currentVotingPower);
-            } else {
-                revert BelowMinRequiredVotingPower(minRequiredVotingPower);
-            }
+        if (_currentVotingPower < minRequiredVotingPower) {
+            revert BelowMinRequiredVotingPower();
         } else {
             _castVote(msg.sender, _percentages, _currentVotingPower);
         }
