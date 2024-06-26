@@ -143,7 +143,6 @@ contract YieldDisburser is OwnableUpgradeable {
         return (votingPower < minRequiredVotingPower ? maxPoints * projects.length : votingPower);
     }
 
-
     /**
      * @notice Determine if the yield distribution is available
      * @return bool Flag indicating if the yield distribution is able to be claimed
@@ -259,14 +258,12 @@ contract YieldDisburser is OwnableUpgradeable {
         if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
         uint256 votingPower = getCurrentVotingPower(msg.sender);
         if (votingPower == maxPoints * projects.length) {
-            if (BREAD.balanceOf(msg.sender) > 0 ){
-                _castVote(msg.sender, _percentages,votingPower);
-            }
-            else {
+            if (BREAD.balanceOf(msg.sender) > 0) {
+                _castVote(msg.sender, _percentages, votingPower);
+            } else {
                 revert BelowMinRequiredVotingPower(minRequiredVotingPower);
             }
-        }
-        else{
+        } else {
             _castVote(msg.sender, _percentages, votingPower);
         }
     }
@@ -289,7 +286,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < length; ++i) {
             projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / total) / PRECISION;
         }
-        holderToLastVoted[_account] = Time.timestamp();
+        holderToLastVoted[_account] = block.number;
         currentVotes += _votingPower;
         emit BreadHolderVoted(_account, _points, projects);
     }
