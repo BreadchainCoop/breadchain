@@ -68,7 +68,7 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public cycleLength;
     // @notice The minimum required voting power participants must have to vote
     uint256 public minRequiredVotingPower;
-    // @notice The minimum amount of bread required to vote
+    // @notice The minimum amount of $BREAD required to vote
     uint256 public minVotingAmount;
     // @notice The minimum amount of time a user must hold minVotingAmount
     uint256 public minHoldingDuration;
@@ -76,7 +76,6 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public maxPoints;
     // @notice The block time of the EVM in seconds
     uint256 public blockTime;
-
     // @notice The array of projects eligible for yield distribution
     address[] public projects;
     // @notice The array of projects queued for addition
@@ -98,7 +97,7 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function initialize(
-        address breadAddress,
+        address _bread,
         uint256 _precision,
         uint256 _blockTime,
         address[] memory _projects,
@@ -108,24 +107,25 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _lastClaimedBlockNumber
     ) public initializer {
         __Ownable_init(msg.sender);
-        BREAD = Bread(breadAddress);
-        uint256 projectLength = _projects.length;
-        projects = new address[](projectLength);
-        for (uint256 i; i < projectLength; ++i) {
-            projects[i] = _projects[i];
-        }
-        projectDistributions = new uint256[](projectLength);
-        blockTime = _blockTime;
+
+        BREAD = Bread(_bread);
         PRECISION = _precision;
+        blockTime = _blockTime;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
+
+        projectDistributions = new uint256[](_projects.length);
+        projects = new address[](_projects.length);
+        for (uint256 i; i < _projects.length; ++i) {
+            projects[i] = _projects[i];
+        }
     }
 
     /**
      * @notice Returns the current distribution of voting power for projects
-     * @return address[] The current breadchain projects
+     * @return address[] The current participating projects
      * @return uint256[] The current distribution of voting power for projects
      */
     function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
@@ -138,9 +138,9 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        uint256 votingPower =
+        uint256 _votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
-        return (votingPower < minRequiredVotingPower ? 0 : votingPower);
+        return (_votingPower < minRequiredVotingPower ? 0 : _votingPower);
     }
 
     /**
@@ -175,56 +175,44 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 Voting power of the specified user at the specified period of time
      */
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
-        // Checking if the start time is before the end time, if the end time is after the current
-        // block and if the user has ever held $BREAD comparing the first mint to the end of the interval
         if (_start > _end) revert StartMustBeBeforeEnd();
-
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
 
-        uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
-        if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
+        // Initialized as the checkpoint count, but later used to track checkpoint index
+        uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
+        if (_currentCheckpointIndex == 0) revert NoCheckpointsForAccount();
 
         if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
 
-        uint256 value;
-        uint48 lastKey = type(uint48).max;
-        Checkpoints.Checkpoint208 memory checkpoint;
+        Checkpoints.Checkpoint208 memory _currentCheckpoint;
 
         // Find the latest checkpoint that is within the interval
-        while (lastKey > _end) {
-            latestCheckpointPos--;
-            checkpoint = BREAD.checkpoints(_account, latestCheckpointPos);
-            lastKey = checkpoint._key;
-        }
+        do {
+            --_currentCheckpointIndex;
+            _currentCheckpoint = BREAD.checkpoints(_account, _currentCheckpointIndex);
+        } while (_currentCheckpoint._key > _end);
 
-        // We are now at a position where the checkpoint is within the interval or the one nearest it
-        value = checkpoint._value;
-        lastKey = uint48((lastKey < _start ? _start : lastKey));
-        uint256 votingPowerTotal = value * (_end - lastKey);
-        // If there's a single checkpoint in the interval, return the voting power from the interval
-        if (latestCheckpointPos == 0 || lastKey < _start) return votingPowerTotal;
+        // Initialize voting power with the latest checkpoint that is within the interval (or nearest to it)
+        uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
+        uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
 
-        uint48 currentKey;
-        // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
-        for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
-            // Getting current checkpoint and its key and value
-            checkpoint = BREAD.checkpoints(_account, i);
-            currentKey = checkpoint._key;
-            value = checkpoint._value;
+        for (uint32 i = _currentCheckpointIndex; i > 0; --i) {
+            // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index
+            _currentCheckpoint = BREAD.checkpoints(_account, --i);
 
-            // Adding the voting power for the sub interval to the total
-            votingPowerTotal += value * (lastKey - currentKey);
+            // Add voting power for the sub-interval to the total
+            _totalVotingPower += _currentCheckpoint._value * (_latestKey - _currentCheckpoint._key);
 
-            // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
-            if (currentKey <= _start) {
-                votingPowerTotal -= value * (_start - currentKey);
+            // At the start of the interval, deduct voting power accrued before the interval and return the total
+            if (_currentCheckpoint._key <= _start) {
+                _totalVotingPower -= _currentCheckpoint._value * (_start - _currentCheckpoint._key);
                 break;
             }
 
-            // Otherwise update the previous key and continue to the next checkpoint
-            lastKey = currentKey;
+            _latestKey = _currentCheckpoint._key;
         }
-        return votingPowerTotal;
+
+        return _totalVotingPower;
     }
 
     /**
@@ -264,13 +252,14 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function castVote(uint256[] calldata _percentages) public {
         if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
+
         uint256 votingPower =
             this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, msg.sender);
+
         if (votingPower < minRequiredVotingPower) {
-            if (BREAD.balanceOf(msg.sender) > 0 ){
+            if (BREAD.balanceOf(msg.sender) > 0) {
                 _castVote(msg.sender, _percentages, maxPoints);
-            }
-            else {
+            } else {
                 revert BelowMinRequiredVotingPower(minRequiredVotingPower);
             }
         }
@@ -399,8 +388,8 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     /**
-     * @notice Set a new cycle length
-     * @param _cycleLength New cycle length
+     * @notice Set a new cycle length in blocks
+     * @param _cycleLength New cycle length in blocks
      */
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
