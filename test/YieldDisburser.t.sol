@@ -307,10 +307,9 @@ contract YieldDisburserTest is Test {
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
-        // Casting vote, should revert because account has not met the minimum required voting power
         yieldDisburser.castVote(percentages);
 
-        // Checking to see if the account has the correct voting power
+        // Expecting the account to have the grace amount voting power 
         assertEq(yieldDisburser.getCurrentVotingPower(account), _maxPoints * yieldDisburser.getProjectsLength());
     }
 }

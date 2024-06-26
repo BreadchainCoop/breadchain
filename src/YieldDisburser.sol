@@ -276,7 +276,7 @@ contract YieldDisburser is OwnableUpgradeable {
         for (uint256 i; i < length; ++i) {
             projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / total) / PRECISION;
         }
-        holderToLastVoted[_account] = Time.timestamp();
+        holderToLastVoted[_account] = block.number;
         currentVotes += _votingPower;
         emit BreadHolderVoted(_account, _points, projects);
     }
