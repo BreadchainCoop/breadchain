@@ -18,8 +18,8 @@
     "_cycleLength": 10,
     "_maxPoints": 10000,
     "_lastClaimedBlockNumber": 0,
-    "_minRequiredVotingPower":1728000000000000000000000,
-    "_minVotingAmount":10000000000000000000, 
-    "_minHoldingDuration":864000,
+    "_minRequiredVotingPower": 10000000000000000000,
+    "_minVotingAmount": 10000000000000000000,
+    "_minHoldingDuration": 864000,
     "_precision": 1000000000000000000
 }

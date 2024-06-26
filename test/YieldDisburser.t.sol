@@ -92,7 +92,7 @@ contract YieldDisburserTest is Test {
     }
 
     function setUpForCycle(YieldDisburserTestWrapper _yieldDisburser) public {
-        vm.roll(START - (_cycleLength + 1));
+        vm.roll(START - (_cycleLength));
         _yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
         address owner = bread.owner();
         vm.prank(owner);
@@ -101,11 +101,11 @@ contract YieldDisburserTest is Test {
     }
 
     function setUpAccountsForVoting(address[] memory accounts) public {
-        vm.roll(START - (minHoldingDurationInBlocks));
+        vm.roll(START - (_cycleLength + 1));
         for (uint256 i = 0; i < accounts.length; i++) {
-            vm.deal(accounts[i], _minVotingAmount * 1e18);
+            vm.deal(accounts[i], _minVotingAmount);
             vm.prank(accounts[i]);
-            bread.mint{value: _minVotingAmount * 1e18}(accounts[i]);
+            bread.mint{value: _minVotingAmount}(accounts[i]);
         }
     }
 
@@ -153,7 +153,7 @@ contract YieldDisburserTest is Test {
             uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
             uint256 vote = randomval % 100;
             address holder = address(uint160(randomval));
-            uint256 token_amount = bound(randomval, _minVotingAmount * 1e18, 1000 * _minVotingAmount * 1e18);
+            uint256 token_amount = bound(randomval, _minVotingAmount, 1000 * _minVotingAmount);
 
             // Setting up the account for voting
             vm.roll(START - (minHoldingDurationInBlocks));
@@ -298,9 +298,9 @@ contract YieldDisburserTest is Test {
         address account = address(0x1234567890123356789012345672901234567890);
 
         vm.roll(START - (minHoldingDurationInBlocks - 1));
-        vm.deal(account, _minVotingAmount * 1e18);
+        vm.deal(account, _minVotingAmount);
         vm.prank(account);
-        bread.mint{value: _minVotingAmount * 1e18}(account);
+        bread.mint{value: 5 * 1e4}(account);
 
         // Setting up for a cycle and casting vote
         setUpForCycle(yieldDisburser);
@@ -316,7 +316,7 @@ contract YieldDisburserTest is Test {
             yieldDisburser.getVotingPowerForPeriod(
                 START - (minHoldingDurationInBlocks - 1), vm.getBlockNumber(), account
             ),
-            _minVotingAmount * 1e18 * (minHoldingDurationInBlocks - 1)
+            ( 5 * 1e4) * (minHoldingDurationInBlocks - 1)
         );
     }
 }
