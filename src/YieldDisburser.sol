@@ -132,7 +132,6 @@ contract YieldDisburser is OwnableUpgradeable {
         cycleLength = (_cycleLength * 1 days) / blockTime;
         lastClaimedTimestamp = _lastClaimedTimestamp;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
-
     }
 
     /**
@@ -164,23 +163,18 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _start Start time of the period to return the voting power for
      * @param _end End time of the period to return the voting power for
      * @param _account Address of user to return the voting power for
-     * @return uint256  Voting power of the specified user at the specified period of time
+     * @return uint256 Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account)
-        external
-        view
-        returns (uint256)
-    {
-        // Check if the start time is before the end time
+    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
+        // Checking if the start time is before the end time, if the end time is after the current
+        // block and if the user has ever held $BREAD comparing the first mint to the end of the interval
+
         if (_start > _end) revert StartMustBeBeforeEnd();
-        // Check if the end time is after the current block
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
-        // Get the latest checkpoint for the user
         uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
-        // Check if the user has ever held $BREAD
         if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
-        // Check if the user has ever held $BREAD in the interval by comparing the first mint to the end of the interval
         if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
+
         // Starting to filter out irrelevant checkpoints that are not in the interval
 
         uint256 intervalEndValue;
@@ -296,7 +290,6 @@ contract YieldDisburser is OwnableUpgradeable {
         currentVotes += _votingPower;
         emit BreadHolderVoted(_account, _points, projects);
     }
-
 
     /**
      * @notice Internal function for updating the project list
@@ -418,6 +411,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @notice Set a new cycle length
      * @param _cycleLength New cycle length
      */
+
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
 
