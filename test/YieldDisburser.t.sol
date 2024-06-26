@@ -92,11 +92,12 @@ contract YieldDisburserTest is Test {
     }
 
     function setUpForCycle(YieldDisburserTestWrapper _yieldDisburser) public {
-        vm.roll(START);
+        vm.roll(START - (_cycleLength + 1));
         _yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(_yieldDisburser));
+        vm.roll(START);
     }
 
     function setUpAccountsForVoting(address[] memory accounts) public {
