@@ -167,16 +167,16 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 Voting power of the specified user at the specified period of time
      */
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
-        if (_start > _end) revert StartMustBeBeforeEnd();
+        if (_start >= _end) revert StartMustBeBeforeEnd();
         if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
 
         // Initialized as the checkpoint count, but later used to track checkpoint index
         uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
         if (_currentCheckpointIndex == 0) revert NoCheckpointsForAccount();
 
-        if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
-
-        Checkpoints.Checkpoint208 memory _currentCheckpoint;
+        // No voting power if the first checkpoint is after the end of the interval
+        Checkpoints.Checkpoint208 memory _currentCheckpoint = BREAD.checkpoints(_account, 0);
+        if (_currentCheckpoint._key > _end) return 0;
 
         // Find the latest checkpoint that is within the interval
         do {
@@ -184,7 +184,7 @@ contract YieldDisburser is OwnableUpgradeable {
             _currentCheckpoint = BREAD.checkpoints(_account, _currentCheckpointIndex);
         } while (_currentCheckpoint._key > _end);
 
-        // Initialize voting power with the latest checkpoint that is within the interval (or nearest to it)
+        // Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
         uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
         uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
 
