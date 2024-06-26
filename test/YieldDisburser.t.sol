@@ -43,15 +43,13 @@ contract YieldDisburserTest is Test {
     Bread public bread = Bread(address(breadAddress));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
-
-        
     // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
-    // uint256 minHoldingDuration = 10 days; 
-    // uint256 blockTime = 5;  
+    // uint256 minHoldingDuration = 10 days;
+    // uint256 blockTime = 5;
     // uint256 minRequiredVotingPower = (minVotingAmount * minHoldingDuration) / blockTime; // We can assume that blockTime is small enough
 
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
-    
+
     function setUp() public {
         YieldDisburserTestWrapper yieldDisburserImplementation = new YieldDisburserTestWrapper();
         address[] memory projects1 = new address[](1);
@@ -59,13 +57,13 @@ contract YieldDisburserTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             YieldDisburser.initialize.selector,
             address(bread),
-            projects1,
+            _precision,
             _blocktime,
+            projects1,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber,
-            _precision
+            _lastClaimedBlockNumber
         );
         yieldDisburser = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
@@ -77,13 +75,13 @@ contract YieldDisburserTest is Test {
         initData = abi.encodeWithSelector(
             YieldDisburser.initialize.selector,
             address(bread),
-            projects2,
+            _precision,
             _blocktime,
+            projects2,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber,
-            _precision
+            _lastClaimedBlockNumber
         );
         yieldDisburser2 = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
@@ -117,12 +115,12 @@ contract YieldDisburserTest is Test {
         // Getting the amount of yield to be distributed
         uint256 yieldAccrued = bread.yieldAccrued();
 
-        // Setting up a voter 
+        // Setting up a voter
         address account = address(0x1234567890123456789012345678901234567890);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
-        
+
         // Setting up for a cycle
         setUpForCycle(yieldDisburser);
 

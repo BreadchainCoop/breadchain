@@ -99,13 +99,13 @@ contract YieldDisburser is OwnableUpgradeable {
 
     function initialize(
         address breadAddress,
-        address[] memory _projects,
+        uint256 _precision,
         uint256 _blockTime,
+        address[] memory _projects,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
-        uint256 _lastClaimedBlockNumber,
-        uint256 _precision
+        uint256 _lastClaimedBlockNumber
     ) public initializer {
         __Ownable_init(msg.sender);
         BREAD = Bread(breadAddress);

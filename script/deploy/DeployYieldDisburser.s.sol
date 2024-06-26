@@ -24,13 +24,13 @@ contract DeployYieldDisburser is Script {
     bytes initData = abi.encodeWithSelector(
         YieldDisburser.initialize.selector,
         breadAddress,
-        projects,
+        _precision,
         _blocktime,
+        projects,
         _minRequiredVotingPower,
         _maxPoints,
         _cycleLength,
-        _lastClaimedBlockNumber,
-        _precision
+        _lastClaimedBlockNumber
     );
 
     function run() external {
