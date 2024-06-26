@@ -177,8 +177,7 @@ contract YieldDisburser is OwnableUpgradeable {
             lastKey = checkpoint._key;
         }
 
-        // We are now at a position where the checkpoint is within the interval
-        // Calculate the voting power for the interval
+        // We are now at a position where the checkpoint is within the interval or the one nearest it 
         value = checkpoint._value;
         lastKey = uint48((lastKey < _start ? _start : lastKey));
         uint256 votingPowerTotal = value * (_end - lastKey);
