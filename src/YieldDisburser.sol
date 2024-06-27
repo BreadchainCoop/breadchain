@@ -237,6 +237,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @notice Internal function for casting votes for a specified user
      * @param _account Address of user to cast votes for
      * @param _points Basis points for calculating the amount of votes cast
+     * @param _votingPower Amount of voting power being cast
      */
     function _castVote(address _account, uint256[] calldata _points, uint256 _votingPower) internal {
         if (_points.length != projects.length) revert IncorrectNumberOfProjects();
