@@ -59,11 +59,11 @@ contract YieldDisburserTest is Test {
             address(bread),
             _precision,
             _blocktime,
-            projects1,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber
+            _lastClaimedBlockNumber,
+            projects1
         );
         yieldDisburser = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
@@ -77,11 +77,11 @@ contract YieldDisburserTest is Test {
             address(bread),
             _precision,
             _blocktime,
-            projects2,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber
+            _lastClaimedBlockNumber,
+            projects2
         );
         yieldDisburser2 = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))

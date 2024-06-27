@@ -4,7 +4,6 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Checkpoints} from
     "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
-import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Bread} from "bread-token/src/Bread.sol";
 
 /**
@@ -18,8 +17,6 @@ import {Bread} from "bread-token/src/Bread.sol";
  * @custom:coauthor theblockchainsocialist.eth
  */
 contract YieldDisburser is OwnableUpgradeable {
-    // @notice The error emitted when the yield for the distribution period has already been claimed
-    error AlreadyClaimed();
     // @notice the error emitted when attemping to vote in the same cycle twice
     error AlreadyVotedInCycle();
     // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
@@ -32,14 +29,10 @@ contract YieldDisburser is OwnableUpgradeable {
     error VotePointsTooLarge();
     // @notice The error emitted when a voter has never held $BREAD before
     error NoCheckpointsForAccount();
-    // @notice The error emitted when attempting to distribute yield without any votes casted
-    error NoVotesCasted();
     // @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
     // @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
-    // @notice The error emitted when attempting to distribute yield with a balance less than the number of projects
-    error YieldTooLow();
     // @notice The error emitted when attempting to remove a project that is not in the `projects` array
     error ProjectNotFound();
     // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
@@ -56,9 +49,9 @@ contract YieldDisburser is OwnableUpgradeable {
     // @notice The event emitted when a project is removed as eligibile for yield distribution
     event ProjectRemoved(address project);
     // @notice The event emitted when yield is distributed
-    event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
-    // @notice The event emitted when a holder casts a vote
-    event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
+    event YieldDistributed(uint256 yield, uint256 totalVotes, uint256[] projectDistributions);
+    // @notice The event emitted when an account casts a vote
+    event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);
 
     // @notice The address of the $BREAD token contract
     Bread public BREAD;
@@ -82,10 +75,10 @@ contract YieldDisburser is OwnableUpgradeable {
     uint256 public lastClaimedBlockNumber;
     // @notice The number of votes cast in the current cycle
     uint256 public currentVotes;
-    // @notice the voting power allocated to projects by voters in the current cycle
+    // @notice The voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
-    // @notice the last blocknumber a voter cast a vote
-    mapping(address => uint256) public holderToLastVoted;
+    // @notice The last block number an account cast a vote
+    mapping(address => uint256) public accountLastVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -96,11 +89,11 @@ contract YieldDisburser is OwnableUpgradeable {
         address _bread,
         uint256 _precision,
         uint256 _blockTime,
-        address[] memory _projects,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
-        uint256 _lastClaimedBlockNumber
+        uint256 _lastClaimedBlockNumber,
+        address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
 
@@ -121,7 +114,7 @@ contract YieldDisburser is OwnableUpgradeable {
 
     /**
      * @notice Returns the current distribution of voting power for projects
-     * @return address[] The current participating projects
+     * @return address[] The current eligible member projects
      * @return uint256[] The current distribution of voting power for projects
      */
     function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
@@ -146,7 +139,7 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
         if (_start >= _end) revert StartMustBeBeforeEnd();
-        if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
+        if (_end > block.number) revert EndAfterCurrentBlock();
 
         // Initialized as the checkpoint count, but later used to track checkpoint index
         uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
@@ -194,9 +187,9 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
         if (
-            currentVotes == 0 || // No votes were cast
-            block.number < lastClaimedBlockNumber + cycleLength || // Already claimed this cycle
-            BREAD.balanceOf(address(this)) + BREAD.yieldAccrued() < projects.length // Yield is insufficient
+            currentVotes == 0 // No votes were cast
+                || block.number < lastClaimedBlockNumber + cycleLength // Already claimed this cycle
+                || BREAD.balanceOf(address(this)) + BREAD.yieldAccrued() < projects.length // Yield is insufficient
         ) {
             return (false, new bytes(0));
         } else {
@@ -212,44 +205,36 @@ contract YieldDisburser is OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
-        uint256 projectsLength = projects.length;
-        lastClaimedBlockNumber = Time.blockNumber();
-        uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / projectsLength;
-        uint256 percentageOfTotalVote;
-        uint256 votedSplit;
-        uint256[] memory votedSplits = new uint256[](projectsLength);
-        uint256[] memory percentages = new uint256[](projectsLength);
+        lastClaimedBlockNumber = block.number;
 
-        for (uint256 i; i < projectsLength; ++i) {
-            percentageOfTotalVote = ((projectDistributions[i] * PRECISION) / currentVotes) / PRECISION;
-            votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
-            BREAD.transfer(projects[i], votedSplit + baseSplit);
-            votedSplits[i] = votedSplit;
-            percentages[i] = percentageOfTotalVote;
+        uint256 _halfYield = BREAD.balanceOf(address(this)) / 2;
+        uint256 _baseSplit = _halfYield / projects.length;
+
+        for (uint256 i; i < projects.length; ++i) {
+            uint256 _votedSplit = ((projectDistributions[i] * _halfYield * PRECISION) / currentVotes) / PRECISION;
+            BREAD.transfer(projects[i], _votedSplit + _baseSplit);
         }
 
         _updateBreadchainProjects();
 
-        delete currentVotes;
-        delete projectDistributions;
-        projectDistributions = new uint256[](projects.length);
+        emit YieldDistributed(_halfYield * 2, currentVotes, projectDistributions);
 
-        emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
+        delete currentVotes;
+        projectDistributions = new uint256[](projects.length);
     }
 
     /**
      * @notice Cast votes for the distribution of $BREAD yield
-     * @param _percentages List of percentages as integers for each project
+     * @param _points List of points as integers for each project
      */
-    function castVote(uint256[] calldata _percentages) public {
-        if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
+    function castVote(uint256[] calldata _points) public {
+        if (accountLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
 
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
 
-        _castVote(msg.sender, _percentages, _currentVotingPower);
+        _castVote(msg.sender, _points, _currentVotingPower);
     }
 
     /**
@@ -273,7 +258,7 @@ contract YieldDisburser is OwnableUpgradeable {
             projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
         }
 
-        holderToLastVoted[_account] = block.number;
+        accountLastVoted[_account] = block.number;
         currentVotes += _votingPower;
 
         emit BreadHolderVoted(_account, _points, projects);
@@ -284,27 +269,32 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function _updateBreadchainProjects() internal {
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
-            address project = queuedProjectsForAddition[i];
-            projects.push(project);
-            emit ProjectAdded(project);
+            address _project = queuedProjectsForAddition[i];
+
+            projects.push(_project);
+
+            emit ProjectAdded(_project);
         }
+
         delete queuedProjectsForAddition;
-        address[] memory oldProjects = projects;
+        address[] memory _oldProjects = projects;
         delete projects;
-        for (uint256 i; i < oldProjects.length; ++i) {
-            address project = oldProjects[i];
-            bool remove;
+
+        for (uint256 i; i < _oldProjects.length; ++i) {
+            address _project = _oldProjects[i];
+            bool _remove;
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
-                if (project == queuedProjectsForRemoval[j]) {
-                    remove = true;
-                    emit ProjectRemoved(project);
+                if (_project == queuedProjectsForRemoval[j]) {
+                    _remove = true;
+                    emit ProjectRemoved(_project);
                     break;
                 }
             }
-            if (!remove) {
-                projects.push(project);
+            if (!_remove) {
+                projects.push(_project);
             }
         }
+
         delete queuedProjectsForRemoval;
     }
 
@@ -318,11 +308,13 @@ contract YieldDisburser is OwnableUpgradeable {
                 revert AlreadyMemberProject();
             }
         }
+
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
             if (queuedProjectsForAddition[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
+
         queuedProjectsForAddition.push(_project);
     }
 
@@ -331,18 +323,21 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _project Project to be removed from the project list
      */
     function queueProjectRemoval(address _project) public onlyOwner {
-        bool found = false;
+        bool _found = false;
         for (uint256 i; i < projects.length; ++i) {
             if (projects[i] == _project) {
-                found = true;
+                _found = true;
             }
         }
-        if (!found) revert ProjectNotFound();
+
+        if (!_found) revert ProjectNotFound();
+
         for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
             if (queuedProjectsForRemoval[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
+
         queuedProjectsForRemoval.push(_project);
     }
 

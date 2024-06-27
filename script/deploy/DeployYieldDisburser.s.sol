@@ -26,11 +26,11 @@ contract DeployYieldDisburser is Script {
         breadAddress,
         _precision,
         _blocktime,
-        projects,
         _minRequiredVotingPower,
         _maxPoints,
         _cycleLength,
-        _lastClaimedBlockNumber
+        _lastClaimedBlockNumber,
+        projects
     );
 
     function run() external {
