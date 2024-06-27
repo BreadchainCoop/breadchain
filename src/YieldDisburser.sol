@@ -17,67 +17,65 @@ import {Bread} from "bread-token/src/Bread.sol";
  * @custom:coauthor theblockchainsocialist.eth
  */
 contract YieldDisburser is OwnableUpgradeable {
+    // @notice The error emitted when attempting to add a project that is already in the `projects` array
+    error AlreadyMemberProject();
     // @notice the error emitted when attemping to vote in the same cycle twice
     error AlreadyVotedInCycle();
+    // @notice The error emitted when a user attempts to vote without the minimum required voting power
+    error BelowMinRequiredVotingPower();
     // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
+    // @notice The error emitted when attempting to vote with a point value greater than `pointsMax`
+    error ExceedsMaxPoints();
     // @notice The error emitted when attempting to vote with an incorrect number of projects
     error IncorrectNumberOfProjects();
     // @notice The error emitted when attempting to instantiate a variable with a zero value
     error MustBeGreaterThanZero();
-    // @notice The error emitted when attempting to vote with a point value greater than `pointsMax`
-    error VotePointsTooLarge();
     // @notice The error emitted when a voter has never held $BREAD before
     error NoCheckpointsForAccount();
+    // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
+    error ProjectAlreadyQueued();
+    // @notice The error emitted when attempting to remove a project that is not in the `projects` array
+    error ProjectNotFound();
     // @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
     // @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
-    // @notice The error emitted when attempting to remove a project that is not in the `projects` array
-    error ProjectNotFound();
-    // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
-    error ProjectAlreadyQueued();
-    // @notice The error emitted when attempting to add a project that is already in the `projects` array
-    error AlreadyMemberProject();
-    // @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower();
     // @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
 
+    // @notice The event emitted when an account casts a vote
+    event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);
     // @notice The event emitted when a project is added as eligibile for yield distribution
     event ProjectAdded(address project);
     // @notice The event emitted when a project is removed as eligibile for yield distribution
     event ProjectRemoved(address project);
     // @notice The event emitted when yield is distributed
     event YieldDistributed(uint256 yield, uint256 totalVotes, uint256[] projectDistributions);
-    // @notice The event emitted when an account casts a vote
-    event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);
 
     // @notice The address of the $BREAD token contract
     Bread public BREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
-    // @notice The minimum blocks between yield distributions
+    // @notice The minimum number blocks between yield distributions
     uint256 public cycleLength;
-    // @notice The minimum required voting power participants must have to vote
-    uint256 public minRequiredVotingPower;
-    // @notice The maximum number of points a user can allocate to a project
+    // @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
-    // @notice The block time of the EVM in seconds
-    uint256 public blockTime;
-    // @notice The array of projects eligible for yield distribution
-    address[] public projects;
-    // @notice The array of projects queued for addition
-    address[] public queuedProjectsForAddition;
-    // @notice The array of projects queued for removal
-    address[] public queuedProjectsForRemoval;
+    // @notice The minimum required voting power participants must have to cast a vote
+    uint256 public minRequiredVotingPower;
     // @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
-    // @notice The number of votes cast in the current cycle
+    // @notice The total number of votes cast in the current cycle
     uint256 public currentVotes;
+    // @notice Array of projects eligible for yield distribution
+    address[] public projects;
+    // @notice Array of projects queued for addition to the next cycle
+    address[] public queuedProjectsForAddition;
+    // @notice Array of projects queued for removal from the next cycle
+    address[] public queuedProjectsForRemoval;
     // @notice The voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
-    // @notice The last block number an account cast a vote
+    // @notice The last block number in which a specified account cast a vote
     mapping(address => uint256) public accountLastVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -88,7 +86,6 @@ contract YieldDisburser is OwnableUpgradeable {
     function initialize(
         address _bread,
         uint256 _precision,
-        uint256 _blockTime,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
@@ -99,7 +96,6 @@ contract YieldDisburser is OwnableUpgradeable {
 
         BREAD = Bread(_bread);
         PRECISION = _precision;
-        blockTime = _blockTime;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
@@ -248,7 +244,7 @@ contract YieldDisburser is OwnableUpgradeable {
         uint256 _totalPoints;
 
         for (uint256 i; i < _points.length; ++i) {
-            if (_points[i] > maxPoints) revert VotePointsTooLarge();
+            if (_points[i] > maxPoints) revert ExceedsMaxPoints();
             _totalPoints += _points[i];
         }
 
@@ -276,13 +272,13 @@ contract YieldDisburser is OwnableUpgradeable {
             emit ProjectAdded(_project);
         }
 
-        delete queuedProjectsForAddition;
         address[] memory _oldProjects = projects;
         delete projects;
 
         for (uint256 i; i < _oldProjects.length; ++i) {
             address _project = _oldProjects[i];
             bool _remove;
+
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
                 if (_project == queuedProjectsForRemoval[j]) {
                     _remove = true;
@@ -290,11 +286,13 @@ contract YieldDisburser is OwnableUpgradeable {
                     break;
                 }
             }
+
             if (!_remove) {
                 projects.push(_project);
             }
         }
 
+        delete queuedProjectsForAddition;
         delete queuedProjectsForRemoval;
     }
 
