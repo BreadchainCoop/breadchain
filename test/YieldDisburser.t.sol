@@ -305,9 +305,8 @@ contract YieldDisburserTest is Test {
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
-        yieldDisburser.castVote(percentages);
 
-        // Expecting the account to have the grace amount voting power 
-        assertEq(yieldDisburser.getCurrentVotingPower(account), _maxPoints * yieldDisburser.getProjectsLength());
+        vm.expectRevert(abi.encodeWithSelector(YieldDisburser.BelowMinRequiredVotingPower.selector));
+        yieldDisburser.castVote(percentages);
     }
 }
