@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {YieldDisburser} from "../YieldDisburser.sol";
+import {YieldDistributor} from "../YieldDistributor.sol";
 
-contract YieldDisburserTestWrapper is YieldDisburser {
+contract YieldDistributorTestWrapper is YieldDistributor {
     constructor() {}
+
+    /**
+     * @notice Return the number of projects
+     * @return uint256 Number of projects
+     */
+    function getProjectsLength() public view returns (uint256) {
+        return projects.length;
+    }
 
     /**
      * @notice Set the number of votes cast in the current cycle
@@ -20,13 +28,5 @@ contract YieldDisburserTestWrapper is YieldDisburser {
      */
     function setLastClaimedBlockNumber(uint256 _lastClaimedBlockNumber) public onlyOwner {
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
-    }
-
-    /**
-     * @notice Return the number of projects
-     * @return uint256 Number of projects
-     */
-    function getProjectsLength() public view returns (uint256) {
-        return projects.length;
     }
 }
