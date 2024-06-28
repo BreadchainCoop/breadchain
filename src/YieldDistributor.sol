@@ -31,8 +31,6 @@ contract YieldDistributor is OwnableUpgradeable {
     error IncorrectNumberOfProjects();
     // @notice The error emitted when attempting to instantiate a variable with a zero value
     error MustBeGreaterThanZero();
-    // @notice The error emitted when a voter has never held $BREAD before
-    error NoCheckpointsForAccount();
     // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
     error ProjectAlreadyQueued();
     // @notice The error emitted when attempting to remove a project that is not in the `projects` array
@@ -139,7 +137,7 @@ contract YieldDistributor is OwnableUpgradeable {
 
         // Initialized as the checkpoint count, but later used to track checkpoint index
         uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
-        if (_currentCheckpointIndex == 0) revert NoCheckpointsForAccount();
+        if (_currentCheckpointIndex == 0) return 0;
 
         // No voting power if the first checkpoint is after the end of the interval
         Checkpoints.Checkpoint208 memory _currentCheckpoint = BREAD.checkpoints(_account, 0);
