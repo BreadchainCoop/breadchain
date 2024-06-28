@@ -18,7 +18,7 @@ contract DeployYieldDistributor is Script {
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
-    address _owner = stdJson.readUint(config_data, "._owner");
+    address _owner = stdJson.readAddress(config_data, "._owner");
     bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
     address[] projects = abi.decode(projectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
