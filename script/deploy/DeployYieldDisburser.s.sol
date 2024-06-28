@@ -13,7 +13,6 @@ contract DeployYieldDisburser is Script {
     string public deployConfigPath = string(bytes("./script/deploy/config/deploy.json"));
     string config_data = vm.readFile(deployConfigPath);
     address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
-    uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
@@ -25,12 +24,11 @@ contract DeployYieldDisburser is Script {
         YieldDisburser.initialize.selector,
         breadAddress,
         _precision,
-        _blocktime,
-        projects,
         _minRequiredVotingPower,
         _maxPoints,
         _cycleLength,
-        _lastClaimedBlockNumber
+        _lastClaimedBlockNumber,
+        projects
     );
 
     function run() external {

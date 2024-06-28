@@ -58,12 +58,11 @@ contract YieldDisburserTest is Test {
             YieldDisburser.initialize.selector,
             address(bread),
             _precision,
-            _blocktime,
-            projects1,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber
+            _lastClaimedBlockNumber,
+            projects1
         );
         yieldDisburser = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
@@ -76,12 +75,11 @@ contract YieldDisburserTest is Test {
             YieldDisburser.initialize.selector,
             address(bread),
             _precision,
-            _blocktime,
-            projects2,
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _lastClaimedBlockNumber
+            _lastClaimedBlockNumber,
+            projects2
         );
         yieldDisburser2 = YieldDisburserTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
@@ -307,9 +305,8 @@ contract YieldDisburserTest is Test {
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
-        yieldDisburser.castVote(percentages);
 
-        // Expecting the account to have the grace amount voting power 
-        assertEq(yieldDisburser.getCurrentVotingPower(account), _maxPoints * yieldDisburser.getProjectsLength());
+        vm.expectRevert(abi.encodeWithSelector(YieldDisburser.BelowMinRequiredVotingPower.selector));
+        yieldDisburser.castVote(percentages);
     }
 }

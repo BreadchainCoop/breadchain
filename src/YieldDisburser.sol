@@ -4,7 +4,6 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Checkpoints} from
     "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
-import {Time} from "openzeppelin-contracts/contracts/utils/types/Time.sol";
 import {Bread} from "bread-token/src/Bread.sol";
 
 /**
@@ -18,79 +17,66 @@ import {Bread} from "bread-token/src/Bread.sol";
  * @custom:coauthor theblockchainsocialist.eth
  */
 contract YieldDisburser is OwnableUpgradeable {
-    // @notice The error emitted when the yield for the distribution period has already been claimed
-    error AlreadyClaimed();
+    // @notice The error emitted when attempting to add a project that is already in the `projects` array
+    error AlreadyMemberProject();
     // @notice the error emitted when attemping to vote in the same cycle twice
     error AlreadyVotedInCycle();
+    // @notice The error emitted when a user attempts to vote without the minimum required voting power
+    error BelowMinRequiredVotingPower();
     // @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
+    // @notice The error emitted when attempting to vote with a point value greater than `pointsMax`
+    error ExceedsMaxPoints();
     // @notice The error emitted when attempting to vote with an incorrect number of projects
     error IncorrectNumberOfProjects();
     // @notice The error emitted when attempting to instantiate a variable with a zero value
     error MustBeGreaterThanZero();
-    // @notice The error emitted when attempting to vote with a point value greater than `pointsMax`
-    error VotePointsTooLarge();
     // @notice The error emitted when a voter has never held $BREAD before
     error NoCheckpointsForAccount();
-    // @notice The error emitted when attempting to distribute yield without any votes casted
-    error NoVotesCasted();
+    // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
+    error ProjectAlreadyQueued();
+    // @notice The error emitted when attempting to remove a project that is not in the `projects` array
+    error ProjectNotFound();
     // @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
     // @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
-    // @notice The error emitted when attempting to distribute yield with a balance less than the number of projects
-    error YieldTooLow(uint256);
-    // @notice The error emitted when attempting to remove a project that is not in the `projects` array
-    error ProjectNotFound();
-    // @notice The error emitted when attempting to add or remove a project that is already queued for addition or removal
-    error ProjectAlreadyQueued();
-    // @notice The error emitted when attempting to add a project that is already in the `projects` array
-    error AlreadyMemberProject();
-    // @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower(uint256 minimum);
     // @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
 
+    // @notice The event emitted when an account casts a vote
+    event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);
     // @notice The event emitted when a project is added as eligibile for yield distribution
     event ProjectAdded(address project);
     // @notice The event emitted when a project is removed as eligibile for yield distribution
     event ProjectRemoved(address project);
     // @notice The event emitted when yield is distributed
-    event YieldDistributed(uint256[] votedYield, uint256 baseYield, uint256[] percentage, address[] project);
-    // @notice The event emitted when a holder casts a vote
-    event BreadHolderVoted(address indexed holder, uint256[] percentages, address[] projects);
+    event YieldDistributed(uint256 yield, uint256 totalVotes, uint256[] projectDistributions);
 
     // @notice The address of the $BREAD token contract
     Bread public BREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
-    // @notice The minimum blocks between yield distributions
+    // @notice The minimum number of blocks between yield distributions
     uint256 public cycleLength;
-    // @notice The minimum required voting power participants must have to vote
-    uint256 public minRequiredVotingPower;
-    // @notice The minimum amount of bread required to vote
-    uint256 public minVotingAmount;
-    // @notice The minimum amount of time a user must hold minVotingAmount
-    uint256 public minHoldingDuration;
-    // @notice The maximum number of points a user can allocate to a project
+    // @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
-    // @notice The block time of the EVM in seconds
-    uint256 public blockTime;
-
-    // @notice The array of projects eligible for yield distribution
-    address[] public projects;
-    // @notice The array of projects queued for addition
-    address[] public queuedProjectsForAddition;
-    // @notice The array of projects queued for removal
-    address[] public queuedProjectsForRemoval;
+    // @notice The minimum required voting power participants must have to cast a vote
+    uint256 public minRequiredVotingPower;
     // @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
-    // @notice The number of votes cast in the current cycle
+    // @notice The total number of votes cast in the current cycle
     uint256 public currentVotes;
-    // @notice the voting power allocated to projects by voters in the current cycle
+    // @notice Array of projects eligible for yield distribution
+    address[] public projects;
+    // @notice Array of projects queued for addition to the next cycle
+    address[] public queuedProjectsForAddition;
+    // @notice Array of projects queued for removal from the next cycle
+    address[] public queuedProjectsForRemoval;
+    // @notice The voting power allocated to projects by voters in the current cycle
     uint256[] public projectDistributions;
-    // @notice the last blocknumber a voter cast a vote
-    mapping(address => uint256) public holderToLastVoted;
+    // @notice The last block number in which a specified account cast a vote
+    mapping(address => uint256) public accountLastVoted;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -98,34 +84,33 @@ contract YieldDisburser is OwnableUpgradeable {
     }
 
     function initialize(
-        address breadAddress,
+        address _bread,
         uint256 _precision,
-        uint256 _blockTime,
-        address[] memory _projects,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
-        uint256 _lastClaimedBlockNumber
+        uint256 _lastClaimedBlockNumber,
+        address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
-        BREAD = Bread(breadAddress);
-        uint256 projectLength = _projects.length;
-        projects = new address[](projectLength);
-        for (uint256 i; i < projectLength; ++i) {
-            projects[i] = _projects[i];
-        }
-        projectDistributions = new uint256[](projectLength);
-        blockTime = _blockTime;
+
+        BREAD = Bread(_bread);
         PRECISION = _precision;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
+
+        projectDistributions = new uint256[](_projects.length);
+        projects = new address[](_projects.length);
+        for (uint256 i; i < _projects.length; ++i) {
+            projects[i] = _projects[i];
+        }
     }
 
     /**
      * @notice Returns the current distribution of voting power for projects
-     * @return address[] The current breadchain projects
+     * @return address[] The current eligible member projects
      * @return uint256[] The current distribution of voting power for projects
      */
     function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
@@ -138,25 +123,7 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        uint256 votingPower =
-            this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
-        return (votingPower < minRequiredVotingPower ? maxPoints * projects.length : votingPower);
-    }
-
-    /**
-     * @notice Determine if the yield distribution is available
-     * @return bool Flag indicating if the yield distribution is able to be claimed
-     * @return bytes Function selector used to distribute the yield
-     */
-    function resolveYieldDistribution() public view returns (bool, bytes memory) {
-        if (currentVotes == 0) revert NoVotesCasted();
-        uint256 balance = (BREAD.balanceOf(address(this)) + BREAD.yieldAccrued());
-        if (balance < projects.length) revert YieldTooLow(balance);
-        if (block.number < lastClaimedBlockNumber + cycleLength) {
-            revert AlreadyClaimed();
-        }
-        bytes memory ret = abi.encodePacked(this.distributeYield.selector);
-        return (true, ret);
+        return this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
     }
 
     /**
@@ -167,127 +134,132 @@ contract YieldDisburser is OwnableUpgradeable {
      * @return uint256 Voting power of the specified user at the specified period of time
      */
     function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
-        // Checking if the start time is before the end time, if the end time is after the current
-        // block and if the user has ever held $BREAD comparing the first mint to the end of the interval
-        if (_start > _end) revert StartMustBeBeforeEnd();
+        if (_start >= _end) revert StartMustBeBeforeEnd();
+        if (_end > block.number) revert EndAfterCurrentBlock();
 
-        if (_end > Time.blockNumber()) revert EndAfterCurrentBlock();
+        // Initialized as the checkpoint count, but later used to track checkpoint index
+        uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
+        if (_currentCheckpointIndex == 0) revert NoCheckpointsForAccount();
 
-        uint32 latestCheckpointPos = BREAD.numCheckpoints(_account);
-        if (latestCheckpointPos == 0) revert NoCheckpointsForAccount();
-
-        if (BREAD.checkpoints(_account, 0)._key > _end) return 0;
-
-        uint256 value;
-        uint48 lastKey = type(uint48).max;
-        Checkpoints.Checkpoint208 memory checkpoint;
+        // No voting power if the first checkpoint is after the end of the interval
+        Checkpoints.Checkpoint208 memory _currentCheckpoint = BREAD.checkpoints(_account, 0);
+        if (_currentCheckpoint._key > _end) return 0;
 
         // Find the latest checkpoint that is within the interval
-        while (lastKey > _end) {
-            latestCheckpointPos--;
-            checkpoint = BREAD.checkpoints(_account, latestCheckpointPos);
-            lastKey = checkpoint._key;
-        }
+        do {
+            --_currentCheckpointIndex;
+            _currentCheckpoint = BREAD.checkpoints(_account, _currentCheckpointIndex);
+        } while (_currentCheckpoint._key > _end);
 
-        // We are now at a position where the checkpoint is within the interval or the one nearest it
-        value = checkpoint._value;
-        lastKey = uint48((lastKey < _start ? _start : lastKey));
-        uint256 votingPowerTotal = value * (_end - lastKey);
-        // If there's a single checkpoint in the interval, return the voting power from the interval
-        if (latestCheckpointPos == 0 || lastKey < _start) return votingPowerTotal;
+        // Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
+        uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
+        uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
 
-        uint48 currentKey;
-        // Iterate through checkpoints in reverse order, only considering checkpoints within the interval
-        for (uint32 i = latestCheckpointPos - 1; i >= 0; i--) {
-            // Getting current checkpoint and its key and value
-            checkpoint = BREAD.checkpoints(_account, i);
-            currentKey = checkpoint._key;
-            value = checkpoint._value;
+        if (_latestKey == _start) return _totalVotingPower;
 
-            // Adding the voting power for the sub interval to the total
-            votingPowerTotal += value * (lastKey - currentKey);
+        for (uint32 i = _currentCheckpointIndex; i > 0;) {
+            // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
+            _currentCheckpoint = BREAD.checkpoints(_account, --i);
 
-            // If we reached the start of the interval, deduct the voting power accured before the interval and return the total
-            if (currentKey <= _start) {
-                votingPowerTotal -= value * (_start - currentKey);
+            // Add voting power for the sub-interval to the total
+            _totalVotingPower += _currentCheckpoint._value * (_latestKey - _currentCheckpoint._key);
+
+            // At the start of the interval, deduct voting power accrued before the interval and return the total
+            if (_currentCheckpoint._key <= _start) {
+                _totalVotingPower -= _currentCheckpoint._value * (_start - _currentCheckpoint._key);
                 break;
             }
 
-            // Otherwise update the previous key and continue to the next checkpoint
-            lastKey = currentKey;
+            _latestKey = _currentCheckpoint._key;
         }
-        return votingPowerTotal;
+
+        return _totalVotingPower;
+    }
+
+    /**
+     * @notice Determine if the yield distribution is available
+     * @dev Resolver function required for Powerpool job registration. For more details, see the Powerpool documentation:
+     * @dev https://docs.powerpool.finance/powerpool-and-poweragent-network/power-agent/user-guides-and-instructions/i-want-to-automate-my-tasks/job-registration-guide#resolver-job
+     * @return bool Flag indicating if the yield is able to be distributed
+     * @return bytes Calldata used by the resolver to distribute the yield
+     */
+    function resolveYieldDistribution() public view returns (bool, bytes memory) {
+        if (
+            currentVotes == 0 // No votes were cast
+                || block.number < lastClaimedBlockNumber + cycleLength // Already claimed this cycle
+                || BREAD.balanceOf(address(this)) + BREAD.yieldAccrued() < projects.length // Yield is insufficient
+        ) {
+            return (false, new bytes(0));
+        } else {
+            return (true, abi.encodePacked(this.distributeYield.selector));
+        }
     }
 
     /**
      * @notice Distribute $BREAD yield to projects based on cast votes
      */
     function distributeYield() public {
-        (bool _resolved, /* bytes memory _data */ ) = resolveYieldDistribution();
+        (bool _resolved,) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
-        uint256 projectsLength = projects.length;
+        lastClaimedBlockNumber = block.number;
 
-        lastClaimedBlockNumber = Time.blockNumber();
-        uint256 halfBalance = BREAD.balanceOf(address(this)) / 2;
-        uint256 baseSplit = halfBalance / projectsLength;
-        uint256 percentageOfTotalVote;
-        uint256 votedSplit;
-        uint256[] memory votedSplits = new uint256[](projectsLength);
-        uint256[] memory percentages = new uint256[](projectsLength);
-        for (uint256 i; i < projectsLength; ++i) {
-            percentageOfTotalVote = ((projectDistributions[i] * PRECISION) / currentVotes) / PRECISION;
-            votedSplit = halfBalance * (projectDistributions[i] * PRECISION / currentVotes) / PRECISION;
-            BREAD.transfer(projects[i], votedSplit + baseSplit);
-            votedSplits[i] = votedSplit;
-            percentages[i] = percentageOfTotalVote;
+        uint256 _halfYield = BREAD.balanceOf(address(this)) / 2;
+        uint256 _baseSplit = _halfYield / projects.length;
+
+        for (uint256 i; i < projects.length; ++i) {
+            uint256 _votedSplit = ((projectDistributions[i] * _halfYield * PRECISION) / currentVotes) / PRECISION;
+            BREAD.transfer(projects[i], _votedSplit + _baseSplit);
         }
+
         _updateBreadchainProjects();
+
+        emit YieldDistributed(_halfYield * 2, currentVotes, projectDistributions);
+
         delete currentVotes;
-        delete projectDistributions;
         projectDistributions = new uint256[](projects.length);
-        emit YieldDistributed(votedSplits, baseSplit, percentages, projects);
     }
 
     /**
      * @notice Cast votes for the distribution of $BREAD yield
-     * @param _percentages List of percentages as integers for each project
+     * @param _points List of points as integers for each project
      */
-    function castVote(uint256[] calldata _percentages) public {
-        if (holderToLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
-        uint256 votingPower = getCurrentVotingPower(msg.sender);
-        if (votingPower == maxPoints * projects.length) {
-            if (BREAD.balanceOf(msg.sender) > 0) {
-                _castVote(msg.sender, _percentages, votingPower);
-            } else {
-                revert BelowMinRequiredVotingPower(minRequiredVotingPower);
-            }
-        } else {
-            _castVote(msg.sender, _percentages, votingPower);
-        }
+    function castVote(uint256[] calldata _points) public {
+        if (accountLastVoted[msg.sender] > lastClaimedBlockNumber) revert AlreadyVotedInCycle();
+
+        uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
+
+        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
+
+        _castVote(msg.sender, _points, _currentVotingPower);
     }
 
     /**
      * @notice Internal function for casting votes for a specified user
      * @param _account Address of user to cast votes for
      * @param _points Basis points for calculating the amount of votes cast
+     * @param _votingPower Amount of voting power being cast
      */
     function _castVote(address _account, uint256[] calldata _points, uint256 _votingPower) internal {
-        uint256 length = projects.length;
-        if (_points.length != length) revert IncorrectNumberOfProjects();
+        if (_points.length != projects.length) revert IncorrectNumberOfProjects();
 
-        uint256 total;
-        for (uint256 i; i < length; ++i) {
-            if (_points[i] > maxPoints) revert VotePointsTooLarge();
-            total += _points[i];
+        uint256 _totalPoints;
+
+        for (uint256 i; i < _points.length; ++i) {
+            if (_points[i] > maxPoints) revert ExceedsMaxPoints();
+            _totalPoints += _points[i];
         }
-        if (total == 0) revert ZeroVotePoints();
-        for (uint256 i; i < length; ++i) {
-            projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / total) / PRECISION;
+
+        if (_totalPoints == 0) revert ZeroVotePoints();
+
+        for (uint256 i; i < _points.length; ++i) {
+            projectDistributions[i] += ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
         }
-        holderToLastVoted[_account] = block.number;
+
+        accountLastVoted[_account] = block.number;
         currentVotes += _votingPower;
+
         emit BreadHolderVoted(_account, _points, projects);
     }
 
@@ -296,27 +268,34 @@ contract YieldDisburser is OwnableUpgradeable {
      */
     function _updateBreadchainProjects() internal {
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
-            address project = queuedProjectsForAddition[i];
-            projects.push(project);
-            emit ProjectAdded(project);
+            address _project = queuedProjectsForAddition[i];
+
+            projects.push(_project);
+
+            emit ProjectAdded(_project);
         }
-        delete queuedProjectsForAddition;
-        address[] memory oldProjects = projects;
+
+        address[] memory _oldProjects = projects;
         delete projects;
-        for (uint256 i; i < oldProjects.length; ++i) {
-            address project = oldProjects[i];
-            bool remove;
+
+        for (uint256 i; i < _oldProjects.length; ++i) {
+            address _project = _oldProjects[i];
+            bool _remove;
+
             for (uint256 j; j < queuedProjectsForRemoval.length; ++j) {
-                if (project == queuedProjectsForRemoval[j]) {
-                    remove = true;
-                    emit ProjectRemoved(project);
+                if (_project == queuedProjectsForRemoval[j]) {
+                    _remove = true;
+                    emit ProjectRemoved(_project);
                     break;
                 }
             }
-            if (!remove) {
-                projects.push(project);
+
+            if (!_remove) {
+                projects.push(_project);
             }
         }
+
+        delete queuedProjectsForAddition;
         delete queuedProjectsForRemoval;
     }
 
@@ -330,11 +309,13 @@ contract YieldDisburser is OwnableUpgradeable {
                 revert AlreadyMemberProject();
             }
         }
+
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
             if (queuedProjectsForAddition[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
+
         queuedProjectsForAddition.push(_project);
     }
 
@@ -343,35 +324,22 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _project Project to be removed from the project list
      */
     function queueProjectRemoval(address _project) public onlyOwner {
-        bool found = false;
+        bool _found = false;
         for (uint256 i; i < projects.length; ++i) {
             if (projects[i] == _project) {
-                found = true;
+                _found = true;
             }
         }
-        if (!found) revert ProjectNotFound();
+
+        if (!_found) revert ProjectNotFound();
+
         for (uint256 i; i < queuedProjectsForRemoval.length; ++i) {
             if (queuedProjectsForRemoval[i] == _project) {
                 revert ProjectAlreadyQueued();
             }
         }
+
         queuedProjectsForRemoval.push(_project);
-    }
-
-    /**
-     * @notice Set a new minimum amount of time to hold the minimum voting amount
-     * @param _minHoldingDuration New minimum amount of time to hold the minimum voting amount
-     */
-    function setMinHoldingDuration(uint256 _minHoldingDuration) public onlyOwner {
-        minHoldingDuration = _minHoldingDuration;
-    }
-
-    /**
-     * @notice Set a new minimum voting amount
-     * @param _minVotingAmount New minimum voting amount
-     */
-    function setMinVotingAmount(uint256 _minVotingAmount) public onlyOwner {
-        minVotingAmount = _minVotingAmount;
     }
 
     /**
@@ -379,6 +347,8 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _minRequiredVotingPower New minimum required voting power a user must have to vote
      */
     function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner {
+        if (_minRequiredVotingPower == 0) revert MustBeGreaterThanZero();
+
         minRequiredVotingPower = _minRequiredVotingPower;
     }
 
@@ -387,12 +357,14 @@ contract YieldDisburser is OwnableUpgradeable {
      * @param _maxPoints New maximum number of points a user can allocate to a project
      */
     function setMaxPoints(uint256 _maxPoints) public onlyOwner {
+        if (_maxPoints == 0) revert MustBeGreaterThanZero();
+
         maxPoints = _maxPoints;
     }
 
     /**
-     * @notice Set a new cycle length
-     * @param _cycleLength New cycle length
+     * @notice Set a new cycle length in blocks
+     * @param _cycleLength New cycle length in blocks
      */
     function setCycleLength(uint256 _cycleLength) public onlyOwner {
         if (_cycleLength == 0) revert MustBeGreaterThanZero();
