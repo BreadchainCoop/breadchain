@@ -57,7 +57,7 @@ contract YieldDisburser is OwnableUpgradeable {
     Bread public BREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
-    // @notice The minimum number blocks between yield distributions
+    // @notice The minimum number of blocks between yield distributions
     uint256 public cycleLength;
     // @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
