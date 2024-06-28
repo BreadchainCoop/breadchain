@@ -57,7 +57,7 @@ contract YieldDistributor is OwnableUpgradeable {
     Bread public BREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
-    // @notice The minimum number blocks between yield distributions
+    // @notice The minimum number of blocks between yield distributions
     uint256 public cycleLength;
     // @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
@@ -154,6 +154,8 @@ contract YieldDistributor is OwnableUpgradeable {
         // Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
         uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
         uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
+
+        if (_latestKey == _start) return _totalVotingPower;
 
         for (uint32 i = _currentCheckpointIndex; i > 0;) {
             // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
