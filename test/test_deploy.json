@@ -1,5 +1,5 @@
 {
-    "breadAddress": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
+    "_bread": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
     "_projectNames": [
         "laborDao",
         "Dandelion",
@@ -15,12 +15,11 @@
         "0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad"
     ],
     "_blocktime": 5,
-    "_minVotingAmount": 5,
-    "_minHoldingDuration": 10,
-    "_maxVotes": 2500,
+    "_cycleLength": 10,
     "_maxPoints": 10000,
-    "_minTimeBetweenClaims": 1,
-    "_lastClaimedTimestamp": 0,
-    "_lastClaimedBlocknumber": 0,
+    "_lastClaimedBlockNumber": 0,
+    "_minRequiredVotingPower": 10000000000000000000,
+    "_minVotingAmount": 10000000000000000000,
+    "_minHoldingDuration": 864000,
     "_precision": 1000000000000000000
 }
