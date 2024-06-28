@@ -7,8 +7,8 @@ import {Checkpoints} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 /**
- * @title Breadchain Yield Disburser
- * @notice Disburse $BREAD yield to eligible member projects based on a voted distribution
+ * @title Breadchain Yield Distributor
+ * @notice Distribute $BREAD yield to eligible member projects based on a voted distribution
  * @author Breadchain Collective
  * @custom:coauthor @RonTuretzky
  * @custom:coauthor bagelface.eth
@@ -16,7 +16,7 @@ import {Bread} from "bread-token/src/Bread.sol";
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
  */
-contract YieldDisburser is OwnableUpgradeable {
+contract YieldDistributor is OwnableUpgradeable {
     // @notice The error emitted when attempting to add a project that is already in the `projects` array
     error AlreadyMemberProject();
     // @notice the error emitted when attemping to vote in the same cycle twice

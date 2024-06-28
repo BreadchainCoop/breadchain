@@ -10,8 +10,8 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import {YieldDisburser} from "../src/YieldDisburser.sol";
-import {YieldDisburserTestWrapper} from "../src/test/YieldDisburserTestWrapper.sol";
+import {YieldDistributor} from "../src/YieldDistributor.sol";
+import {YieldDistributorTestWrapper} from "../src/test/YieldDistributorTestWrapper.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
@@ -20,10 +20,10 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function mint(address receiver) external payable virtual;
 }
 
-contract YieldDisburserTest is Test {
+contract YieldDistributorTest is Test {
     uint256 constant START = 32323232323;
-    YieldDisburserTestWrapper public yieldDisburser;
-    YieldDisburserTestWrapper public yieldDisburser2;
+    YieldDistributorTestWrapper public yieldDistributor;
+    YieldDistributorTestWrapper public yieldDistributor2;
     address secondProject;
     uint256[] blockNumbers;
     uint256[] percentages;
@@ -32,7 +32,7 @@ contract YieldDisburserTest is Test {
     string config_data = vm.readFile(deployConfigPath);
     bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
     address[] projects = abi.decode(projectsRaw, (address[]));
-    address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
+    address _bread = stdJson.readAddress(config_data, "._bread");
     uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
@@ -40,7 +40,7 @@ contract YieldDisburserTest is Test {
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
-    Bread public bread = Bread(address(breadAddress));
+    Bread public bread = Bread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
     // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
@@ -51,11 +51,11 @@ contract YieldDisburserTest is Test {
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
     function setUp() public {
-        YieldDisburserTestWrapper yieldDisburserImplementation = new YieldDisburserTestWrapper();
+        YieldDistributorTestWrapper yieldDistributorImplementation = new YieldDistributorTestWrapper();
         address[] memory projects1 = new address[](1);
         projects1[0] = address(this);
         bytes memory initData = abi.encodeWithSelector(
-            YieldDisburser.initialize.selector,
+            YieldDistributor.initialize.selector,
             address(bread),
             _precision,
             _minRequiredVotingPower,
@@ -64,15 +64,15 @@ contract YieldDisburserTest is Test {
             _lastClaimedBlockNumber,
             projects1
         );
-        yieldDisburser = YieldDisburserTestWrapper(
-            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
+        yieldDistributor = YieldDistributorTestWrapper(
+            address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
         secondProject = address(0x1234567890123456789012345678901234567890);
         address[] memory projects2 = new address[](2);
         projects2[0] = address(this);
         projects2[1] = secondProject;
         initData = abi.encodeWithSelector(
-            YieldDisburser.initialize.selector,
+            YieldDistributor.initialize.selector,
             address(bread),
             _precision,
             _minRequiredVotingPower,
@@ -81,20 +81,20 @@ contract YieldDisburserTest is Test {
             _lastClaimedBlockNumber,
             projects2
         );
-        yieldDisburser2 = YieldDisburserTestWrapper(
-            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
+        yieldDistributor2 = YieldDistributorTestWrapper(
+            address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
         address owner = bread.owner();
         vm.prank(owner);
-        bread.setYieldClaimer(address(yieldDisburser));
+        bread.setYieldClaimer(address(yieldDistributor));
     }
 
-    function setUpForCycle(YieldDisburserTestWrapper _yieldDisburser) public {
+    function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor) public {
         vm.roll(START - (_cycleLength));
-        _yieldDisburser.setLastClaimedBlockNumber(vm.getBlockNumber());
+        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
         address owner = bread.owner();
         vm.prank(owner);
-        bread.setYieldClaimer(address(_yieldDisburser));
+        bread.setYieldClaimer(address(_yieldDistributor));
         vm.roll(START);
     }
 
@@ -121,14 +121,14 @@ contract YieldDisburserTest is Test {
         setUpAccountsForVoting(accounts);
 
         // Setting up for a cycle
-        setUpForCycle(yieldDisburser);
+        setUpForCycle(yieldDistributor);
 
         // Casting vote and distributing yield
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
-        yieldDisburser.castVote(percentages);
-        yieldDisburser.distributeYield();
+        yieldDistributor.castVote(percentages);
+        yieldDistributor.distributeYield();
 
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
         uint256 bread_bal_after = bread.balanceOf(address(this));
@@ -145,7 +145,7 @@ contract YieldDisburserTest is Test {
         uint256 accounts = 3;
         seed = uint256(bound(seed, 1, 100000000000));
 
-        setUpForCycle(yieldDisburser2);
+        setUpForCycle(yieldDistributor2);
         for (uint256 i = 0; i < accounts; i++) {
             // Generating random values for the test
             uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
@@ -164,12 +164,12 @@ contract YieldDisburserTest is Test {
             votes.push(vote);
             votes.push(10000 - vote);
             vm.prank(holder);
-            yieldDisburser2.castVote(votes);
+            yieldDistributor2.castVote(votes);
             votes.pop();
             votes.pop();
         }
         // Distributing yield
-        yieldDisburser2.distributeYield();
+        yieldDistributor2.distributeYield();
 
         // Getting the balance of the projects after the distribution
         uint256 this_bal_after = bread.balanceOf(address(this));
@@ -179,8 +179,8 @@ contract YieldDisburserTest is Test {
     }
 
     function test_set_duration() public {
-        yieldDisburser.setCycleLength(10);
-        uint256 cycleLength = yieldDisburser.cycleLength();
+        yieldDistributor.setCycleLength(10);
+        uint256 cycleLength = yieldDistributor.cycleLength();
         assertEq(10, cycleLength);
     }
 
@@ -188,26 +188,26 @@ contract YieldDisburserTest is Test {
         vm.roll(32323232323);
         uint256 votingPowerBefore;
         vm.expectRevert();
-        votingPowerBefore = yieldDisburser.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
+        votingPowerBefore = yieldDistributor.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
         vm.deal(address(this), 1000000000000);
         vm.roll(42424242424);
         bread.mint{value: 1000000}(address(this));
         vm.roll(42424242425);
-        uint256 votingPowerAfter = yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242425, address(this));
+        uint256 votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242425, address(this));
         assertEq(votingPowerAfter, 1000000);
         vm.roll(42424242426);
-        votingPowerAfter = yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242426, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242426, address(this));
         assertEq(votingPowerAfter, 2000000);
         vm.roll(42424242427);
         bread.mint{value: 1000000}(address(this));
         vm.roll(42424242428);
-        votingPowerAfter = yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242428, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242428, address(this));
         assertEq(votingPowerAfter, 5000000);
         vm.roll(42424242430);
-        votingPowerAfter = yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242430, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242430, address(this));
         assertEq(votingPowerAfter, 9000000);
         vm.expectRevert();
-        votingPowerAfter = yieldDisburser.getVotingPowerForPeriod(42424242424, 42424242431, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242431, address(this));
     }
 
     function testFuzzy_voting_power(uint256 seed, uint256 mints) public {
@@ -239,7 +239,7 @@ contract YieldDisburserTest is Test {
             uint256 interval_voting_power = (end_interval - start_interval) * expected_balance;
             expectedVotingPower += interval_voting_power;
         }
-        uint256 vote = yieldDisburser.getVotingPowerForPeriod(start, mintblocknum, holder);
+        uint256 vote = yieldDistributor.getVotingPowerForPeriod(start, mintblocknum, holder);
         assertEq(vote, expectedVotingPower);
     }
 
@@ -247,10 +247,10 @@ contract YieldDisburserTest is Test {
         // Checking to see if the project list length  is initialized correctly
         vm.expectRevert();
         address projects_before_len;
-        projects_before_len = yieldDisburser.projects(1);
+        projects_before_len = yieldDistributor.projects(1);
 
         // Checking to see if the project list is initialized correctly
-        address active_project = yieldDisburser.projects(0);
+        address active_project = yieldDistributor.projects(0);
         assertEq(active_project, address(this));
 
         // Initalizing voter to complete cycle
@@ -259,35 +259,35 @@ contract YieldDisburserTest is Test {
         setUpAccountsForVoting(voters);
 
         // Setting up for a cycle and queueing project addition/removal
-        setUpForCycle(yieldDisburser);
-        yieldDisburser.queueProjectAddition(secondProject);
-        yieldDisburser.queueProjectRemoval(address(this));
+        setUpForCycle(yieldDistributor);
+        yieldDistributor.queueProjectAddition(secondProject);
+        yieldDistributor.queueProjectRemoval(address(this));
 
         // Casting vote and distributing yield
         uint256 vote = 100;
         percentages.push(vote);
-        yieldDisburser.castVote(percentages);
-        yieldDisburser.distributeYield();
+        yieldDistributor.castVote(percentages);
+        yieldDistributor.distributeYield();
 
         // Checking if the project was added correctly
-        address project_added_after = yieldDisburser.projects(0);
+        address project_added_after = yieldDistributor.projects(0);
         assertEq(project_added_after, secondProject);
 
         // Checking to see if addition queue is empty
         vm.expectRevert();
-        yieldDisburser.queuedProjectsForAddition(0);
+        yieldDistributor.queuedProjectsForAddition(0);
 
         // Checking to see if removal queue is empty
         vm.expectRevert();
-        yieldDisburser.queuedProjectsForRemoval(0);
+        yieldDistributor.queuedProjectsForRemoval(0);
 
         // Checking to see if project which is not in the list can be removed
         address random_project = address(0x1244567830123456789012345478901234567890);
         vm.expectRevert();
-        yieldDisburser.queueProjectRemoval(random_project);
+        yieldDistributor.queueProjectRemoval(random_project);
 
         // Making sure the project was removed
-        uint256 length = yieldDisburser.getProjectsLength();
+        uint256 length = yieldDistributor.getProjectsLength();
         assertEq(length, 1);
     }
 
@@ -301,12 +301,12 @@ contract YieldDisburserTest is Test {
         bread.mint{value: 5 * 1e4}(account);
 
         // Setting up for a cycle and casting vote
-        setUpForCycle(yieldDisburser);
+        setUpForCycle(yieldDistributor);
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
 
-        vm.expectRevert(abi.encodeWithSelector(YieldDisburser.BelowMinRequiredVotingPower.selector));
-        yieldDisburser.castVote(percentages);
+        vm.expectRevert(abi.encodeWithSelector(YieldDistributor.BelowMinRequiredVotingPower.selector));
+        yieldDistributor.castVote(percentages);
     }
 }

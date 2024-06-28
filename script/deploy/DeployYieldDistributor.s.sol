@@ -7,12 +7,12 @@ import "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeabl
 import "openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import "forge-std/StdJson.sol";
 
-import {YieldDisburser} from "../../src/YieldDisburser.sol";
+import {YieldDistributor} from "../../src/YieldDistributor.sol";
 
-contract DeployYieldDisburser is Script {
+contract DeployYieldDistributor is Script {
     string public deployConfigPath = string(bytes("./script/deploy/config/deploy.json"));
     string config_data = vm.readFile(deployConfigPath);
-    address breadAddress = stdJson.readAddress(config_data, ".breadAddress");
+    address _bread = stdJson.readAddress(config_data, "._bread");
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
@@ -21,8 +21,8 @@ contract DeployYieldDisburser is Script {
     bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
     address[] projects = abi.decode(projectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
-        YieldDisburser.initialize.selector,
-        breadAddress,
+        YieldDistributor.initialize.selector,
+        _bread,
         _precision,
         _minRequiredVotingPower,
         _maxPoints,
@@ -33,11 +33,11 @@ contract DeployYieldDisburser is Script {
 
     function run() external {
         vm.startBroadcast();
-        YieldDisburser yieldDisburserImplementation = new YieldDisburser();
-        YieldDisburser yieldDisburser = YieldDisburser(
-            address(new TransparentUpgradeableProxy(address(yieldDisburserImplementation), address(this), initData))
+        YieldDistributor yieldDistributorImplementation = new YieldDistributor();
+        YieldDistributor yieldDistributor = YieldDistributor(
+            address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
-        console2.log("Deployed YieldDisburser at address: {}", address(yieldDisburser));
+        console2.log("Deployed YieldDistributor at address: {}", address(yieldDistributor));
         vm.stopBroadcast();
     }
 }
