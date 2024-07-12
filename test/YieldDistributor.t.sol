@@ -225,8 +225,7 @@ contract YieldDistributorTest is Test {
             // Generating random values for the test
             uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
             uint256 vote = randomval % 100;
-            uint256 vote2 = (randomval * 2) % 100;
-
+            uint256 vote2 = (randomval + 1) % 100;
             address holder = address(uint160(randomval));
             uint256 token_amount = bound(randomval, _minVotingAmount, 1000 * _minVotingAmount);
 
@@ -242,13 +241,17 @@ contract YieldDistributorTest is Test {
             votes.push(10000 - vote);
             vm.prank(holder);
             yieldDistributor2.castVote(votes);
-            // votes.pop();
-            // votes.pop();
-            // votes.push(vote2);
-            // votes.push(10000 - vote2);
-            // vm.prank(holder);
-            // yieldDistributor2.castVote(votes);
+            votes.pop();
+            votes.pop();
+            votes.push(vote2);
+            votes.push(10000 - vote2);
+            vm.roll(START+ 10);
+            vm.prank(holder);
+            yieldDistributor2.castVote(votes);
+            votes.pop();
+            votes.pop();
         }
+        vm.roll(START);
         // Distributing yield
         yieldDistributor2.distributeYield();
 
