@@ -245,12 +245,12 @@ contract YieldDistributor is OwnableUpgradeable {
             if (_points[i] > maxPoints) revert ExceedsMaxPoints();
             _totalPoints += _points[i];
         }
+        if (_totalPoints == 0) revert ZeroVotePoints();
 
         bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         // If the user has not voted in the current cycle, initialize the voter distribution array with the correct length
         if (!_hasVotedInCycle) {
-
             delete voterDistributions[_account];
             for (uint256 i; i < _points.length; ++i) {
                 _voterDistributions.push(0);
@@ -263,8 +263,6 @@ contract YieldDistributor is OwnableUpgradeable {
 
             _voterDistributions[i] = _currentProjectDistribution;
         }
-
-        if (_totalPoints == 0) revert ZeroVotePoints();
 
         accountLastVoted[_account] = block.number;
         if (!_hasVotedInCycle) currentVotes += _votingPower;
