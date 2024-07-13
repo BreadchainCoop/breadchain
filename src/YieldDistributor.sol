@@ -240,8 +240,6 @@ contract YieldDistributor is OwnableUpgradeable {
     function _castVote(address _account, uint256[] calldata _points, uint256 _votingPower) internal {
         if (_points.length != projects.length) revert IncorrectNumberOfProjects();
 
-        // This loop cannot be combined with the loop below because the total points must be calculated first
-        // to perform the correct calculation for each project
         uint256 _totalPoints;
         for (uint256 i; i < _points.length; ++i) {
             if (_points[i] > maxPoints) revert ExceedsMaxPoints();
