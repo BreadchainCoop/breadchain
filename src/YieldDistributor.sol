@@ -249,23 +249,21 @@ contract YieldDistributor is OwnableUpgradeable {
 
         bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
-        // If the user has not voted in the current cycle, initialize the voter distribution array with the correct length
-        if (!_hasVotedInCycle) {
-            delete voterDistributions[_account];
-            for (uint256 i; i < _points.length; ++i) {
-                _voterDistributions.push(0);
-            }
-        }
+        if (!_hasVotedInCycle) delete voterDistributions[_account];
+
+        if (!_hasVotedInCycle) currentVotes += _votingPower;
+
         for (uint256 i; i < _points.length; ++i) {
-            uint256 _currentProjectDistribution = ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
-            projectDistributions[i] += _currentProjectDistribution;
+            if (!_hasVotedInCycle) _voterDistributions.push(0);
+
             if (_hasVotedInCycle) projectDistributions[i] -= _voterDistributions[i];
 
+            uint256 _currentProjectDistribution = ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
+            projectDistributions[i] += _currentProjectDistribution;
             _voterDistributions[i] = _currentProjectDistribution;
         }
 
         accountLastVoted[_account] = block.number;
-        if (!_hasVotedInCycle) currentVotes += _votingPower;
 
         emit BreadHolderVoted(_account, _points, projects);
     }
