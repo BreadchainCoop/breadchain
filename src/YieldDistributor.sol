@@ -256,8 +256,7 @@ contract YieldDistributor is OwnableUpgradeable {
 
         for (uint256 i; i < _points.length; ++i) {
             if (!_hasVotedInCycle) _voterDistributions.push(0);
-
-            if (_hasVotedInCycle) projectDistributions[i] -= _voterDistributions[i];
+            else projectDistributions[i] -= _voterDistributions[i];
 
             uint256 _currentProjectDistribution = ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
             projectDistributions[i] += _currentProjectDistribution;
