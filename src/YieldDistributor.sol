@@ -249,9 +249,10 @@ contract YieldDistributor is OwnableUpgradeable {
 
         bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
-        if (!_hasVotedInCycle) delete voterDistributions[_account];
-
-        if (!_hasVotedInCycle) currentVotes += _votingPower;
+        if (!_hasVotedInCycle) {
+            delete voterDistributions[_account];
+            currentVotes += _votingPower;
+        }
 
         for (uint256 i; i < _points.length; ++i) {
             if (!_hasVotedInCycle) _voterDistributions.push(0);
