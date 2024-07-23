@@ -22,6 +22,7 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
 
 contract YieldDistributorTest is Test {
     uint256 constant START = 32323232323;
+    uint256 marginOfError = 3;
     YieldDistributorTestWrapper public yieldDistributor;
     YieldDistributorTestWrapper public yieldDistributor2;
     address secondProject;
@@ -132,7 +133,7 @@ contract YieldDistributorTest is Test {
 
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertGt(bread_bal_after, yieldAccrued - 3);
+        assertGt(bread_bal_after, yieldAccrued - marginOfError);
     }
 
     function test_simple_recast_vote() public {
@@ -164,7 +165,7 @@ contract YieldDistributorTest is Test {
 
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
         uint256 bread_bal_after = bread.balanceOf(address(this));
-        assertGt(bread_bal_after, yieldAccrued - 3);
+        assertGt(bread_bal_after, yieldAccrued - marginOfError);
     }
 
     function test_fuzzy_distribute(uint256 seed) public {
@@ -245,7 +246,7 @@ contract YieldDistributorTest is Test {
             votes.pop();
             votes.push(vote2);
             votes.push(10000 - vote2);
-            vm.roll(START+ 10);
+            vm.roll(START + 10);
             vm.prank(holder);
             yieldDistributor2.castVote(votes);
             votes.pop();
