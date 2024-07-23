@@ -186,10 +186,12 @@ contract YieldDistributor is OwnableUpgradeable {
      * @return bytes Calldata used by the resolver to distribute the yield
      */
     function resolveYieldDistribution() public view returns (bool, bytes memory) {
+        uint256 _available_yield = BREAD.balanceOf(address(this)) + BREAD.yieldAccrued();
         if (
             currentVotes == 0 // No votes were cast
                 || block.number < lastClaimedBlockNumber + cycleLength // Already claimed this cycle
-                || BREAD.balanceOf(address(this)) + BREAD.yieldAccrued() < projects.length // Yield is insufficient
+                || _available_yield < projects.length // Yield is insufficient
+                || _available_yield / yieldFixedSplit < projects.length // Yield is insufficient
         ) {
             return (false, new bytes(0));
         } else {
