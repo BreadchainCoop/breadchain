@@ -139,6 +139,41 @@ contract YieldDistributorTest is Test {
         assertGt(bread_bal_after, yieldAccrued - marginOfError);
     }
 
+    function test_fixed_yield_split() public {
+        // Getting the balance of the project before the distribution
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        // Getting the amount of yield to be distributed
+        uint256 yieldAccrued = bread.yieldAccrued();
+
+        // Setting up a voter
+        address account = address(0x1234567890123456789012345678901234567890);
+        address[] memory accounts = new address[](1);
+        accounts[0] = account;
+        setUpAccountsForVoting(accounts);
+
+        // Setting up for a cycle
+        setUpForCycle(yieldDistributor2);
+        address owner = yieldDistributor2.owner();
+        vm.prank(owner);
+        yieldDistributor2.setYieldFixedSplit(3);
+
+        // Casting vote and distributing yield
+        uint256 vote = 50;
+        uint256 vote2 = 50;
+        percentages.push(vote);
+        percentages.push(vote2);
+        vm.prank(account);
+        yieldDistributor2.castVote(percentages);
+        yieldDistributor2.distributeYield();
+        uint256 fixedSplit = yieldAccrued / _yieldFixedSplit;
+        uint256 votedSplit = yieldAccrued - fixedSplit;
+        uint256 projectsLength = yieldDistributor2.getProjectsLength();
+        // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
+        uint256 bread_bal_after = bread.balanceOf(address(secondProject));
+        assertGt(bread_bal_after, ((fixedSplit + votedSplit) / projectsLength) - marginOfError);
+    }
+
     function test_simple_recast_vote() public {
         // Getting the balance of the project before the distribution
         uint256 bread_bal_before = bread.balanceOf(address(this));

@@ -390,4 +390,5 @@ contract YieldDistributor is OwnableUpgradeable {
         if (_yieldFixedSplit == 0) revert MustBeGreaterThanZero();
 
         yieldFixedSplit = _yieldFixedSplit;
+    }
 }
