@@ -10,3 +10,6 @@
 [submodule "lib/bread-token-v2"]
 	path = lib/bread-token-v2
 	url = git@github.com:BreadchainCoop/bread-token-v2.git
+[submodule "lib/openzeppelin-foundry-upgrades"]
+	path = lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
