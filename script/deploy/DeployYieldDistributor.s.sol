@@ -18,6 +18,7 @@ contract DeployYieldDistributor is Script {
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
+    uint256 _yieldFixedSplit = stdJson.readUint(config_data, "._yieldFixedSplit");
     address _owner = stdJson.readAddress(config_data, "._owner");
     bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
     address[] projects = abi.decode(projectsRaw, (address[]));
@@ -28,6 +29,7 @@ contract DeployYieldDistributor is Script {
         _minRequiredVotingPower,
         _maxPoints,
         _cycleLength,
+        _yieldFixedSplit,
         _lastClaimedBlockNumber,
         projects
     );

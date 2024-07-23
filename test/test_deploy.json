@@ -21,5 +21,6 @@
     "_minRequiredVotingPower": 10000000000000000000,
     "_minVotingAmount": 10000000000000000000,
     "_minHoldingDuration": 864000,
-    "_precision": 1000000000000000000
+    "_precision": 1000000000000000000,
+    "_yieldFixedSplit": 2
 }

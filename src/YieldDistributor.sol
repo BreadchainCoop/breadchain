@@ -63,6 +63,8 @@ contract YieldDistributor is OwnableUpgradeable {
     uint256 public lastClaimedBlockNumber;
     // @notice The total number of votes cast in the current cycle
     uint256 public currentVotes;
+    // @notice How much of the yield is divided equally among projects
+    uint256 public yieldFixedSplit;
     // @notice Array of projects eligible for yield distribution
     address[] public projects;
     // @notice Array of projects queued for addition to the next cycle
@@ -87,6 +89,7 @@ contract YieldDistributor is OwnableUpgradeable {
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
+        uint256 _yieldFixedSplit,
         uint256 _lastClaimedBlockNumber,
         address[] memory _projects
     ) public initializer {
@@ -97,6 +100,7 @@ contract YieldDistributor is OwnableUpgradeable {
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
+        yieldFixedSplit = _yieldFixedSplit;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
 
         projectDistributions = new uint256[](_projects.length);
@@ -202,18 +206,19 @@ contract YieldDistributor is OwnableUpgradeable {
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         lastClaimedBlockNumber = block.number;
-
-        uint256 _halfYield = BREAD.balanceOf(address(this)) / 2;
-        uint256 _baseSplit = _halfYield / projects.length;
+        uint256 balance = BREAD.balanceOf(address(this));
+        uint256 _fixedYield = balance / yieldFixedSplit;
+        uint256 _baseSplit = _fixedYield / projects.length;
+        uint256 _votedYield = balance - _fixedYield;
 
         for (uint256 i; i < projects.length; ++i) {
-            uint256 _votedSplit = ((projectDistributions[i] * _halfYield * PRECISION) / currentVotes) / PRECISION;
+            uint256 _votedSplit = ((projectDistributions[i] * _votedYield * PRECISION) / currentVotes) / PRECISION;
             BREAD.transfer(projects[i], _votedSplit + _baseSplit);
         }
 
         _updateBreadchainProjects();
 
-        emit YieldDistributed(_halfYield * 2, currentVotes, projectDistributions);
+        emit YieldDistributed(balance, currentVotes, projectDistributions);
 
         delete currentVotes;
         projectDistributions = new uint256[](projects.length);
