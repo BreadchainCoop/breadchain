@@ -5,6 +5,8 @@ libs = ["lib"]
 fs_permissions = [{ access = "read-write", path = "./" }]
 solc_version = "0.8.25"
 build_info = true
+ffi = true
+ast = true
 extra_output = ["storageLayout"]
 [rpc_endpoints]
 sepolia = "QUICKNODE_ENDPOINT_URL"
