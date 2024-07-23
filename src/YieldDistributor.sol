@@ -381,4 +381,13 @@ contract YieldDistributor is OwnableUpgradeable {
 
         cycleLength = _cycleLength;
     }
+
+    /**
+     * @notice Set a new fixed split for the yield distribution
+     * @param _yieldFixedSplit New fixed split for the yield distribution
+     */
+    function setYieldFixedSplit(uint256 _yieldFixedSplit) public onlyOwner {
+        if (_yieldFixedSplit == 0) revert MustBeGreaterThanZero();
+
+        yieldFixedSplit = _yieldFixedSplit;
 }
