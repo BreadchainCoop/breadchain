@@ -41,7 +41,7 @@ contract YieldDistributorTest is Test {
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
-    uint256 _yieldFixedSplit = stdJson.readUint(config_data, "._yieldFixedSplit");
+    uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
     Bread public bread = Bread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
@@ -63,7 +63,7 @@ contract YieldDistributorTest is Test {
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _yieldFixedSplit,
+            _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
             projects1
         );
@@ -81,7 +81,7 @@ contract YieldDistributorTest is Test {
             _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
-            _yieldFixedSplit,
+            _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
             projects2
         );
@@ -156,7 +156,7 @@ contract YieldDistributorTest is Test {
         setUpForCycle(yieldDistributor2);
         address owner = yieldDistributor2.owner();
         vm.prank(owner);
-        yieldDistributor2.setYieldFixedSplit(3);
+        yieldDistributor2.setyieldFixedSplitDivisor(3);
 
         // Casting vote and distributing yield
         uint256 vote = 50;
@@ -166,7 +166,7 @@ contract YieldDistributorTest is Test {
         vm.prank(account);
         yieldDistributor2.castVote(percentages);
         yieldDistributor2.distributeYield();
-        uint256 fixedSplit = yieldAccrued / _yieldFixedSplit;
+        uint256 fixedSplit = yieldAccrued / _yieldFixedSplitDivisor;
         uint256 votedSplit = yieldAccrued - fixedSplit;
         uint256 projectsLength = yieldDistributor2.getProjectsLength();
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
