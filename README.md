@@ -79,5 +79,5 @@ $ cast --help
 6. If script is runs successfully, proceed, otherwise address errors produced by the script until no errors are produced.
 
 ## Test Upgrade with Calldata Locally 
-1. Amend the `data` variable `script/upgrades/UpgradeYieldDistributor.s.sol` to match desired data 
+1. Amend the `data` variable in `script/upgrades/UpgradeYieldDistributor.s.sol` to match desired data 
 2. run `forge clean && forge build && forge script script/upgrades/UpgradeYieldDistributor.s.sol --rpc-url $RPC_URL  --sender <proxy_admin>` (proxy admin address is configured to be the breadchain multisig at address 0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad) 
