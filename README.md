@@ -76,7 +76,7 @@ $ cast --help
 3. Checkout to upgrade candidate version (A version that is strictly higher than the version in the previous step)
 4. Update the version in the options object of the `script/upgrades/ValidateUpgrade.s.sol` script
 5. Run `forge clean && forge build && forge script script/upgrades/ValidateUpgrade.s.sol`
-6. If script is run succesfully , proceed , otherwise address errors produced by the script unti no errors are produced.
+6. If script is runs successfully, proceed, otherwise address errors produced by the script until no errors are produced.
 
 ## Test Upgrade with Calldata Locally 
 1. Amend the `data` variable `script/upgrades/UpgradeYieldDistributor.s.sol` to match desired data 
