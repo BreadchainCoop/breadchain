@@ -190,7 +190,6 @@ contract YieldDistributor is OwnableUpgradeable {
         if (
             currentVotes == 0 // No votes were cast
                 || block.number < lastClaimedBlockNumber + cycleLength // Already claimed this cycle
-                || _available_yield < projects.length // Yield is insufficient
                 || _available_yield / yieldFixedSplitDivisor < projects.length // Yield is insufficient
         ) {
             return (false, new bytes(0));
