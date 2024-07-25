@@ -69,3 +69,17 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Validate Upgrade Safety 
+1. Checkout to the deployed implementation commit 
+2. Copy "YieldDistributor.sol" to `test/upgrades/<version>/YieldDistributor.sol`
+3. Checkout to upgrade candidate version (A version that is strictly higher than the version in the previous step)
+4. Update the version in the options object of the `script/upgrades/ValidateUpgrade.s.sol` script
+5. Run `forge clean && forge build && forge script script/upgrades/ValidateUpgrade.s.sol`
+6. If script is runs successfully, proceed, otherwise address errors produced by the script until no errors are produced.
+
+## Test Upgrade with Calldata Locally 
+1. Amend the `data` variable in `script/upgrades/UpgradeYieldDistributor.s.sol` to match desired data 
+2. run `forge clean && forge build && forge script script/upgrades/UpgradeYieldDistributor.s.sol --sig "run(address)" <proxy_address> --rpc-url $RPC_URL  --sender <proxy_admin>` 
+
+The proxy admin address is configured to be the Breadchain multisig at address `0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad` and the Yield Distributor proxy address is `0xeE95A62b749d8a2520E0128D9b3aCa241269024b`
