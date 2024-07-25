@@ -1,8 +1,8 @@
 pragma solidity ^0.8.20;
 
-import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract DeployYieldDistributor is Script {
     function run() external {
