@@ -63,8 +63,6 @@ contract YieldDistributor is OwnableUpgradeable {
     uint256 public lastClaimedBlockNumber;
     // @notice The total number of votes cast in the current cycle
     uint256 public currentVotes;
-    // @notice How much of the yield is divided equally among projects
-    uint256 public yieldFixedSplitDivisor;
     // @notice Array of projects eligible for yield distribution
     address[] public projects;
     // @notice Array of projects queued for addition to the next cycle
@@ -77,6 +75,8 @@ contract YieldDistributor is OwnableUpgradeable {
     mapping(address => uint256) public accountLastVoted;
     // @notice The voting power allocated to projects by voters in the current cycle
     mapping(address => uint256[]) voterDistributions;
+    // @notice How much of the yield is divided equally among projects
+    uint256 public yieldFixedSplitDivisor;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
