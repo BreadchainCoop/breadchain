@@ -74,7 +74,7 @@ $ cast --help
 1. Checkout to the deployed implementation commit 
 2. Copy the YieldDistributor.sol to test/upgrades/<version>/YieldDistributor.sol
 3. Checkout to upgrade candidate version (A version that is strictly higher than the version in the previous step)
-4. Update the version in the options object of the script/upgrades/ValidateUpgrade.s.sol script
+4. Update the version in the options object of the `script/upgrades/ValidateUpgrade.s.sol` script
 5. Run `forge clean && forge build && forge script script/upgrades/ValidateUpgrade.s.sol`
 6. If script is run succesfully , proceed , otherwise address errors produced by the script unti no errors are produced.
 
