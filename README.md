@@ -80,6 +80,6 @@ $ cast --help
 
 ## Test Upgrade with Calldata Locally 
 1. Amend the `data` variable in `script/upgrades/UpgradeYieldDistributor.s.sol` to match desired data 
-2. run `forge clean && forge build && forge script script/upgrades/UpgradeYieldDistributor.s.sol --sig "run(address)" --args <proxy_address> --rpc-url $RPC_URL  --sender <proxy_admin>` 
+2. run `forge clean && forge build && forge script script/upgrades/UpgradeYieldDistributor.s.sol --sig "run(address)" <proxy_address> --rpc-url $RPC_URL  --sender <proxy_admin>` 
 
 The proxy admin address is configured to be the Breadchain multisig at address `0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad` and the Yield Distributor proxy address is `0xeE95A62b749d8a2520E0128D9b3aCa241269024b`
