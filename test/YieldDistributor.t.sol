@@ -311,26 +311,27 @@ contract YieldDistributorTest is Test {
         vm.roll(32323232323);
         uint256 votingPowerBefore;
         vm.expectRevert();
-        votingPowerBefore = yieldDistributor.getVotingPowerForPeriod(32323232323, 32323232324, address(this));
+        votingPowerBefore = yieldDistributor.getVotingPowerForPeriod(bread, 32323232323, 32323232324, address(this));
         vm.deal(address(this), 1000000000000);
         vm.roll(42424242424);
         bread.mint{value: 1000000}(address(this));
         vm.roll(42424242425);
-        uint256 votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242425, address(this));
+        uint256 votingPowerAfter =
+            yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242425, address(this));
         assertEq(votingPowerAfter, 1000000);
         vm.roll(42424242426);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242426, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242426, address(this));
         assertEq(votingPowerAfter, 2000000);
         vm.roll(42424242427);
         bread.mint{value: 1000000}(address(this));
         vm.roll(42424242428);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242428, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242428, address(this));
         assertEq(votingPowerAfter, 5000000);
         vm.roll(42424242430);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242430, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242430, address(this));
         assertEq(votingPowerAfter, 9000000);
         vm.expectRevert();
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(42424242424, 42424242431, address(this));
+        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242431, address(this));
     }
 
     function testFuzzy_voting_power(uint256 seed, uint256 mints) public {
@@ -362,7 +363,7 @@ contract YieldDistributorTest is Test {
             uint256 interval_voting_power = (end_interval - start_interval) * expected_balance;
             expectedVotingPower += interval_voting_power;
         }
-        uint256 vote = yieldDistributor.getVotingPowerForPeriod(start, mintblocknum, holder);
+        uint256 vote = yieldDistributor.getVotingPowerForPeriod(bread, start, mintblocknum, holder);
         assertEq(vote, expectedVotingPower);
     }
 
