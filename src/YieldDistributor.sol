@@ -4,6 +4,8 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {Checkpoints} from
     "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
+import {ERC20VotesUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {Bread} from "bread-token/src/Bread.sol";
 
 /**
@@ -125,7 +127,8 @@ contract YieldDistributor is OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        return this.getVotingPowerForPeriod(lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
+        return
+            this.getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
     }
 
     /**
@@ -135,22 +138,27 @@ contract YieldDistributor is OwnableUpgradeable {
      * @param _account Address of user to return the voting power for
      * @return uint256 Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(uint256 _start, uint256 _end, address _account) external view returns (uint256) {
+    function getVotingPowerForPeriod(
+        ERC20VotesUpgradeable _sourceContract,
+        uint256 _start,
+        uint256 _end,
+        address _account
+    ) external view returns (uint256) {
         if (_start >= _end) revert StartMustBeBeforeEnd();
         if (_end > block.number) revert EndAfterCurrentBlock();
 
         // Initialized as the checkpoint count, but later used to track checkpoint index
-        uint32 _currentCheckpointIndex = BREAD.numCheckpoints(_account);
+        uint32 _currentCheckpointIndex = _sourceContract.numCheckpoints(_account);
         if (_currentCheckpointIndex == 0) return 0;
 
         // No voting power if the first checkpoint is after the end of the interval
-        Checkpoints.Checkpoint208 memory _currentCheckpoint = BREAD.checkpoints(_account, 0);
+        Checkpoints.Checkpoint208 memory _currentCheckpoint = _sourceContract.checkpoints(_account, 0);
         if (_currentCheckpoint._key > _end) return 0;
 
         // Find the latest checkpoint that is within the interval
         do {
             --_currentCheckpointIndex;
-            _currentCheckpoint = BREAD.checkpoints(_account, _currentCheckpointIndex);
+            _currentCheckpoint = _sourceContract.checkpoints(_account, _currentCheckpointIndex);
         } while (_currentCheckpoint._key > _end);
 
         // Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
@@ -161,7 +169,7 @@ contract YieldDistributor is OwnableUpgradeable {
 
         for (uint32 i = _currentCheckpointIndex; i > 0;) {
             // Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
-            _currentCheckpoint = BREAD.checkpoints(_account, --i);
+            _currentCheckpoint = _sourceContract.checkpoints(_account, --i);
 
             // Add voting power for the sub-interval to the total
             _totalVotingPower += _currentCheckpoint._value * (_latestKey - _currentCheckpoint._key);
