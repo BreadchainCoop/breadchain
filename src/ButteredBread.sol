@@ -115,7 +115,8 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _accountToLPData[_account][_lp].scalingFactor = currentScalingFactor;
 
         _mint(_account, _amount * currentScalingFactor / FIXED_POINT_PERCENT);
-        if (this.delegates(_account) == address(0)) _delegate(_account, _account);
+        if (this.delegates(_account) != address(0)) _delegate(_account, this.delegates(_account));
+        else _delegate(_account, _account);
 
         emit AddButter(_account, _lp, _amount);
     }

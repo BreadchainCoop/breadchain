@@ -403,3 +403,45 @@ contract ButteredBreadTest_Fuzz is ButteredBreadTest {
         bb.modifyScalingFactor(_contract, 69, userList);
     }
 }
+
+contract ButteredBreadTest_Delegation is ButteredBreadTest {
+    uint256 public constant BOBBY_AMOUNT = TOKEN_AMOUNT / 2;
+    address public constant DELEGATEE = address(0x420);
+
+    function setUp() public virtual override {
+        super.setUp();
+        _helperAddLiquidity(ALICE, TOKEN_AMOUNT, TOKEN_AMOUNT);
+        _helperAddLiquidity(BOBBY, BOBBY_AMOUNT, BOBBY_AMOUNT);
+
+        vm.prank(BOBBY);
+        bb.delegate(DELEGATEE);
+    }
+
+    function testSetup() public view {
+        assertGt(curvePoolXdai.balanceOf(ALICE), TOKEN_AMOUNT);
+        assertGt(curvePoolXdai.balanceOf(BOBBY), BOBBY_AMOUNT);
+    }
+
+    function testDelegation() public {
+        vm.prank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
+
+        vm.prank(BOBBY);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, BOBBY_AMOUNT);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+        assertEq(bb.delegates(BOBBY), DELEGATEE);
+    }
+
+    function testDelegationChange() public {
+        vm.startPrank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+
+        bb.delegate(DELEGATEE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), DELEGATEE);
+    }
+}
