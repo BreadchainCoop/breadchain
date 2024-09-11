@@ -79,6 +79,8 @@ contract YieldDistributor is OwnableUpgradeable {
     mapping(address => uint256[]) voterDistributions;
     // @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
+    // @notice How much bread projects need to hold in order to be eligible for distributed yield
+    uint256 public minProjectBalance;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -92,6 +94,7 @@ contract YieldDistributor is OwnableUpgradeable {
         uint256 _maxPoints,
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
+        uint256 _minProjectBalance,
         uint256 _lastClaimedBlockNumber,
         address[] memory _projects
     ) public initializer {
@@ -103,6 +106,7 @@ contract YieldDistributor is OwnableUpgradeable {
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
+        minProjectBalance = _minProjectBalance;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
 
         projectDistributions = new uint256[](_projects.length);
@@ -216,13 +220,19 @@ contract YieldDistributor is OwnableUpgradeable {
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         lastClaimedBlockNumber = block.number;
         uint256 balance = BREAD.balanceOf(address(this));
+        uint256 _minProjectBalance = minProjectBalance;
         uint256 _fixedYield = balance / yieldFixedSplitDivisor;
         uint256 _baseSplit = _fixedYield / projects.length;
         uint256 _votedYield = balance - _fixedYield;
 
         for (uint256 i; i < projects.length; ++i) {
+            address _project = projects[i];
+            uint256 _projectBalance = BREAD.balanceOf(_project);
+            if (_projectBalance < _minProjectBalance) {
+                continue;
+            }
             uint256 _votedSplit = ((projectDistributions[i] * _votedYield * PRECISION) / currentVotes) / PRECISION;
-            BREAD.transfer(projects[i], _votedSplit + _baseSplit);
+            BREAD.transfer(_project, _votedSplit + _baseSplit);
         }
 
         _updateBreadchainProjects();
@@ -399,5 +409,14 @@ contract YieldDistributor is OwnableUpgradeable {
         if (_yieldFixedSplitDivisor == 0) revert MustBeGreaterThanZero();
 
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
+    }
+
+
+    /**
+     * @notice Set a new minimum project balance requirement for the yield distribution
+     * @param _minProjectBalance New minimum project balance requirement for the yield distribution
+     */
+    function setMinProjectBalance(uint256 _minProjectBalance) public onlyOwner {
+        minProjectBalance = _minProjectBalance;
     }
 }
