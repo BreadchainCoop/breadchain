@@ -11,6 +11,8 @@ interface IButteredBread {
     error InvalidValue();
     /// @notice Occurs when attempting a deposit with a non-sanctioned LP
     error NotAllowListed();
+    /// @notice Occurs when attempting to delegate ButteredBread that is determined by BREAD
+    error NonDelegatable();
     /// @notice Occurs when attempting to transfer soulbound ButteredBread
     error NonTransferable();
     /// @notice Occurs when dependent variable is not set
@@ -22,6 +24,7 @@ interface IButteredBread {
     event RemoveButter(address _account, address _lp, uint256 _amount);
 
     /**
+     * @param breadToken address of BREAD
      * @param liquidityPools sanctioned LPs
      * @param scalingFactors scaling factor on mint per sanctioned LP
      * @dev each scaling factor is a fixed point percent (e.g. 100 = 1X, 150 = 1.5X, 1000 = 10X)
@@ -29,6 +32,7 @@ interface IButteredBread {
      * @param symbol ERC20 token symbol
      */
     struct InitData {
+        address breadToken;
         address[] liquidityPools;
         uint256[] scalingFactors;
         string name;

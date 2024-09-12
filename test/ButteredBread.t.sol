@@ -32,11 +32,13 @@ contract ButteredBreadTest is Test {
         uint256[] memory _scalingFactors = new uint256[](1);
         _scalingFactors[0] = XDAI_FACTOR;
 
-        IButteredBread.InitData memory initData;
-        initData.liquidityPools = _liquidityPools;
-        initData.scalingFactors = _scalingFactors;
-        initData.name = "ButteredBread";
-        initData.symbol = "BB";
+        IButteredBread.InitData memory initData = IButteredBread.InitData({
+            breadToken: GNOSIS_BREAD,
+            liquidityPools: _liquidityPools,
+            scalingFactors: _scalingFactors,
+            name: "ButteredBread",
+            symbol: "BB"
+        });
 
         bytes memory implementationData = abi.encodeWithSelector(ButteredBread.initialize.selector, initData);
 
