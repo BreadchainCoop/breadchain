@@ -10,6 +10,7 @@ import {TransparentUpgradeableProxy} from
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
+import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
@@ -415,8 +416,11 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
         _helperAddLiquidity(ALICE, TOKEN_AMOUNT, TOKEN_AMOUNT);
         _helperAddLiquidity(BOBBY, BOBBY_AMOUNT, BOBBY_AMOUNT);
 
+        vm.prank(ALICE);
+        IERC20Votes(GNOSIS_BREAD).delegate(ALICE);
+
         vm.prank(BOBBY);
-        bb.delegate(DELEGATEE);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
     }
 
     function testSetup() public view {
@@ -435,13 +439,25 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
         assertEq(bb.delegates(BOBBY), DELEGATEE);
     }
 
+    function testDelegationRevert() public {
+        vm.startPrank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+
+        vm.expectRevert();
+        bb.delegate(DELEGATEE);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+    }
+
     function testDelegationChange() public {
         vm.startPrank(ALICE);
         bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
 
         assertEq(bb.delegates(ALICE), ALICE);
 
-        bb.delegate(DELEGATEE);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
         bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
 
         assertEq(bb.delegates(ALICE), DELEGATEE);
