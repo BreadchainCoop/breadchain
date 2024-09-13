@@ -11,7 +11,7 @@ interface IButteredBread {
     error InvalidValue();
     /// @notice Occurs when attempting a deposit with a non-sanctioned LP
     error NotAllowListed();
-    /// @notice Occurs when attempting to delegate ButteredBread that is determined by BREAD
+    /// @notice Occurs when attempting to delegate ButteredBread. Delegations are set via the BREAD contract
     error NonDelegatable();
     /// @notice Occurs when attempting to transfer soulbound ButteredBread
     error NonTransferable();

@@ -410,6 +410,7 @@ contract ButteredBreadTest_Fuzz is ButteredBreadTest {
 contract ButteredBreadTest_Delegation is ButteredBreadTest {
     uint256 public constant BOBBY_AMOUNT = TOKEN_AMOUNT / 2;
     address public constant DELEGATEE = address(0x420);
+    address public constant ZERO_ADDR = address(0);
 
     function setUp() public virtual override {
         super.setUp();
@@ -445,7 +446,7 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
 
         assertEq(bb.delegates(ALICE), ALICE);
 
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(IButteredBread.NonDelegatable.selector));
         bb.delegate(DELEGATEE);
 
         assertEq(bb.delegates(ALICE), ALICE);
@@ -459,6 +460,31 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
 
         IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
         bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), DELEGATEE);
+    }
+
+    function testDelegationDefaultAssignment() public {
+        vm.startPrank(ALICE);
+        IERC20Votes(GNOSIS_BREAD).delegate(ZERO_ADDR);
+
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+    }
+
+    function testDelegationSyncDelegation() public {
+        vm.startPrank(ALICE);
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+
+        bb.syncDelegation();
 
         assertEq(bb.delegates(ALICE), DELEGATEE);
     }

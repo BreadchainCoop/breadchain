@@ -61,6 +61,11 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _lpBalance = _accountToLPData[_account][_lp].balance;
     }
 
+    /// @notice Sync this delegation with user delegate selection on BREAD
+    function syncDelegation() external {
+        _syncDelegation(msg.sender);
+    }
+
     /**
      * @notice Deposit LP tokens
      * @param _lp Liquidity Pool token
@@ -124,7 +129,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _accountToLPData[_account][_lp].scalingFactor = currentScalingFactor;
 
         _mint(_account, _amount * currentScalingFactor / FIXED_POINT_PERCENT);
-        _delegate(_account, BREAD.delegates(_account));
+        _syncDelegation(_account);
 
         emit AddButter(_account, _lp, _amount);
     }
@@ -132,7 +137,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
     /// @notice Withdraw LP tokens and burn ButteredBread with corresponding LP scaling factor
     function _withdraw(address _account, address _lp, uint256 _amount) internal {
         if (_amount > _accountToLPData[_account][_lp].balance) revert InsufficientFunds();
-        _delegate(_account, BREAD.delegates(_account));
+        _syncDelegation(_account);
 
         /// @dev ensure proper accounting in case of admin error in `modifyScalingFactor` where not all holders are updated
         _syncVotingWeight(_account, _lp);
@@ -151,6 +156,12 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         for (uint256 i = 0; i < _holders.length; i++) {
             _syncVotingWeight(_holders[i], _lp);
         }
+    }
+
+    /// @notice Sync this delegation with delegate selection on BREAD
+    function _syncDelegation(address _account) internal {
+        _delegate(_account, BREAD.delegates(_account));
+        if (this.delegates(_account) == address(0)) _delegate(_account, _account);
     }
 
     /// @notice Sync voting weight with scaling factor
