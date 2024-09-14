@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 interface IMultiplier {
-    // Function to get the multiplying factor for a specific address
+    /// @notice Returns the voting multiplier for `user`.
     function getMultiplyingFactor(address user) external view returns (uint256);
 
-    // Function to get the validity period for a specific address
+    /// @notice Returns the validity period of the multiplier for `user`.
     function validUntil(address user) external view returns (uint256);
 }
