@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 /**
- * @title ButteredBread interface
+ * @title `ButteredBread` interface
  */
 interface IButteredBread {
     /// @notice Occurs when a user does not have sufficient Butter to mint `ButteredBread`
@@ -16,12 +16,12 @@ interface IButteredBread {
     /// @notice Occurs when attempting to transfer soulbound `ButteredBread` tokens
     error NonTransferable();
     /// @notice Occurs when a dependent variable is not set
-    error Unset();
+    error UnsetVariable();
 
     /// @notice The event emitted when an LP Token (Butter) has been added
-    event AddButter(address _account, address _lp, uint256 _amount);
+    event ButterAdded(address _account, address _lp, uint256 _amount);
     /// @notice The event emitted when an LP Token (Butter) has been removed
-    event RemoveButter(address _account, address _lp, uint256 _amount);
+    event ButterRemoved(address _account, address _lp, uint256 _amount);
 
     /**
      * @param breadToken Address of `BreadToken`

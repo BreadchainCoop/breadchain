@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 /**
- * @title YieldDistributor interface
+ * @title `YieldDistributor` interface
  */
 interface IYieldDistributor {
     /// @notice The error emitted when attempting to add a project that is already in the `projects` array

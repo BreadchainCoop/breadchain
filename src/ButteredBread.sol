@@ -94,7 +94,7 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
      * @param _allowed Sanction status of LP token
      */
     function modifyAllowList(address _lp, bool _allowed) external onlyOwner {
-        if (scalingFactors[_lp] < FIXED_POINT_PERCENT) revert Unset();
+        if (scalingFactors[_lp] == 0) revert UnsetVariable();
         allowlistedLPs[_lp] = _allowed;
     }
 
@@ -134,7 +134,7 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
         _mint(_account, _amount * currentScalingFactor / FIXED_POINT_PERCENT);
         _syncDelegation(_account);
 
-        emit AddButter(_account, _lp, _amount);
+        emit ButterAdded(_account, _lp, _amount);
     }
 
     /// @notice Withdraw LP tokens and burn ButteredBread with corresponding LP scaling factor
@@ -149,7 +149,7 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
         _burn(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
         IERC20(_lp).transfer(_account, _amount);
 
-        emit RemoveButter(_account, _lp, _amount);
+        emit ButterRemoved(_account, _lp, _amount);
     }
 
     function _modifyScalingFactor(address _lp, uint256 _factor, address[] calldata _holders) internal {
