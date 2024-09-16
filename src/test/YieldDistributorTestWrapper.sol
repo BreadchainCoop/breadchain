@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {YieldDistributor} from "../YieldDistributor.sol";
+import {YieldDistributor} from "src/YieldDistributor.sol";
 
 contract YieldDistributorTestWrapper is YieldDistributor {
     constructor() {}

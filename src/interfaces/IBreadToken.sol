@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-interface IERC20Votes is IERC20 {
+interface IBreadToken is IERC20 {
     /**
      * @dev Clock used for flagging checkpoints. Can be overridden to implement timestamp based
      * checkpoints (and voting), in which case {CLOCK_MODE} should be overridden as well to match.
