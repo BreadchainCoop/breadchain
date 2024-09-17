@@ -11,7 +11,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
-import {IBreadToken} from "src/interfaces/IBreadToken.sol";
+import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
@@ -419,10 +419,10 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
         _helperAddLiquidity(BOBBY, BOBBY_AMOUNT, BOBBY_AMOUNT);
 
         vm.prank(ALICE);
-        IBreadToken(GNOSIS_BREAD).delegate(ALICE);
+        IERC20Votes(GNOSIS_BREAD).delegate(ALICE);
 
         vm.prank(BOBBY);
-        IBreadToken(GNOSIS_BREAD).delegate(DELEGATEE);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
     }
 
     function testSetup() public view {
@@ -459,7 +459,7 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
 
         assertEq(bb.delegates(ALICE), ALICE);
 
-        IBreadToken(GNOSIS_BREAD).delegate(DELEGATEE);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
         bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
 
         assertEq(bb.delegates(ALICE), DELEGATEE);
@@ -467,22 +467,22 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
 
     function testDelegationDefaultAssignment() public {
         vm.startPrank(ALICE);
-        IBreadToken(GNOSIS_BREAD).delegate(ZERO_ADDR);
+        IERC20Votes(GNOSIS_BREAD).delegate(ZERO_ADDR);
 
         assertEq(bb.delegates(ALICE), ZERO_ADDR);
-        assertEq(IBreadToken(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
 
         bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
 
         assertEq(bb.delegates(ALICE), ALICE);
-        assertEq(IBreadToken(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
     }
 
     function testDelegationSyncDelegation() public {
         vm.startPrank(ALICE);
         assertEq(bb.delegates(ALICE), ZERO_ADDR);
 
-        IBreadToken(GNOSIS_BREAD).delegate(DELEGATEE);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
         assertEq(bb.delegates(ALICE), ZERO_ADDR);
 
         bb.syncDelegation();

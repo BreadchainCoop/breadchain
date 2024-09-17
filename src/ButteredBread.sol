@@ -7,7 +7,7 @@ import {ERC20VotesUpgradeable} from
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {IButteredBread} from "src/interfaces/IButteredBread.sol";
-import {IBreadToken} from "src/interfaces/IBreadToken.sol";
+import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
 /**
  * @title Breadchain Buttered Bread
@@ -20,8 +20,8 @@ import {IBreadToken} from "src/interfaces/IBreadToken.sol";
 contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradeable {
     /// @notice Value used for calculating the precision of scaling factors
     uint256 public constant FIXED_POINT_PERCENT = 100;
-    /// @notice `BreadToken` contract used for powering `ButteredBread` voting
-    IBreadToken public bread;
+    /// @notice `IERC20Votes` contract used for powering `ButteredBread` voting
+    IERC20Votes public bread;
     /// @notice Access control for Breadchain sanctioned liquidity pools
     mapping(address lp => bool allowed) public allowlistedLPs;
     /// @notice How much ButteredBread should be minted for a Liquidity Pool token (Butter)
@@ -43,7 +43,7 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
     /// @param _initData See `IButteredBread`
     function initialize(InitData calldata _initData) external initializer {
         if (_initData.liquidityPools.length != _initData.scalingFactors.length) revert InvalidValue();
-        bread = IBreadToken(_initData.breadToken);
+        bread = IERC20Votes(_initData.breadToken);
 
         __Ownable_init(msg.sender);
         __ERC20_init(_initData.name, _initData.symbol);
