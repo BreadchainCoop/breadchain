@@ -89,6 +89,7 @@ contract YieldDistributor is OwnableUpgradeable {
 
     function initialize(
         address _bread,
+        address _butteredBread,
         uint256 _precision,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
@@ -100,6 +101,7 @@ contract YieldDistributor is OwnableUpgradeable {
         __Ownable_init(msg.sender);
 
         BREAD = Bread(_bread);
+        BUTTEREDBREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
