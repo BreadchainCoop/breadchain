@@ -443,4 +443,16 @@ contract YieldDistributorTest is Test {
         vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
         yieldDistributor.castVote(percentages);
     }
+
+    function test_setMinProjectBalance_owner(uint256 minProjectBalance) public {
+        vm.prank(address(this));  // explicit declartion of who is the owner of yield distributer
+        yieldDistributor.setMinProjectBalance(minProjectBalance);
+        assertEq(yieldDistributor.minProjectBalance(), minProjectBalance);
+    }
+
+    function test_setMinProjectBalance_notOwner(address impostor, uint256 minProjectBalance) public {
+        vm.prank(impostor);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, impostor));
+        yieldDistributor.setMinProjectBalance(minProjectBalance);
+    }
 }
