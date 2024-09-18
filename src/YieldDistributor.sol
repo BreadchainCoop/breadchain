@@ -202,6 +202,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
             address _project = projects[i];
             uint256 _projectBalance = BREAD.balanceOf(_project);
             if (_projectBalance < _minProjectBalance) {
+                BREAD.transfer(_project, _baseSplit);
                 continue;
             }
             uint256 _votedSplit = ((projectDistributions[i] * _votedYield * PRECISION) / currentVotes) / PRECISION;

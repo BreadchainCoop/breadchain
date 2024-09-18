@@ -256,6 +256,7 @@ contract YieldDistributorTest is Test {
 
     function test_fuzzy_distribute_minProjectBalance(uint256 seed) public {
         // Getting the balance of the projects before the distribution
+        uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
 
         // setup min project balance
@@ -294,14 +295,19 @@ contract YieldDistributorTest is Test {
             votes.pop();
             votes.pop();
         }
+
+        // Compute expected base split
+        uint256 _yield = bread.yieldAccrued();
+        uint256 _fixedYield = _yield / yieldDistributor2.yieldFixedSplitDivisor();
+        uint256 _baseSplit = _fixedYield / yieldDistributor2.getProjectsLength();
         // Distributing yield
         yieldDistributor2.distributeYield();
 
         // Getting the balance of the projects after the distribution
         uint256 this_bal_after = bread.balanceOf(address(this));
         uint256 second_bal_after = bread.balanceOf(secondProject);
-        assertEq(this_bal_after, 0);
-        assertGt(second_bal_after, breadbalproject2start);
+        assertEq(this_bal_after, breadbalproject1start + _baseSplit, "expected project 1 to get only baseSplit");
+        assertGt(second_bal_after, breadbalproject2start + _baseSplit, "expected project 2 to get more than baseSplit");
     }
 
     function test_fuzzy_recast_vote(uint256 seed) public {
