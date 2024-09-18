@@ -23,8 +23,6 @@ import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
 contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
-    /// @notice The address of the $BUTTEREDBREAD token contract
-    ERC20VotesUpgradeable public BUTTEREDBREAD;
     /// @notice The precision to use for calculations
     uint256 public PRECISION;
     /// @notice The minimum number of blocks between yield distributions
@@ -51,6 +49,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     mapping(address => uint256[]) voterDistributions;
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
+    /// @notice The address of the $BUTTEREDBREAD token contract
+    ERC20VotesUpgradeable public BUTTEREDBREAD;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
