@@ -42,6 +42,7 @@ contract YieldDistributorTest is Test {
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
+    uint256 _minProjectBalance = stdJson.readUint(config_data, "._minProjectBalance");
     Bread public bread = Bread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
@@ -66,6 +67,7 @@ contract YieldDistributorTest is Test {
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
+            _minProjectBalance,
             _lastClaimedBlockNumber,
             projects1
         );
@@ -84,6 +86,7 @@ contract YieldDistributorTest is Test {
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
+            _minProjectBalance,
             _lastClaimedBlockNumber,
             projects2
         );
