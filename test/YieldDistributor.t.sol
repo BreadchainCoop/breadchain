@@ -64,6 +64,7 @@ contract YieldDistributorTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             YieldDistributor.initialize.selector,
             address(bread),
+            address(butteredBread),
             _precision,
             _minRequiredVotingPower,
             _maxPoints,
@@ -82,6 +83,7 @@ contract YieldDistributorTest is Test {
         initData = abi.encodeWithSelector(
             YieldDistributor.initialize.selector,
             address(bread),
+            address(butteredBread),
             _precision,
             _minRequiredVotingPower,
             _maxPoints,
@@ -93,8 +95,6 @@ contract YieldDistributorTest is Test {
         yieldDistributor2 = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
-        yieldDistributor.setButteredBread(address(butteredBread));
-        yieldDistributor2.setButteredBread(address(butteredBread));
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(yieldDistributor));
