@@ -53,6 +53,8 @@ contract YieldDistributor is OwnableUpgradeable {
 
     // @notice The address of the $BREAD token contract
     Bread public BREAD;
+    // @notice The address of the $BUTTEREDBREAD token contract
+    ERC20VotesUpgradeable public BUTTEREDBREAD;
     // @notice The precision to use for calculations
     uint256 public PRECISION;
     // @notice The minimum number of blocks between yield distributions
@@ -127,8 +129,12 @@ contract YieldDistributor is OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        return
-            this.getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account);
+        return this.getVotingPowerForPeriod(
+            BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
+        )
+            + this.getVotingPowerForPeriod(
+                BUTTEREDBREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
+            );
     }
 
     /**
@@ -399,5 +405,13 @@ contract YieldDistributor is OwnableUpgradeable {
         if (_yieldFixedSplitDivisor == 0) revert MustBeGreaterThanZero();
 
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
+    }
+
+    /**
+     * @notice Set the ButteredBread token contract
+     * @param _butteredBread Address of the ButteredBread token contract
+     */
+    function setButteredBread(address _butteredBread) public onlyOwner {
+        BUTTEREDBREAD = ERC20VotesUpgradeable(_butteredBread);
     }
 }
