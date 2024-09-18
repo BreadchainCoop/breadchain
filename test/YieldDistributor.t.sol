@@ -10,8 +10,8 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import {YieldDistributor} from "../src/YieldDistributor.sol";
-import {YieldDistributorTestWrapper} from "../src/test/YieldDistributorTestWrapper.sol";
+import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
+import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 
 import {ButteredBread} from "src/ButteredBread.sol";
 
@@ -442,7 +442,7 @@ contract YieldDistributorTest is Test {
         percentages.push(vote);
         vm.prank(account);
 
-        vm.expectRevert(abi.encodeWithSelector(YieldDistributor.BelowMinRequiredVotingPower.selector));
+        vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
         yieldDistributor.castVote(percentages);
     }
 }

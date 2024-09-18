@@ -8,8 +8,9 @@ import {Test} from "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
+
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
+import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X

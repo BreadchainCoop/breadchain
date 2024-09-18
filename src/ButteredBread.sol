@@ -5,6 +5,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
 import {IButteredBread} from "src/interfaces/IButteredBread.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
@@ -16,11 +17,11 @@ import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
  * @custom:coauthor @daopunk
  * @custom:coauthor @bagelface
  */
-contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBread {
+contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradeable {
+    /// @notice Value used for calculating the precision of scaling factors
     uint256 public constant FIXED_POINT_PERCENT = 100;
-
-    IERC20Votes public BREAD;
-
+    /// @notice `IERC20Votes` contract used for powering `ButteredBread` voting
+    IERC20Votes public bread;
     /// @notice Access control for Breadchain sanctioned liquidity pools
     mapping(address lp => bool allowed) public allowlistedLPs;
     /// @notice How much ButteredBread should be minted for a Liquidity Pool token (Butter)
@@ -28,6 +29,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
     /// @notice Butter balance by account and Liquidity Pool token deposited
     mapping(address account => mapping(address lp => LPData)) internal _accountToLPData;
 
+    /// @dev Applied to functions to only allow access for sanctioned liquidity pools
     modifier onlyAllowed(address _lp) {
         if (!allowlistedLPs[_lp]) revert NotAllowListed();
         _;
@@ -38,10 +40,10 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _disableInitializers();
     }
 
-    /// @param _initData See IButteredBread
+    /// @param _initData See `IButteredBread`
     function initialize(InitData calldata _initData) external initializer {
         if (_initData.liquidityPools.length != _initData.scalingFactors.length) revert InvalidValue();
-        BREAD = IERC20Votes(_initData.breadToken);
+        bread = IERC20Votes(_initData.breadToken);
 
         __Ownable_init(msg.sender);
         __ERC20_init(_initData.name, _initData.symbol);
@@ -53,15 +55,16 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
     }
 
     /**
+     * @notice Return token balance of account for a specified LP
      * @param _account Voting account
      * @param _lp Liquidity Pool token
-     * @return _lpBalance Balance of LP tokens for an account by LP type
+     * @return _lpBalance Balance of LP tokens for an account by LP address
      */
     function accountToLPBalance(address _account, address _lp) external view returns (uint256 _lpBalance) {
         _lpBalance = _accountToLPData[_account][_lp].balance;
     }
 
-    /// @notice Sync this delegation with user delegate selection on BREAD
+    /// @notice Sync this delegation with user delegate selection on $BREAD
     function syncDelegation() external {
         _syncDelegation(msg.sender);
     }
@@ -91,7 +94,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
      * @param _allowed Sanction status of LP token
      */
     function modifyAllowList(address _lp, bool _allowed) external onlyOwner {
-        if (scalingFactors[_lp] < FIXED_POINT_PERCENT) revert Unset();
+        if (scalingFactors[_lp] == 0) revert UnsetVariable();
         allowlistedLPs[_lp] = _allowed;
     }
 
@@ -105,17 +108,17 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _modifyScalingFactor(_lp, _factor, _holders);
     }
 
-    /// @notice ButteredBread tokens are non-transferable
+    /// @notice `ButteredBread` tokens are non-transferable
     function transfer(address, uint256) public virtual override returns (bool) {
         revert NonTransferable();
     }
 
-    /// @notice ButteredBread tokens are non-transferable
+    /// @notice `ButteredBread` tokens are non-transferable
     function transferFrom(address, address, uint256) public virtual override returns (bool) {
         revert NonTransferable();
     }
 
-    /// @notice ButteredBread delegation is determined by the BREAD token
+    /// @notice `ButteredBread` delegation is determined by `BreadToken`
     function delegate(address) public virtual override {
         revert NonDelegatable();
     }
@@ -131,7 +134,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _mint(_account, _amount * currentScalingFactor / FIXED_POINT_PERCENT);
         _syncDelegation(_account);
 
-        emit AddButter(_account, _lp, _amount);
+        emit ButterAdded(_account, _lp, _amount);
     }
 
     /// @notice Withdraw LP tokens and burn ButteredBread with corresponding LP scaling factor
@@ -146,7 +149,7 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         _burn(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
         IERC20(_lp).transfer(_account, _amount);
 
-        emit RemoveButter(_account, _lp, _amount);
+        emit ButterRemoved(_account, _lp, _amount);
     }
 
     function _modifyScalingFactor(address _lp, uint256 _factor, address[] calldata _holders) internal {
@@ -158,9 +161,9 @@ contract ButteredBread is ERC20VotesUpgradeable, OwnableUpgradeable, IButteredBr
         }
     }
 
-    /// @notice Sync this delegation with delegate selection on BREAD
+    /// @notice Sync this delegation with delegate selection on $BREAD
     function _syncDelegation(address _account) internal {
-        _delegate(_account, BREAD.delegates(_account));
+        _delegate(_account, bread.delegates(_account));
         if (this.delegates(_account) == address(0)) _delegate(_account, _account);
     }
 
