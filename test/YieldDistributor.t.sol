@@ -254,6 +254,56 @@ contract YieldDistributorTest is Test {
         assertGt(second_bal_after, breadbalproject2start);
     }
 
+    function test_fuzzy_distribute_minProjectBalance(uint256 seed) public {
+        // Getting the balance of the projects before the distribution
+        uint256 breadbalproject2start = bread.balanceOf(secondProject);
+
+        // setup min project balance
+        uint256 minProjectBalance = 1_000_000_000;
+        yieldDistributor2.setMinProjectBalance(minProjectBalance);
+
+        // set second project bread holdings above minProjectBalance
+        hoax(secondProject, 2_000_000_000);
+        bread.mint{value: 2_000_000_000}(secondProject);
+
+        // Generating random values for the test
+        vm.assume(seed > 10);
+        uint256 accounts = 3;
+        seed = uint256(bound(seed, 1, 100_000_000_000));
+
+        setUpForCycle(yieldDistributor2);
+        for (uint256 i = 0; i < accounts; i++) {
+            // Generating random values for the test
+            uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
+            uint256 vote = randomval % 100;
+            address holder = address(uint160(randomval));
+            uint256 token_amount = bound(randomval, _minVotingAmount, 1000 * _minVotingAmount);
+
+            // Setting up the account for voting
+            vm.roll(START - (minHoldingDurationInBlocks));
+            vm.deal(holder, token_amount);
+            vm.prank(holder);
+            bread.mint{value: token_amount}(holder);
+
+            // Casting vote with random distribution
+            vm.roll(START);
+            votes.push(vote);
+            votes.push(10_000 - vote);
+            vm.prank(holder);
+            yieldDistributor2.castVote(votes);
+            votes.pop();
+            votes.pop();
+        }
+        // Distributing yield
+        yieldDistributor2.distributeYield();
+
+        // Getting the balance of the projects after the distribution
+        uint256 this_bal_after = bread.balanceOf(address(this));
+        uint256 second_bal_after = bread.balanceOf(secondProject);
+        assertEq(this_bal_after, 0);
+        assertGt(second_bal_after, breadbalproject2start);
+    }
+
     function test_fuzzy_recast_vote(uint256 seed) public {
         // Getting the balance of the projects before the distribution
         uint256 breadbalproject1start = bread.balanceOf(address(this));
