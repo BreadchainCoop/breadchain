@@ -69,7 +69,13 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
-
+        if (
+            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
+                || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
+                || _projects.length == 0
+        ) {
+            revert MustBeGreaterThanZero();
+        }
         BREAD = Bread(_bread);
         BUTTEREDBREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
