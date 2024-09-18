@@ -10,8 +10,8 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import {YieldDistributor} from "../src/YieldDistributor.sol";
-import {YieldDistributorTestWrapper} from "../src/test/YieldDistributorTestWrapper.sol";
+import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
+import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
@@ -21,7 +21,7 @@ abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
 }
 
 contract YieldDistributorTest is Test {
-    uint256 constant START = 32323232323;
+    uint256 constant START = 32_323_232_323;
     uint256 marginOfError = 3;
     YieldDistributorTestWrapper public yieldDistributor;
     YieldDistributorTestWrapper public yieldDistributor2;
@@ -53,7 +53,7 @@ contract YieldDistributorTest is Test {
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
     function setUp() public {
-        vm.createSelectFork(vm.rpcUrl('gnosis')); 
+        vm.createSelectFork(vm.rpcUrl("gnosis"));
 
         YieldDistributorTestWrapper yieldDistributorImplementation = new YieldDistributorTestWrapper();
         address[] memory projects1 = new address[](1);
@@ -216,7 +216,7 @@ contract YieldDistributorTest is Test {
         // Generating random values for the test
         vm.assume(seed > 10);
         uint256 accounts = 3;
-        seed = uint256(bound(seed, 1, 100000000000));
+        seed = uint256(bound(seed, 1, 100_000_000_000));
 
         setUpForCycle(yieldDistributor2);
         for (uint256 i = 0; i < accounts; i++) {
@@ -235,7 +235,7 @@ contract YieldDistributorTest is Test {
             // Casting vote with random distribution
             vm.roll(START);
             votes.push(vote);
-            votes.push(10000 - vote);
+            votes.push(10_000 - vote);
             vm.prank(holder);
             yieldDistributor2.castVote(votes);
             votes.pop();
@@ -259,7 +259,7 @@ contract YieldDistributorTest is Test {
         // Generating random values for the test
         vm.assume(seed > 10);
         uint256 accounts = 3;
-        seed = uint256(bound(seed, 1, 100000000000));
+        seed = uint256(bound(seed, 1, 100_000_000_000));
 
         setUpForCycle(yieldDistributor2);
         for (uint256 i = 0; i < accounts; i++) {
@@ -279,13 +279,13 @@ contract YieldDistributorTest is Test {
             // Casting vote with random distribution
             vm.roll(START);
             votes.push(vote);
-            votes.push(10000 - vote);
+            votes.push(10_000 - vote);
             vm.prank(holder);
             yieldDistributor2.castVote(votes);
             votes.pop();
             votes.pop();
             votes.push(vote2);
-            votes.push(10000 - vote2);
+            votes.push(10_000 - vote2);
             vm.roll(START + 10);
             vm.prank(holder);
             yieldDistributor2.castVote(votes);
@@ -310,41 +310,46 @@ contract YieldDistributorTest is Test {
     }
 
     function test_voting_power() public {
-        vm.roll(32323232323);
+        vm.roll(32_323_232_323);
         uint256 votingPowerBefore;
         vm.expectRevert();
-        votingPowerBefore = yieldDistributor.getVotingPowerForPeriod(bread, 32323232323, 32323232324, address(this));
-        vm.deal(address(this), 1000000000000);
-        vm.roll(42424242424);
-        bread.mint{value: 1000000}(address(this));
-        vm.roll(42424242425);
+        votingPowerBefore =
+            yieldDistributor.getVotingPowerForPeriod(bread, 32_323_232_323, 32_323_232_324, address(this));
+        vm.deal(address(this), 1_000_000_000_000);
+        vm.roll(42_424_242_424);
+        bread.mint{value: 1_000_000}(address(this));
+        vm.roll(42_424_242_425);
         uint256 votingPowerAfter =
-            yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242425, address(this));
-        assertEq(votingPowerAfter, 1000000);
-        vm.roll(42424242426);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242426, address(this));
-        assertEq(votingPowerAfter, 2000000);
-        vm.roll(42424242427);
-        bread.mint{value: 1000000}(address(this));
-        vm.roll(42424242428);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242428, address(this));
-        assertEq(votingPowerAfter, 5000000);
-        vm.roll(42424242430);
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242430, address(this));
-        assertEq(votingPowerAfter, 9000000);
+            yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_425, address(this));
+        assertEq(votingPowerAfter, 1_000_000);
+        vm.roll(42_424_242_426);
+        votingPowerAfter =
+            yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_426, address(this));
+        assertEq(votingPowerAfter, 2_000_000);
+        vm.roll(42_424_242_427);
+        bread.mint{value: 1_000_000}(address(this));
+        vm.roll(42_424_242_428);
+        votingPowerAfter =
+            yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_428, address(this));
+        assertEq(votingPowerAfter, 5_000_000);
+        vm.roll(42_424_242_430);
+        votingPowerAfter =
+            yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_430, address(this));
+        assertEq(votingPowerAfter, 9_000_000);
         vm.expectRevert();
-        votingPowerAfter = yieldDistributor.getVotingPowerForPeriod(bread, 42424242424, 42424242431, address(this));
+        votingPowerAfter =
+            yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_431, address(this));
     }
 
     function testFuzzy_voting_power(uint256 seed, uint256 mints) public {
         mints = uint256(bound(mints, 1, 100));
-        vm.assume(seed < 100000000000 / mints);
+        vm.assume(seed < 100_000_000_000 / mints);
         vm.assume(seed > 0);
         vm.assume(mints > 2);
-        uint256 start = 32323232323;
+        uint256 start = 32_323_232_323;
         vm.roll(start);
         address holder = address(0x1234567840123456789012345678701234567890);
-        vm.deal(holder, 1000000000000000000);
+        vm.deal(holder, 1_000_000_000_000_000_000);
         uint256 prevblocknum = vm.getBlockNumber();
         uint256 mintblocknum = prevblocknum;
         uint256 expectedVotingPower = 0;
@@ -432,7 +437,7 @@ contract YieldDistributorTest is Test {
         percentages.push(vote);
         vm.prank(account);
 
-        vm.expectRevert(abi.encodeWithSelector(YieldDistributor.BelowMinRequiredVotingPower.selector));
+        vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
         yieldDistributor.castVote(percentages);
     }
 }

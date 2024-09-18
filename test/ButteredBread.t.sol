@@ -8,8 +8,10 @@ import {Test} from "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
+
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
+import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
+import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
@@ -32,11 +34,13 @@ contract ButteredBreadTest is Test {
         uint256[] memory _scalingFactors = new uint256[](1);
         _scalingFactors[0] = XDAI_FACTOR;
 
-        IButteredBread.InitData memory initData;
-        initData.liquidityPools = _liquidityPools;
-        initData.scalingFactors = _scalingFactors;
-        initData.name = "ButteredBread";
-        initData.symbol = "BB";
+        IButteredBread.InitData memory initData = IButteredBread.InitData({
+            breadToken: GNOSIS_BREAD,
+            liquidityPools: _liquidityPools,
+            scalingFactors: _scalingFactors,
+            name: "ButteredBread",
+            symbol: "BB"
+        });
 
         bytes memory implementationData = abi.encodeWithSelector(ButteredBread.initialize.selector, initData);
 
@@ -401,5 +405,88 @@ contract ButteredBreadTest_Fuzz is ButteredBreadTest {
         vm.assume(_contract != GNOSIS_CURVE_POOL_XDAI_BREAD);
         vm.expectRevert();
         bb.modifyScalingFactor(_contract, 69, userList);
+    }
+}
+
+contract ButteredBreadTest_Delegation is ButteredBreadTest {
+    uint256 public constant BOBBY_AMOUNT = TOKEN_AMOUNT / 2;
+    address public constant DELEGATEE = address(0x420);
+    address public constant ZERO_ADDR = address(0);
+
+    function setUp() public virtual override {
+        super.setUp();
+        _helperAddLiquidity(ALICE, TOKEN_AMOUNT, TOKEN_AMOUNT);
+        _helperAddLiquidity(BOBBY, BOBBY_AMOUNT, BOBBY_AMOUNT);
+
+        vm.prank(ALICE);
+        IERC20Votes(GNOSIS_BREAD).delegate(ALICE);
+
+        vm.prank(BOBBY);
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
+    }
+
+    function testSetup() public view {
+        assertGt(curvePoolXdai.balanceOf(ALICE), TOKEN_AMOUNT);
+        assertGt(curvePoolXdai.balanceOf(BOBBY), BOBBY_AMOUNT);
+    }
+
+    function testDelegation() public {
+        vm.prank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
+
+        vm.prank(BOBBY);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, BOBBY_AMOUNT);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+        assertEq(bb.delegates(BOBBY), DELEGATEE);
+    }
+
+    function testDelegationRevert() public {
+        vm.startPrank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+
+        vm.expectRevert(abi.encodeWithSelector(IButteredBread.NonDelegatable.selector));
+        bb.delegate(DELEGATEE);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+    }
+
+    function testDelegationChange() public {
+        vm.startPrank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT / 3);
+
+        assertEq(bb.delegates(ALICE), DELEGATEE);
+    }
+
+    function testDelegationDefaultAssignment() public {
+        vm.startPrank(ALICE);
+        IERC20Votes(GNOSIS_BREAD).delegate(ZERO_ADDR);
+
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
+
+        assertEq(bb.delegates(ALICE), ALICE);
+        assertEq(IERC20Votes(GNOSIS_BREAD).delegates(ALICE), ZERO_ADDR);
+    }
+
+    function testDelegationSyncDelegation() public {
+        vm.startPrank(ALICE);
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+
+        IERC20Votes(GNOSIS_BREAD).delegate(DELEGATEE);
+        assertEq(bb.delegates(ALICE), ZERO_ADDR);
+
+        bb.syncDelegation();
+
+        assertEq(bb.delegates(ALICE), DELEGATEE);
     }
 }

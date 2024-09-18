@@ -4,6 +4,7 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import "forge-std/console.sol";
 import "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {GNOSIS_BREAD} from "script/Constants.s.sol";
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 
 contract DeployButteredBread is Script {
@@ -12,6 +13,7 @@ contract DeployButteredBread is Script {
     address _owner = stdJson.readAddress(config_data, "._owner");
 
     IButteredBread.InitData _initData = IButteredBread.InitData({
+        breadToken: GNOSIS_BREAD,
         liquidityPools: abi.decode(stdJson.parseRaw(config_data, "._liquidityPools"), (address[])),
         scalingFactors: abi.decode(stdJson.parseRaw(config_data, "._scalingFactors"), (uint256[])),
         name: stdJson.readString(config_data, "._name"),
