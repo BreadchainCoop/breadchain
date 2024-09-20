@@ -49,8 +49,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     mapping(address => uint256[]) voterDistributions;
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
-    /// @notice The address of the $BUTTEREDBREAD token contract
-    ERC20VotesUpgradeable public BUTTEREDBREAD;
+    /// @notice The address of the $BUTTERED_BREAD token contract
+    ERC20VotesUpgradeable public BUTTERED_BREAD;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -77,7 +77,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
             revert MustBeGreaterThanZero();
         }
         BREAD = Bread(_bread);
-        BUTTEREDBREAD = ERC20VotesUpgradeable(_butteredBread);
+        BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
@@ -111,7 +111,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
             BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
         )
             + this.getVotingPowerForPeriod(
-                BUTTEREDBREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
+                BUTTERED_BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
             );
     }
 
@@ -393,6 +393,6 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
      * @param _butteredBread Address of the ButteredBread token contract
      */
     function setButteredBread(address _butteredBread) public onlyOwner {
-        BUTTEREDBREAD = ERC20VotesUpgradeable(_butteredBread);
+        BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
     }
 }
