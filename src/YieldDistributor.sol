@@ -49,7 +49,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     mapping(address => uint256[]) voterDistributions;
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
-    /// @notice The address of the $BUTTERED_BREAD token contract
+    /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -76,7 +76,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         ) {
             revert MustBeGreaterThanZero();
         }
-        
+
         BREAD = Bread(_bread);
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
