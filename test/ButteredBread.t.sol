@@ -12,6 +12,11 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
+import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
+import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
+import {IBread} from "bread-token/src/interfaces/IBread.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {ERC20Mock} from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
@@ -23,6 +28,21 @@ contract ButteredBreadTest is Test {
 
     uint256 public fixedPointPercent;
     address[] public userList;
+    YieldDistributorTestWrapper public yieldDistributor;
+    string public deployConfigPath = string(bytes("./test/test_deploy.json"));
+    string config_data = vm.readFile(deployConfigPath);
+    bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
+    address[] projects = abi.decode(projectsRaw, (address[]));
+    uint256 _blocktime = stdJson.readUint(config_data, "._blocktime");
+    uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
+    uint256 _precision = stdJson.readUint(config_data, "._precision");
+    uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
+    uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
+    uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
+    uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
+    uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
+    // See test/YieldDistributor.t.sol for explanation of these values
+    uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
     function setUp() public virtual {
         vm.createSelectFork(vm.rpcUrl("gnosis"));
@@ -54,6 +74,25 @@ contract ButteredBreadTest is Test {
         vm.label(GNOSIS_CURVE_POOL_XDAI_BREAD, "CurveLP_XDAI_BREAD");
 
         userList.push(ALICE);
+
+        YieldDistributorTestWrapper yieldDistributorImplementation = new YieldDistributorTestWrapper();
+        address[] memory projects1 = new address[](1);
+        projects1[0] = address(this);
+        bytes memory ydinitData = abi.encodeWithSelector(
+            YieldDistributor.initialize.selector,
+            address(GNOSIS_BREAD),
+            address(bb),
+            _precision,
+            _minRequiredVotingPower,
+            _maxPoints,
+            _cycleLength,
+            _yieldFixedSplitDivisor,
+            _lastClaimedBlockNumber,
+            projects1
+        );
+        yieldDistributor = YieldDistributorTestWrapper(
+            address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), ydinitData))
+        );
     }
 
     function _helperAddLiquidity(address _account, uint256 _amountT0, uint256 _amountT1) internal {
@@ -488,5 +527,43 @@ contract ButteredBreadTest_Delegation is ButteredBreadTest {
         bb.syncDelegation();
 
         assertEq(bb.delegates(ALICE), DELEGATEE);
+    }
+}
+
+interface Mintable {
+    function mint(address account) external payable;
+}
+
+contract ButteredBreadTest_Integration is ButteredBreadTest {
+    uint256 public start = 32_323_232_323;
+
+    function setUp() public virtual override {
+        super.setUp();
+        _helperAddLiquidity(ALICE, TOKEN_AMOUNT, TOKEN_AMOUNT);
+    }
+
+    function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor) public {
+        vm.roll(start - (_cycleLength));
+        address yieldDistributorOwner = OwnableUpgradeable(_yieldDistributor).owner();
+        vm.prank(yieldDistributorOwner);
+        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
+        address breadOwner = OwnableUpgradeable(GNOSIS_BREAD).owner();
+        vm.prank(breadOwner);
+        IBread(GNOSIS_BREAD).setYieldClaimer(address(_yieldDistributor));
+        vm.roll(start - (_cycleLength + 1));
+        vm.deal(ALICE, _minVotingAmount);
+        vm.startPrank(ALICE);
+        bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, TOKEN_AMOUNT);
+        Mintable(GNOSIS_BREAD).mint{value: _minVotingAmount}(ALICE);
+        vm.roll(start);
+    }
+
+    function testIntegration() public {
+        setUpForCycle(yieldDistributor);
+        assertEq(bb.balanceOf(ALICE), TOKEN_AMOUNT * XDAI_FACTOR / fixedPointPercent);
+        assertEq(bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), TOKEN_AMOUNT);
+        uint256 bbBalance = bb.balanceOf(ALICE);
+        uint256 bBalance = IERC20(GNOSIS_BREAD).balanceOf(ALICE);
+        assertEq(yieldDistributor.getCurrentVotingPower(ALICE), bbBalance + bBalance);
     }
 }
