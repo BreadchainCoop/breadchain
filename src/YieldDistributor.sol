@@ -76,6 +76,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         ) {
             revert MustBeGreaterThanZero();
         }
+        
         BREAD = Bread(_bread);
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
