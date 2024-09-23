@@ -12,8 +12,8 @@ contract MockMultiplier is IMultiplier {
     /// @notice Sets the multiplying factor and valid until block for testing
     /// @param _factor  The multiplying factor to set
     /// @param _validUntilBlock The block number until which the multiplier is valid
-    function setMultiplier(uint256 _factor , uint256 _validUntilBlock) external {
-        _multiplyingFactor = _factor ;
+    function setMultiplier(uint256 _factor, uint256 _validUntilBlock) external {
+        _multiplyingFactor = _factor;
         _validUntil = _validUntilBlock;
     }
 
