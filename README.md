@@ -16,6 +16,7 @@ Contributions to this repo are expected to adhere to the [Biconomy Solidity Styl
 ### Build
 
 ```shell
+$ git clone git@github.com:BreadchainCoop/breadchain.git --recursive 
 $ forge build
 ```
 
@@ -32,10 +33,18 @@ $ forge snapshot
 ```
 
 ### Test 
+For validating that tests are working run 
+
+```shell 
+$ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv --fuzz-runs 1
+```
+
+For a full run of tests run the following command, note that it may take a significant amount of time 
 
 ```shell 
 $ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv
 ```
+
 ### Deploy
 
 ```shell
