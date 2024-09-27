@@ -195,7 +195,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     }
 
     /**
-     * @notice Distribute $BREAD yield to projects based on cast votes
+     * @notice Distribute $BREAD yield to projects based on cast votes, may leave some dust
      */
     function distributeYield() public {
         (bool _resolved,) = resolveYieldDistribution();
