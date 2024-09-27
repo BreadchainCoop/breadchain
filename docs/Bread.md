@@ -76,4 +76,14 @@ Lets look at another snippet from the BREAD contract , which is used to calculat
 5       return assets > supply ? assets - supply : 0;
 6   }
 ```
+On line 2 , the `bal` variable represents the sDai balance of the Bread contract. This represents how much xDai is locked and earning yield. 
+
+In line 3 use the `bal` variable to determine how much xDai the Bread contract is eligible for by burning sDai, and we store that in the `assets` variable. This represents the original xDai locked and any rewards earned. 
+
+On line 4 we determine how much BREAD is in circulation, and store that in the `supply` variable. This variable represents how much xDai the BREAD contract "owes" to BREAD holders, as they may redeem their BREAD for xDai at a 1:1 ratio. 
+
+To understand how much yield the Bread contract has , we first ascertain that by burning all sDai we have enough xDai for BREAD redemptions. While the state is unreachable, this validation is present for safety reasons. Once we are certain of that , the `assets - supply` subtraction in line 5 represents the **total liquid xDai available for claim to the Bread contract** minus **the total xDai "owed" to BREAD holders**. Thus, what is left over is what can be allocated to the Breadchain projects.  
+
+Click [here](https://docs.soliditylang.org/en/v0.8.27/types.html#ternary-operator) for a reference on the ternary operator that is used here.
+
 
