@@ -65,3 +65,6 @@ forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor -
 2. run `forge clean && forge build && forge script script/upgrades/UpgradeYieldDistributor.s.sol --sig "run(address)" <proxy_address> --rpc-url $RPC_URL  --sender <proxy_admin>` 
 
 The proxy admin address is configured to be the Breadchain multisig at address `0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad` and the Yield Distributor proxy address is `0xeE95A62b749d8a2520E0128D9b3aCa241269024b`
+
+
+The development of this project was enabled by a [grant](https://gov.powerpool.finance/t/approved-grant-for-breadchain-cooperative-integrations/2007) from [Powerpool](https://powerpool.finance/).  
