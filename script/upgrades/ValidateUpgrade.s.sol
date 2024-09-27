@@ -9,7 +9,7 @@ contract DeployYieldDistributor is Script {
     function run() external {
         vm.startBroadcast();
         Options memory opts;
-        opts.referenceContract = "v1.0.0/YieldDistributor.sol:YieldDistributor";
+        opts.referenceContract = "v1.0.1/YieldDistributor.sol:YieldDistributor";
         Upgrades.validateUpgrade("YieldDistributor.sol:YieldDistributor", opts);
         vm.stopBroadcast();
     }

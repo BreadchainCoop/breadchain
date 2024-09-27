@@ -1,5 +1,6 @@
 {
     "_bread": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
+    "_butteredbread": "0x123456789abcdef123456789abcdef123456789a",
     "_owner": "0x918dEf5d593F46735f74F9E2B280Fe51AF3A99ad",
     "_projectNames": [
         "laborDao",
@@ -19,7 +20,7 @@
     "_maxPoints": 10000,
     "_cycleLength": 518400,
     "_minRequiredVotingPower": 1728000000000000000000000,
-    "_lastClaimedBlockNumber": 0,
+    "_lastClaimedBlockNumber": 1,
     "_precision": 1000000000000000000,
     "_yieldFixedSplitDivisor": 2
 }

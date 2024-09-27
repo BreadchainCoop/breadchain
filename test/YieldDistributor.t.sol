@@ -13,6 +13,8 @@ import {TransparentUpgradeableProxy} from
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 
+import {ButteredBread} from "src/ButteredBread.sol";
+
 abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
@@ -44,6 +46,7 @@ contract YieldDistributorTest is Test {
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
     uint256 _minProjectBalance = stdJson.readUint(config_data, "._minProjectBalance");
     Bread public bread = Bread(address(_bread));
+    ButteredBread public butteredBread = ButteredBread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
     // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
@@ -62,6 +65,7 @@ contract YieldDistributorTest is Test {
         bytes memory initData = abi.encodeWithSelector(
             YieldDistributor.initialize.selector,
             address(bread),
+            address(butteredBread),
             _precision,
             _minRequiredVotingPower,
             _maxPoints,
@@ -81,6 +85,7 @@ contract YieldDistributorTest is Test {
         initData = abi.encodeWithSelector(
             YieldDistributor.initialize.selector,
             address(bread),
+            address(butteredBread),
             _precision,
             _minRequiredVotingPower,
             _maxPoints,

@@ -1,5 +1,6 @@
 {
     "_bread": "0xa555d5344f6FB6c65da19e403Cb4c1eC4a1a5Ee3",
+    "_butteredbread": "0x123456789abcdef123456789abcdef123456789a",
     "_projectNames": [
         "laborDao",
         "Dandelion",
@@ -17,7 +18,7 @@
     "_blocktime": 5,
     "_cycleLength": 10,
     "_maxPoints": 10000,
-    "_lastClaimedBlockNumber": 0,
+    "_lastClaimedBlockNumber": 1,
     "_minRequiredVotingPower": 10000000000000000000,
     "_minVotingAmount": 10000000000000000000,
     "_minHoldingDuration": 864000,
