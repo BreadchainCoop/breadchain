@@ -9,6 +9,7 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
+import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -52,13 +53,10 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public yieldFixedSplitDivisor;
     /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
-<<<<<<< HEAD
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
     /// @notice The address of the `VotingMultipliers` contract
     VotingMultipliers public votingMultipliers;
-=======
->>>>>>> faf437f (fix: reverting auto changes to yd)
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
