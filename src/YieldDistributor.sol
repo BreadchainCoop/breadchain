@@ -407,6 +407,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
      */
     function setMinProjectBalance(uint256 _minProjectBalance) public onlyOwner {
         minProjectBalance = _minProjectBalance;
+    }
     /**
      * @notice Set the ButteredBread token contract
      * @param _butteredBread Address of the ButteredBread token contract
