@@ -111,6 +111,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
     function getCurrentVotingPower(address _account) public view returns (uint256) {
         uint256 lastCycleStart = lastClaimedBlockNumber - cycleLength;
         uint256 multiplier = this.getTotalMultipliers(_account);
+        multiplier = multiplier == 0 ? 1e18 : multiplier;
         uint256 breadVotingPower = this.getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
         uint256 butteredBreadVotingPower =
             this.getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
