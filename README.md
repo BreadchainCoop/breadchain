@@ -12,6 +12,7 @@ If you have skills (both technical and non-technical) that you believe would ben
 Contributions to this repo are expected to adhere to the [Biconomy Solidity Style Guide](https://github.com/bcnmy/biconomy-solidity-style-guide).
 
 ## Usage
+
 ### Clone 
 ```shell
 $ git clone git@github.com:BreadchainCoop/breadchain.git --recursive 
@@ -41,7 +42,7 @@ For validating that tests are working run
 $ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv --fuzz-runs 1
 ```
 
-For a full run of tests run the following command, note that it may take a significant amount of time 
+For a full run of tests run the following command. Note that the command may take upwards of 8 minutes to execute.
 
 ```shell 
 $ forge test --fork-url "https://rpc.gnosis.gateway.fm" -vvvv
