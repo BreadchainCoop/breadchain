@@ -9,7 +9,6 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
-import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -52,8 +51,6 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     uint256 public yieldFixedSplitDivisor;
     /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
-    /// @notice The address of the `VotingMultipliers` contract
-    VotingMultipliers public votingMultipliers;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -69,8 +66,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects,
-        VotingMultipliers _votingMultipliers
+        address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
         if (
@@ -89,7 +85,6 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         cycleLength = _cycleLength;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
-        votingMultipliers = _votingMultipliers;
 
         projectDistributions = new uint256[](_projects.length);
         projects = new address[](_projects.length);
@@ -254,21 +249,18 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         }
         if (_totalPoints == 0) revert ZeroVotePoints();
 
-        uint256 multiplier = votingMultipliers.getTotalMultipliers(_account);
-        uint256 adjustedVotingPower = (_votingPower * multiplier) / 1e18;
-
         bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         if (!_hasVotedInCycle) {
             delete voterDistributions[_account];
-            currentVotes += adjustedVotingPower;
+            currentVotes += _votingPower;
         }
 
         for (uint256 i; i < _points.length; ++i) {
             if (!_hasVotedInCycle) _voterDistributions.push(0);
             else projectDistributions[i] -= _voterDistributions[i];
 
-            uint256 _currentProjectDistribution = ((_points[i] * adjustedVotingPower * PRECISION) / _totalPoints) / PRECISION;
+            uint256 _currentProjectDistribution = ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
             projectDistributions[i] += _currentProjectDistribution;
             _voterDistributions[i] = _currentProjectDistribution;
         }
