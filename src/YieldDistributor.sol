@@ -9,6 +9,7 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
+import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -20,7 +21,7 @@ import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
  */
-contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
+contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
     /// @notice The precision to use for calculations
@@ -108,12 +109,12 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        return this.getVotingPowerForPeriod(
-            BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
-        )
-            + this.getVotingPowerForPeriod(
-                BUTTERED_BREAD, lastClaimedBlockNumber - cycleLength, lastClaimedBlockNumber, _account
-            );
+        uint256 lastCycleStart = lastClaimedBlockNumber - cycleLength;
+        uint256 multiplier = this.getTotalMultipliers(_account);
+        uint256 breadVotingPower = this.getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+        uint256 butteredBreadVotingPower =
+            this.getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+        return (breadVotingPower + butteredBreadVotingPower) * multiplier / PRECISION;
     }
 
     /**
