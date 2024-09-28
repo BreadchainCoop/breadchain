@@ -5,6 +5,7 @@ import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 /// @title Dynamic NFT Multiplier Interface
 /// @notice Interface for contracts that provide a dynamic multiplying factor for _users based on NFT ownership
 /// @dev Extends the INFTMultiplier interface with dynamic multiplier functionality
+
 interface IDynamicNFTMultiplier is INFTMultiplier {
     /// @notice Get the multiplying factor for a _user
     /// @param _user The address of the _user
