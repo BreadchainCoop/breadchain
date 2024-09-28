@@ -10,9 +10,4 @@ interface IProveableMultiplier is IERC721, IDynamicNFTMultiplier {
     /// @notice Submit activities to potentially earn or upgrade an NFT
     /// @param data Encoded data representing the activities
     function submitActivities(bytes calldata data) external;
-
-    /// @notice Mint a new NFT to a user (internal function in implementation)
-    /// @param to The address to mint the NFT to
-    /// @param tokenId The token ID of the NFT to mint
-    function mint(address to, uint256 tokenId) external;
 }
