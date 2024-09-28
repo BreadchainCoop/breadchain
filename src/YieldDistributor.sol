@@ -9,7 +9,6 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
-import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -53,10 +52,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public yieldFixedSplitDivisor;
     /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
+<<<<<<< HEAD
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
     /// @notice The address of the `VotingMultipliers` contract
     VotingMultipliers public votingMultipliers;
+=======
+>>>>>>> faf437f (fix: reverting auto changes to yd)
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -72,8 +74,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects,
-        VotingMultipliers _votingMultipliers
+        address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
         if (
@@ -92,7 +93,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         cycleLength = _cycleLength;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
-        votingMultipliers = _votingMultipliers;
 
         projectDistributions = new uint256[](_projects.length);
         projects = new address[](_projects.length);
@@ -262,14 +262,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
         if (_totalPoints == 0) revert ZeroVotePoints();
 
-        uint256 multiplier = votingMultipliers.getTotalMultipliers(_account);
-        uint256 adjustedVotingPower = (_votingPower * multiplier) / 1e18;
-
         bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         if (!_hasVotedInCycle) {
             delete voterDistributions[_account];
-            currentVotes += adjustedVotingPower;
+            currentVotes += _votingPower;
         }
 
         for (uint256 i; i < _points.length; ++i) {
