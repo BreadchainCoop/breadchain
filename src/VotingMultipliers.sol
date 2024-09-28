@@ -1,24 +1,18 @@
 // VotingMultipliers.sol
 pragma solidity ^0.8.22;
 
+import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./IMultiplier.sol";
-import "../interfaces/IBread.sol";
 
-contract VotingMultipliers is Initializable, OwnableUpgradeable {
-    IBread public BREAD;
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract VotingMultipliers is OwnableUpgradeable {
     IMultiplier[] public whitelistedMultipliers;
     IMultiplier[] public queuedMultipliersForAddition;
     IMultiplier[] public queuedMultipliersForRemoval;
 
     event MultiplierAdded(IMultiplier indexed multiplier);
     event MultiplierRemoved(IMultiplier indexed multiplier);
-
-    function initialize(IBread _bread) public initializer {
-        __Ownable_init();
-        BREAD = _bread;
-    }
 
     function getTotalMultipliers(address user) external view returns (uint256) {
         uint256 totalMultiplier = 1e18; // Start with 100% (no multiplier)
