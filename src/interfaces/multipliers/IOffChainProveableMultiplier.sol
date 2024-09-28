@@ -8,5 +8,5 @@ import {IProveableMultiplier} from "src/interfaces/multipliers/IProveableMultipl
 interface IOffChainProveableMultiplier is IProveableMultiplier {
     /// @notice Get the address of the pull oracle
     /// @return The address of the oracle used for off-chain data verification
-    function pullOracle() external view returns (address);
+    function oracle() external view returns (address);
 }
