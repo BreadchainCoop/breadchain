@@ -21,7 +21,7 @@ contract NFTMultiplier is INFTMultiplier, Initializable, OwnableUpgradeable {
 
     /// @notice Initializer function to set the NFT contract address and initial multiplying factor
     /// @param _nftContract Address of the NFT contract
-    /// @param _initialMultiplyingFactor Initial multiplying factor (in basis points, e.g., 15000 for 1.5x)
+    /// @param _initialMultiplyingFactor Initial multiplying factor
     /// @param _validUntilBlock Block number until which the multiplier is valid
     function initialize(IERC721 _nftContract, uint256 _initialMultiplyingFactor, uint256 _validUntilBlock)
         public
