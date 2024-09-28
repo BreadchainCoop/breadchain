@@ -140,32 +140,18 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         Checkpoints.Checkpoint208 memory _currentCheckpoint = _sourceContract.checkpoints(_account, 0);
         if (_currentCheckpoint._key > _end) return 0;
 
-        /// Find the latest checkpoint that is within the interval
-        do {
-            --_currentCheckpointIndex;
-            _currentCheckpoint = _sourceContract.checkpoints(_account, _currentCheckpointIndex);
-        } while (_currentCheckpoint._key > _end);
-
-        /// Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
-        uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
-        uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
-
-        if (_latestKey == _start) return _totalVotingPower;
+        uint256 _totalVotingPower;
 
         for (uint32 i = _currentCheckpointIndex; i > 0;) {
-            /// Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
             _currentCheckpoint = _sourceContract.checkpoints(_account, --i);
+            if (_currentCheckpoint._key <= _end) {
+                uint48 effectiveStart = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
+                _totalVotingPower += _currentCheckpoint._value * (_end - effectiveStart);
 
-            /// Add voting power for the sub-interval to the total
-            _totalVotingPower += _currentCheckpoint._value * (_latestKey - _currentCheckpoint._key);
+                if (effectiveStart == _start) break;
 
-            /// At the start of the interval, deduct voting power accrued before the interval and return the total
-            if (_currentCheckpoint._key <= _start) {
-                _totalVotingPower -= _currentCheckpoint._value * (_start - _currentCheckpoint._key);
-                break;
+                _end = _currentCheckpoint._key;
             }
-
-            _latestKey = _currentCheckpoint._key;
         }
 
         return _totalVotingPower;
