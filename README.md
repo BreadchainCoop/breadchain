@@ -12,11 +12,13 @@ If you have skills (both technical and non-technical) that you believe would ben
 Contributions to this repo are expected to adhere to the [Biconomy Solidity Style Guide](https://github.com/bcnmy/biconomy-solidity-style-guide).
 
 ## Usage
-
+### Clone 
+```shell
+$ git clone git@github.com:BreadchainCoop/breadchain.git --recursive 
+```
 ### Build
 
 ```shell
-$ git clone git@github.com:BreadchainCoop/breadchain.git --recursive 
 $ forge build
 ```
 
