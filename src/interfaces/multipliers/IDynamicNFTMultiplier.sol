@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./INFTMultiplier.sol";
-
+import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 /// @title Dynamic NFT Multiplier Interface
 /// @notice Interface for contracts that provide a dynamic multiplying factor for users based on NFT ownership
 /// @dev Extends the INFTMultiplier interface with dynamic multiplier functionality
+
 interface IDynamicNFTMultiplier is INFTMultiplier {
     /// @notice Get the multiplying factor for a user
     /// @param user The address of the user
