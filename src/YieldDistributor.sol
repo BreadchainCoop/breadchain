@@ -144,6 +144,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
 
         for (uint32 i = _numCheckpoints; i > 0;) {
             _currentCheckpoint = _sourceContract.checkpoints(_account, --i);
+
             if (_currentCheckpoint._key <= _end) {
                 uint48 _effectiveStart = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
                 _totalVotingPower += _currentCheckpoint._value * (_end - _effectiveStart);
