@@ -133,8 +133,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         if (_end > block.number) revert EndAfterCurrentBlock();
 
         /// Initialized as the checkpoint count, but later used to track checkpoint index
-        uint32 _currentCheckpointIndex = _sourceContract.numCheckpoints(_account);
-        if (_currentCheckpointIndex == 0) return 0;
+        uint32 _numCheckpoints = _sourceContract.numCheckpoints(_account);
+        if (_numCheckpoints == 0) return 0;
 
         /// No voting power if the first checkpoint is after the end of the interval
         Checkpoints.Checkpoint208 memory _currentCheckpoint = _sourceContract.checkpoints(_account, 0);
@@ -142,7 +142,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
 
         uint256 _totalVotingPower;
 
-        for (uint32 i = _currentCheckpointIndex; i > 0;) {
+        for (uint32 i = _numCheckpoints; i > 0;) {
             _currentCheckpoint = _sourceContract.checkpoints(_account, --i);
             if (_currentCheckpoint._key <= _end) {
                 uint48 effectiveStart = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
