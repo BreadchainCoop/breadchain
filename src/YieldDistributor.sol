@@ -150,7 +150,6 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
                 _totalVotingPower += _currentCheckpoint._value * (_end - _effectiveStart);
 
                 if (_effectiveStart == _start) break;
-
                 _end = _currentCheckpoint._key;
             }
         }
