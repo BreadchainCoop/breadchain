@@ -116,6 +116,14 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
             );
     }
 
+    /// @notice Get the current accumulated voting power for a user
+    /// @dev This is the voting power that has been accumulated since the last yield distribution
+    /// @param _account Address of the user to get the current accumulated voting power for
+    /// @return uint256 The current accumulated voting power for the user
+    function getCurrentAccumulatedVotingPower(address _account) public view returns (uint256) {
+        return this.getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account);
+    }
+
     /**
      * @notice Return the voting power for a specified user during a specified period of time
      * @param _start Start time of the period to return the voting power for
