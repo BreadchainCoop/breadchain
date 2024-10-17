@@ -121,7 +121,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     /// @param _account Address of the user to get the current accumulated voting power for
     /// @return uint256 The current accumulated voting power for the user
     function getCurrentAccumulatedVotingPower(address _account) public view returns (uint256) {
-        return this.getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account);
+        return this.getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account)
+            + this.getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber, block.number, _account);
     }
 
     /**
