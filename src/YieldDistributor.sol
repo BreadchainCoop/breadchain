@@ -52,7 +52,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
     /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
-    uint256 public beforeLastClaimedBlockNumber;
+    uint256 public previousCycleStartingBlock;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -110,8 +110,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        return this.getVotingPowerForPeriod(BREAD, beforeLastClaimedBlockNumber, lastClaimedBlockNumber, _account)
-            + this.getVotingPowerForPeriod(BUTTERED_BREAD, beforeLastClaimedBlockNumber, lastClaimedBlockNumber, _account);
+        return this.getVotingPowerForPeriod(BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account)
+            + this.getVotingPowerForPeriod(BUTTERED_BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
     }
 
     /**
@@ -200,7 +200,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
-        beforeLastClaimedBlockNumber = lastClaimedBlockNumber;
+        previousCycleStartingBlock = lastClaimedBlockNumber;
         lastClaimedBlockNumber = block.number;
         uint256 balance = BREAD.balanceOf(address(this));
         uint256 _fixedYield = balance / yieldFixedSplitDivisor;
