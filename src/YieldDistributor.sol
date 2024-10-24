@@ -52,6 +52,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
     uint256 public yieldFixedSplitDivisor;
     /// @notice The address of the `ButteredBread` token contract
     ERC20VotesUpgradeable public BUTTERED_BREAD;
+    /// @notice The block number before the last yield distribution
+    uint256 public previousCycleStartingBlock;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -199,6 +201,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
         if (!_resolved) revert YieldNotResolved();
 
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
+        previousCycleStartingBlock = lastClaimedBlockNumber;
         lastClaimedBlockNumber = block.number;
         uint256 balance = BREAD.balanceOf(address(this));
         uint256 _fixedYield = balance / yieldFixedSplitDivisor;
