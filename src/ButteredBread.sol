@@ -124,11 +124,11 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
     }
 
     /// @notice Get the balance of a specific LP for a given account
-    /// @param holder The address of the account to get the balance for
-    /// @param lp The address of the LP to get the balance for
+    /// @param _holder The address of the account to get the balance for
+    /// @param _lp The address of the LP to get the balance for
     /// @return LPData memory The balance of the LP for the given account
-    function balanceOfLP(address holder, address lp) external view returns (LPData memory) {
-        return _accountToLPData[holder][lp];
+    function balanceOfLP(address _holder, address _lp) external view returns (LPData memory) {
+        return _accountToLPData[_holder][_lp];
     }
 
     /// @notice Deposit LP tokens and mint ButteredBread with corresponding LP scaling factor
