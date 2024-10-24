@@ -114,6 +114,15 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
             + this.getVotingPowerForPeriod(BUTTERED_BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
     }
 
+    /// @notice Get the current accumulated voting power for a user
+    /// @dev This is the voting power that has been accumulated since the last yield distribution
+    /// @param _account Address of the user to get the current accumulated voting power for
+    /// @return uint256 The current accumulated voting power for the user
+    function getCurrentAccumulatedVotingPower(address _account) public view returns (uint256) {
+        return this.getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account)
+            + this.getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber, block.number, _account);
+    }
+
     /**
      * @notice Return the voting power for a specified user during a specified period of time
      * @param _start Start time of the period to return the voting power for
@@ -131,39 +140,25 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         if (_end > block.number) revert EndAfterCurrentBlock();
 
         /// Initialized as the checkpoint count, but later used to track checkpoint index
-        uint32 _currentCheckpointIndex = _sourceContract.numCheckpoints(_account);
-        if (_currentCheckpointIndex == 0) return 0;
+        uint32 _numCheckpoints = _sourceContract.numCheckpoints(_account);
+        if (_numCheckpoints == 0) return 0;
 
         /// No voting power if the first checkpoint is after the end of the interval
         Checkpoints.Checkpoint208 memory _currentCheckpoint = _sourceContract.checkpoints(_account, 0);
         if (_currentCheckpoint._key > _end) return 0;
 
-        /// Find the latest checkpoint that is within the interval
-        do {
-            --_currentCheckpointIndex;
-            _currentCheckpoint = _sourceContract.checkpoints(_account, _currentCheckpointIndex);
-        } while (_currentCheckpoint._key > _end);
+        uint256 _totalVotingPower;
 
-        /// Initialize voting power with the latest checkpoint thats within the interval (or nearest to it)
-        uint48 _latestKey = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
-        uint256 _totalVotingPower = _currentCheckpoint._value * (_end - _latestKey);
-
-        if (_latestKey == _start) return _totalVotingPower;
-
-        for (uint32 i = _currentCheckpointIndex; i > 0;) {
-            /// Latest checkpoint voting power is calculated when initializing `_totalVotingPower`, so we pre-decrement the index here
+        for (uint32 i = _numCheckpoints; i > 0;) {
             _currentCheckpoint = _sourceContract.checkpoints(_account, --i);
 
-            /// Add voting power for the sub-interval to the total
-            _totalVotingPower += _currentCheckpoint._value * (_latestKey - _currentCheckpoint._key);
+            if (_currentCheckpoint._key <= _end) {
+                uint48 _effectiveStart = _currentCheckpoint._key < _start ? uint48(_start) : _currentCheckpoint._key;
+                _totalVotingPower += _currentCheckpoint._value * (_end - _effectiveStart);
 
-            /// At the start of the interval, deduct voting power accrued before the interval and return the total
-            if (_currentCheckpoint._key <= _start) {
-                _totalVotingPower -= _currentCheckpoint._value * (_start - _currentCheckpoint._key);
-                break;
+                if (_effectiveStart == _start) break;
+                _end = _currentCheckpoint._key;
             }
-
-            _latestKey = _currentCheckpoint._key;
         }
 
         return _totalVotingPower;
