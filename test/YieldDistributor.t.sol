@@ -163,7 +163,7 @@ contract YieldDistributorTest is Test {
         setUpForCycle(yieldDistributor2);
         address owner = yieldDistributor2.owner();
         vm.prank(owner);
-        yieldDistributor2.setyieldFixedSplitDivisor(3);
+        yieldDistributor2.setYieldFixedSplitDivisor(3);
 
         // Casting vote and distributing yield
         uint256 vote = 50;
