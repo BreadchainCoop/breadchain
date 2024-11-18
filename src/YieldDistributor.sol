@@ -377,7 +377,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
      * @notice Set a new fixed split for the yield distribution
      * @param _yieldFixedSplitDivisor New fixed split for the yield distribution
      */
-    function setyieldFixedSplitDivisor(uint256 _yieldFixedSplitDivisor) public onlyOwner {
+    function setYieldFixedSplitDivisor(uint256 _yieldFixedSplitDivisor) public onlyOwner {
         if (_yieldFixedSplitDivisor == 0) revert MustBeGreaterThanZero();
 
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
