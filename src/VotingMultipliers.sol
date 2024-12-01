@@ -11,15 +11,15 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 
-    /// @notice Calculates the total multiplier for a given user
-    /// @param user The address of the user
-    /// @return The total multiplier value for the user
-    function getTotalMultipliers(address user) public view returns (uint256) {
+    /// @notice Calculates the total multiplier for a given _user
+    /// @param _user The address of the _user
+    /// @return The total multiplier value for the _user
+    function getTotalMultipliers(address _user) public view returns (uint256) {
         uint256 totalMultiplier = 0;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             IMultiplier multiplier = allowlistedMultipliers[i];
-            if (block.number <= multiplier.validUntil(user)) {
-                totalMultiplier += multiplier.getMultiplyingFactor(user);
+            if (block.number <= multiplier.validUntil(_user)) {
+                totalMultiplier += multiplier.getMultiplyingFactor(_user);
             }
         }
         return totalMultiplier;
@@ -41,17 +41,17 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @notice Removes a multiplier from the allowlist
     /// @param _multiplier The multiplier contract to be removed
     function removeMultiplier(IMultiplier _multiplier) external onlyOwner {
-        bool isAllowListed = false;
+        bool isallowlisted = false;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             if (allowlistedMultipliers[i] == _multiplier) {
                 allowlistedMultipliers[i] = allowlistedMultipliers[allowlistedMultipliers.length - 1];
                 allowlistedMultipliers.pop();
-                isAllowListed = true;
+                isallowlisted = true;
                 emit MultiplierRemoved(_multiplier);
                 break;
             }
         }
-        if (!isAllowListed) {
+        if (!isallowlisted) {
             revert MultiplierNotAllowlisted();
         }
     }

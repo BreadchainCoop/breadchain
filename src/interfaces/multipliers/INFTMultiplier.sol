@@ -12,8 +12,8 @@ interface INFTMultiplier is IMultiplier {
     /// @return The address of the NFT contract used for checking ownership
     function NFTAddress() external view returns (IERC721);
 
-    /// @notice Check if a user owns an NFT
-    /// @param user The address of the user to check
-    /// @return True if the user owns at least one NFT, false otherwise
-    function hasNFT(address user) external view returns (bool);
+    /// @notice Check if a _user owns an NFT
+    /// @param _user The address of the _user to check
+    /// @return True if the _user owns at least one NFT, false otherwise
+    function hasNFT(address _user) external view returns (bool);
 }

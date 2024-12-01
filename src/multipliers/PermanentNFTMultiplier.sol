@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 
 /// @title Permanent NFT Multiplier
-/// @notice This contract provides a permanent multiplying factor for users based on NFT ownership
+/// @notice This contract provides a permanent multiplying factor for _users based on NFT ownership
 /// @dev Implements the INFTMultiplier interface
 contract PermanentNFTMultiplier is INFTMultiplier {
     /// @notice The address of the NFT contract
@@ -21,23 +21,23 @@ contract PermanentNFTMultiplier is INFTMultiplier {
         factor = _factor;
     }
 
-    /// @notice Get the multiplying factor for a user
-    /// @param user The address of the user
-    /// @return The multiplying factor if the user has an NFT, 0 otherwise
-    function getMultiplyingFactor(address user) external view override returns (uint256) {
-        return hasNFT(user) ? factor : 0;
+    /// @notice Get the multiplying factor for a _user
+    /// @param _user The address of the _user
+    /// @return The multiplying factor if the _user has an NFT, 0 otherwise
+    function getMultiplyingFactor(address _user) external view override returns (uint256) {
+        return hasNFT(_user) ? factor : 0;
     }
 
-    /// @notice Get the validity period for a user's factor
+    /// @notice Get the validity period for a _user's factor
     /// @return Always returns type(uint256).max as the factor is permanent
-    function validUntil(address /* user */ ) external pure override returns (uint256) {
+    function validUntil(address /* _user */ ) external pure override returns (uint256) {
         return type(uint256).max;
     }
 
-    /// @notice Check if a user owns an NFT
-    /// @param user The address of the user to check
-    /// @return True if the user owns at least one NFT, false otherwise
-    function hasNFT(address user) public view override returns (bool) {
-        return NFTAddress.balanceOf(user) > 0;
+    /// @notice Check if a _user owns an NFT
+    /// @param _user The address of the _user to check
+    /// @return True if the _user owns at least one NFT, false otherwise
+    function hasNFT(address _user) public view override returns (bool) {
+        return NFTAddress.balanceOf(_user) > 0;
     }
 }

@@ -22,10 +22,10 @@ interface IVotingMultipliers {
     /// @return The multiplier contract at the specified index
 
     function allowlistedMultipliers(uint256 index) external view returns (IMultiplier);
-    /// @notice Calculates the total multiplier for a given user
-    /// @param user The address of the user
-    /// @return The total multiplier value for the user
-    function getTotalMultipliers(address user) external view returns (uint256);
+    /// @notice Calculates the total multiplier for a given _user
+    /// @param __user The address of the _user
+    /// @return The total multiplier value for the _user
+    function getTotalMultipliers(address __user) external view returns (uint256);
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external;

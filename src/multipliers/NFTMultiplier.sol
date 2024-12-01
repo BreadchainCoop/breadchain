@@ -40,23 +40,23 @@ contract NFTMultiplier is INFTMultiplier, Initializable, OwnableUpgradeable {
         return nftContract;
     }
 
-    /// @notice Check if a user owns an NFT
-    /// @param user The address of the user to check
-    /// @return True if the user owns at least one NFT, false otherwise
-    function hasNFT(address user) public view override returns (bool) {
-        return nftContract.balanceOf(user) > 0;
+    /// @notice Check if a _user owns an NFT
+    /// @param _user The address of the _user to check
+    /// @return True if the _user owns at least one NFT, false otherwise
+    function hasNFT(address _user) public view override returns (bool) {
+        return nftContract.balanceOf(_user) > 0;
     }
 
-    /// @notice Get the multiplying factor for a given user
-    /// @param user The address of the user
-    /// @return The multiplying factor if the user owns an NFT, 0 otherwise
-    function getMultiplyingFactor(address user) external view override returns (uint256) {
-        return hasNFT(user) ? multiplyingFactor : 0;
+    /// @notice Get the multiplying factor for a given _user
+    /// @param _user The address of the _user
+    /// @return The multiplying factor if the _user owns an NFT, 0 otherwise
+    function getMultiplyingFactor(address _user) external view override returns (uint256) {
+        return hasNFT(_user) ? multiplyingFactor : 0;
     }
 
     /// @notice Get the block number until which the multiplier is valid
     /// @return The block number until which the multiplier is valid
-    function validUntil(address /* user */ ) external view override returns (uint256) {
+    function validUntil(address /* _user */ ) external view override returns (uint256) {
         return validUntilBlock;
     }
 

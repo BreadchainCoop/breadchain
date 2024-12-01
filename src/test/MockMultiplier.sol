@@ -17,15 +17,15 @@ contract MockMultiplier is IMultiplier {
         _validUntil = validUntilBlock;
     }
 
-    /// @notice Returns the multiplying factor for a given user
+    /// @notice Returns the multiplying factor for a given _user
     /// @return The multiplying factor
-    function getMultiplyingFactor(address /* user */ ) external view returns (uint256) {
+    function getMultiplyingFactor(address /* _user */ ) external view returns (uint256) {
         return _multiplyingFactor;
     }
 
-    /// @notice Returns the block number until which the multiplier is valid for a given user
+    /// @notice Returns the block number until which the multiplier is valid for a given _user
     /// @return The block number until which the multiplier is valid
-    function validUntil(address /* user */ ) external view returns (uint256) {
+    function validUntil(address /* _user */ ) external view returns (uint256) {
         return _validUntil;
     }
 }
