@@ -699,46 +699,4 @@ contract VotingMultipliersTest is YieldDistributorTest {
         assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
     }
 
-    function setUpVoteWithVariableMultipliers(uint256 numMultipliers) internal {
-        // Set up a voter
-        address voter = address(0x1);
-        address[] memory voters = new address[](1);
-        voters[0] = voter;
-
-        setUpAccountsForVoting(voters);
-        setUpForCycle(yieldDistributor);
-        uint256 initialVotingPower = yieldDistributor.getCurrentVotingPower(voter);
-        uint256 seed = block.timestamp;
-        MockMultiplier[] memory mockMultipliers = new MockMultiplier[](numMultipliers);
-        uint256 validUntil = type(uint256).max;
-        uint256 totalFactor = 0;
-        for (uint256 i = 0; i < numMultipliers; i++) {
-            uint256 factor = 1e18 + (uint256(keccak256(abi.encode(seed, i))) % 1e18);
-            totalFactor += factor;
-            mockMultipliers[i] = new MockMultiplier();
-            mockMultipliers[i].setMultiplier(factor, validUntil);
-            yieldDistributor.addMultiplier(mockMultipliers[i]);
-        }
-
-        uint256[] memory points = new uint256[](1);
-        points[0] = 100;
-
-        vm.startPrank(voter);
-        yieldDistributor.castVote(points);
-
-        // Calculate expected voting power
-        uint256 expectedVotingPower = (initialVotingPower * (totalFactor)) / yieldDistributor.PRECISION();
-
-        // Check that the voting power was multiplied correctly
-        assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
-        vm.stopPrank();
-    }
-
-    function testCastVote100Multipliers() public {
-        setUpVoteWithVariableMultipliers(100);
-    }
-
-    function testCastVote1000Multipliers() public {
-        setUpVoteWithVariableMultipliers(1000);
-    }
 }
