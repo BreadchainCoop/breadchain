@@ -36,7 +36,7 @@ contract NFTMultiplier is INFTMultiplier, Initializable, OwnableUpgradeable {
 
     /// @notice Get the address of the NFT contract
     /// @return The address of the NFT contract used for checking ownership
-    function NFTAddress() external view override returns (IERC721) {
+    function NFT_ADDRESS() external view override returns (IERC721) {
         return nftContract;
     }
 

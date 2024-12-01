@@ -9,15 +9,15 @@ import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 /// @dev Implements the INFTMultiplier interface
 contract PermanentNFTMultiplier is INFTMultiplier {
     /// @notice The address of the NFT contract
-    IERC721 public immutable NFTAddress;
+    IERC721 public immutable NFT_ADDRESS;
     /// @notice The multiplying factor applied to NFT holders
     uint256 public immutable factor;
 
     /// @notice Constructs the PermanentNFTMultiplier contract
-    /// @param _nftAddress The address of the NFT contract to check for ownership
+    /// @param _NFT_ADDRESS The address of the NFT contract to check for ownership
     /// @param _factor The multiplying factor to apply to NFT holders
-    constructor(IERC721 _nftAddress, uint256 _factor) {
-        NFTAddress = _nftAddress;
+    constructor(IERC721 _NFT_ADDRESS, uint256 _factor) {
+        NFT_ADDRESS = _NFT_ADDRESS;
         factor = _factor;
     }
 
@@ -38,6 +38,6 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     /// @param _user The address of the _user to check
     /// @return True if the _user owns at least one NFT, false otherwise
     function hasNFT(address _user) public view override returns (bool) {
-        return NFTAddress.balanceOf(_user) > 0;
+        return NFT_ADDRESS.balanceOf(_user) > 0;
     }
 }

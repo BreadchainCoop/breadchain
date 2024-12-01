@@ -10,7 +10,7 @@ import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 interface INFTMultiplier is IMultiplier {
     /// @notice Get the address of the NFT contract
     /// @return The address of the NFT contract used for checking ownership
-    function NFTAddress() external view returns (IERC721);
+    function NFT_ADDRESS() external view returns (IERC721);
 
     /// @notice Check if a _user owns an NFT
     /// @param _user The address of the _user to check

@@ -668,7 +668,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         nftMultiplier = NFTMultiplier(deployedAddress);
 
         // Verify the deployment
-        assertEq(address(nftMultiplier.NFTAddress()), nftContractAddress);
+        assertEq(address(nftMultiplier.NFT_ADDRESS()), nftContractAddress);
         assertEq(nftMultiplier.multiplyingFactor(), multiplyingFactor);
         assertEq(nftMultiplier.validUntil(address(this)), validUntilBlock);
 
