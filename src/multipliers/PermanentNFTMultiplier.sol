@@ -11,21 +11,21 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     /// @notice The address of the NFT contract
     IERC721 public immutable NFT_ADDRESS;
     /// @notice The multiplying factor applied to NFT holders
-    uint256 public immutable factor;
+    uint256 public immutable FACTOR;
 
     /// @notice Constructs the PermanentNFTMultiplier contract
     /// @param _NFT_ADDRESS The address of the NFT contract to check for ownership
-    /// @param _factor The multiplying factor to apply to NFT holders
-    constructor(IERC721 _NFT_ADDRESS, uint256 _factor) {
+    /// @param _FACTOR The multiplying factor to apply to NFT holders
+    constructor(IERC721 _NFT_ADDRESS, uint256 _FACTOR) {
         NFT_ADDRESS = _NFT_ADDRESS;
-        factor = _factor;
+        FACTOR = _FACTOR;
     }
 
     /// @notice Get the multiplying factor for a _user
     /// @param _user The address of the _user
     /// @return The multiplying factor if the _user has an NFT, 0 otherwise
     function getMultiplyingFactor(address _user) external view override returns (uint256) {
-        return hasNFT(_user) ? factor : 0;
+        return hasNFT(_user) ? FACTOR : 0;
     }
 
     /// @notice Get the validity period for a _user's factor
