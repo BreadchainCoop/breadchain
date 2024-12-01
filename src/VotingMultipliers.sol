@@ -55,4 +55,50 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
             revert MultiplierNotAllowlisted();
         }
     }
+
+    /// @notice Gets the indexes of valid multipliers for a user
+    /// @param _user The address of the user
+    /// @return uint256[] Array of valid multiplier indexes
+    function getValidMultiplierIndexes(address _user) public view returns (uint256[] memory) {
+        uint256[] memory validIndexes = new uint256[](allowlistedMultipliers.length);
+        uint256 count = 0;
+
+        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+            if (
+                block.number <= allowlistedMultipliers[i].validUntil(_user)
+                    && allowlistedMultipliers[i].getMultiplyingFactor(_user) > 0
+            ) {
+                validIndexes[count] = i;
+                count++;
+            }
+        }
+
+        // Create correctly sized array
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = validIndexes[i];
+        }
+        return result;
+    }
+
+    /// @notice Calculates the total multiplier for a given user using specific multiplier indexes
+    /// @param _user The address of the user
+    /// @param _multiplierIndexes Array of multiplier indexes to use
+    /// @return The total multiplier value for the user
+    function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public view returns (uint256) {
+        uint256 _totalMultiplier = 0;
+
+        for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
+            uint256 index = _multiplierIndexes[i];
+            if (index >= allowlistedMultipliers.length) {
+                revert InvalidMultiplierIndex();
+            }
+
+            IMultiplier multiplier = allowlistedMultipliers[index];
+            if (block.number <= multiplier.validUntil(_user)) {
+                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+            }
+        }
+        return _totalMultiplier;
+    }
 }

@@ -10,6 +10,8 @@ interface IVotingMultipliers {
     error MultiplierAlreadyAllowlisted();
     /// @notice Thrown when attempting to remove a multiplier that is not allowlisted
     error MultiplierNotAllowlisted();
+    /// @notice Thrown when an invalid multiplier index is provided
+    error InvalidMultiplierIndex();
     /// @notice Emitted when a new multiplier is added to the allowlist
     /// @param multiplier The address of the added multiplier
 

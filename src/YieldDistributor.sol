@@ -113,12 +113,10 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
         uint256 lastCycleStart = lastClaimedBlockNumber - cycleLength;
-        uint256 multiplier = getTotalMultipliers(_account);
-        multiplier = multiplier == 0 ? PRECISION : multiplier;
         uint256 breadVotingPower = getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
         uint256 butteredBreadVotingPower =
             getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
-        return ((breadVotingPower + butteredBreadVotingPower) * multiplier) / PRECISION;
+        return breadVotingPower + butteredBreadVotingPower;
     }
 
     /// @notice Get the current accumulated voting power for a user
@@ -231,6 +229,19 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
 
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
 
+        _castVote(msg.sender, _points, _currentVotingPower);
+    }
+
+    /**
+     * @notice Cast votes for the distribution of $BREAD yield with multipliers
+     * @param _points List of points as integers for each project
+     * @param _multiplierIndices List of indices of multipliers to use for each project
+     */
+    function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
+        uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
+        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
+        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
+        _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
