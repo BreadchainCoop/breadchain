@@ -112,11 +112,11 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
         uint256 lastCycleStart = lastClaimedBlockNumber - cycleLength;
-        uint256 multiplier = this.getTotalMultipliers(_account);
+        uint256 multiplier = getTotalMultipliers(_account);
         multiplier = multiplier == 0 ? PRECISION : multiplier;
-        uint256 breadVotingPower = this.getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+        uint256 breadVotingPower = getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
         uint256 butteredBreadVotingPower =
-            this.getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+            getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
         return ((breadVotingPower + butteredBreadVotingPower) * multiplier) / PRECISION;
     }
 
@@ -125,8 +125,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
     /// @param _account Address of the user to get the current accumulated voting power for
     /// @return uint256 The current accumulated voting power for the user
     function getCurrentAccumulatedVotingPower(address _account) public view returns (uint256) {
-        return this.getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account)
-            + this.getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber, block.number, _account);
+        return getVotingPowerForPeriod(BUTTERED_BREAD, lastClaimedBlockNumber, block.number, _account)
+            + getVotingPowerForPeriod(BREAD, lastClaimedBlockNumber, block.number, _account);
     }
 
     /**
@@ -141,7 +141,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
         uint256 _start,
         uint256 _end,
         address _account
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         if (_start >= _end) revert StartMustBeBeforeEnd();
         if (_end > block.number) revert EndAfterCurrentBlock();
 

@@ -14,7 +14,7 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @notice Calculates the total multiplier for a given user
     /// @param user The address of the user
     /// @return The total multiplier value for the user
-    function getTotalMultipliers(address user) external view returns (uint256) {
+    function getTotalMultipliers(address user) public view returns (uint256) {
         uint256 totalMultiplier = 0;
         for (uint256 i = 0; i < whitelistedMultipliers.length; i++) {
             IMultiplier multiplier = whitelistedMultipliers[i];
