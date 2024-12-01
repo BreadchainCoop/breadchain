@@ -15,14 +15,14 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @param _user The address of the _user
     /// @return The total multiplier value for the _user
     function getTotalMultipliers(address _user) public view returns (uint256) {
-        uint256 totalMultiplier = 0;
+        uint256 _totalMultiplier = 0;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
-                totalMultiplier += multiplier.getMultiplyingFactor(_user);
+                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
             }
         }
-        return totalMultiplier;
+        return _totalMultiplier;
     }
 
     /// @notice Adds a multiplier to the allowlist
