@@ -465,12 +465,12 @@ contract VotingMultipliersTest is YieldDistributorTest {
 
     function testAddMultiplier() public {
         yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
-        assertEq(address(yieldDistributor.whitelistedMultipliers(0)), address(mockMultiplier1));
+        assertEq(address(yieldDistributor.allowlistedMultipliers(0)), address(mockMultiplier1));
     }
 
-    function testAddMultiplierRevertAlreadyWhitelisted() public {
+    function testAddMultiplierRevertAlreadyAllowlisted() public {
         yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
-        vm.expectRevert(IVotingMultipliers.MultiplierAlreadyWhitelisted.selector);
+        vm.expectRevert(IVotingMultipliers.MultiplierAlreadyAllowlisted.selector);
         yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
     }
 
@@ -478,11 +478,11 @@ contract VotingMultipliersTest is YieldDistributorTest {
         yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
         yieldDistributor.removeMultiplier(IMultiplier(address(mockMultiplier1)));
         vm.expectRevert();
-        yieldDistributor.whitelistedMultipliers(0);
+        yieldDistributor.allowlistedMultipliers(0);
     }
 
-    function testRemoveMultiplierRevertNotWhitelisted() public {
-        vm.expectRevert(IVotingMultipliers.MultiplierNotWhitelisted.selector);
+    function testRemoveMultiplierRevertNotallowlisted() public {
+        vm.expectRevert(IVotingMultipliers.MultiplierNotAllowlisted.selector);
         yieldDistributor.removeMultiplier(IMultiplier(address(mockMultiplier1)));
     }
 

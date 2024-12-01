@@ -8,16 +8,16 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 /// @notice A contract for managing voting multipliers
 /// @dev Implements IVotingMultipliers interface
 contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
-    /// @notice Array of whitelisted multiplier contracts
-    IMultiplier[] public whitelistedMultipliers;
+    /// @notice Array of allowlisted multiplier contracts
+    IMultiplier[] public allowlistedMultipliers;
 
     /// @notice Calculates the total multiplier for a given user
     /// @param user The address of the user
     /// @return The total multiplier value for the user
     function getTotalMultipliers(address user) public view returns (uint256) {
         uint256 totalMultiplier = 0;
-        for (uint256 i = 0; i < whitelistedMultipliers.length; i++) {
-            IMultiplier multiplier = whitelistedMultipliers[i];
+        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+            IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(user)) {
                 totalMultiplier += multiplier.getMultiplyingFactor(user);
             }
@@ -25,34 +25,34 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
         return totalMultiplier;
     }
 
-    /// @notice Adds a multiplier to the whitelist
+    /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external onlyOwner {
-        // Check if the multiplier is already whitelisted
-        for (uint256 i = 0; i < whitelistedMultipliers.length; i++) {
-            if (whitelistedMultipliers[i] == _multiplier) {
-                revert MultiplierAlreadyWhitelisted();
+        // Check if the multiplier is already allowlisted
+        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+            if (allowlistedMultipliers[i] == _multiplier) {
+                revert MultiplierAlreadyAllowlisted();
             }
         }
-        whitelistedMultipliers.push(_multiplier);
+        allowlistedMultipliers.push(_multiplier);
         emit MultiplierAdded(_multiplier);
     }
 
-    /// @notice Removes a multiplier from the whitelist
+    /// @notice Removes a multiplier from the allowlist
     /// @param _multiplier The multiplier contract to be removed
     function removeMultiplier(IMultiplier _multiplier) external onlyOwner {
-        bool isWhitelisted = false;
-        for (uint256 i = 0; i < whitelistedMultipliers.length; i++) {
-            if (whitelistedMultipliers[i] == _multiplier) {
-                whitelistedMultipliers[i] = whitelistedMultipliers[whitelistedMultipliers.length - 1];
-                whitelistedMultipliers.pop();
-                isWhitelisted = true;
+        bool isAllowListed = false;
+        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+            if (allowlistedMultipliers[i] == _multiplier) {
+                allowlistedMultipliers[i] = allowlistedMultipliers[allowlistedMultipliers.length - 1];
+                allowlistedMultipliers.pop();
+                isAllowListed = true;
                 emit MultiplierRemoved(_multiplier);
                 break;
             }
         }
-        if (!isWhitelisted) {
-            revert MultiplierNotWhitelisted();
+        if (!isAllowListed) {
+            revert MultiplierNotAllowlisted();
         }
     }
 }
