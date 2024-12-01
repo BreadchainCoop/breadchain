@@ -74,9 +74,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
     ) public initializer {
         __Ownable_init(msg.sender);
         if (
-            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
-                || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0
+            _bread * _butteredBread * _precision * _minRequiredVotingPower * _maxPoints * _cycleLength 
+                * _yieldFixedSplitDivisor * _lastClaimedBlockNumber * _projects.length == 0
         ) {
             revert MustBeGreaterThanZero();
         }
