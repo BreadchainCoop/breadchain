@@ -15,11 +15,12 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @title Breadchain Yield Distributor
  * @notice Distribute $BREAD yield to eligible member projects based on a voted distribution
  * @author Breadchain Collective
- * @custom:coauthor @RonTuretzky
+ * @custom:coauthor postcapitalistcrypto.eth
  * @custom:coauthor bagelface.eth
  * @custom:coauthor prosalads.eth
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
+ * @custom:coauthor github.com/daopunk  
  */
 contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
