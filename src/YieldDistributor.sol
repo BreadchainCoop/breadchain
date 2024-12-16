@@ -9,6 +9,7 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
+import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -20,7 +21,7 @@ import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
  */
-contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
+contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
     /// @notice The precision to use for calculations
