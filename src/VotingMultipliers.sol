@@ -11,7 +11,7 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 
-    /// @notice Calculates the total multiplier for a given _user
+    /// @notice Calculates the total multiplier for a given user
     /// @param _user The address of the _user
     /// @return The total multiplier value for the _user
     function getTotalMultipliers(address _user) public view returns (uint256) {
