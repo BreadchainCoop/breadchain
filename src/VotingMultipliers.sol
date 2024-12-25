@@ -11,20 +11,6 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 
-    /// @notice Calculates the total multiplier for a given user
-    /// @param _user The address of the _user
-    /// @return The total multiplier value for the _user
-    function getTotalMultipliers(address _user) public view returns (uint256) {
-        uint256 _totalMultiplier = 0;
-        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
-            IMultiplier multiplier = allowlistedMultipliers[i];
-            if (block.number <= multiplier.validUntil(_user)) {
-                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
-            }
-        }
-        return _totalMultiplier;
-    }
-
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external onlyOwner {
@@ -95,6 +81,21 @@ contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
             }
 
             IMultiplier multiplier = allowlistedMultipliers[index];
+            if (block.number <= multiplier.validUntil(_user)) {
+                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+            }
+        }
+        return _totalMultiplier;
+    }
+
+    /// @notice Calculates the total multiplier for a given user
+    /// @param _user The address of the _user
+    /// @return The total multiplier value for the _user
+    /// @dev This function is intended for frontend and testing purposes
+    function getTotalMultipliers(address _user) public view returns (uint256) {
+        uint256 _totalMultiplier = 0;
+        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+            IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
                 _totalMultiplier += multiplier.getMultiplyingFactor(_user);
             }
