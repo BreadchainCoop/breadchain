@@ -20,7 +20,7 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @custom:coauthor prosalads.eth
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
- * @custom:coauthor github.com/daopunk  
+ * @custom:coauthor github.com/daopunk
  */
 contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
@@ -112,10 +112,8 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        uint256 breadVotingPower = getVotingPowerForPeriod(BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
-        uint256 butteredBreadVotingPower =
-            getVotingPowerForPeriod(BUTTERED_BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
-        return breadVotingPower + butteredBreadVotingPower;
+        return this.getVotingPowerForPeriod(BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account)
+            + this.getVotingPowerForPeriod(BUTTERED_BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
     }
 
     /// @notice Get the current accumulated voting power for a user
