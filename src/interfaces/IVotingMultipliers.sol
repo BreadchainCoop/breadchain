@@ -22,7 +22,6 @@ interface IVotingMultipliers {
     /// @notice Returns the multiplier at the specified index in the allowlist
     /// @param index The index of the multiplier in the allowlist
     /// @return The multiplier contract at the specified index
-
     function allowlistedMultipliers(uint256 index) external view returns (IMultiplier);
     /// @notice Calculates the total multiplier for a given _user
     /// @param __user The address of the _user
