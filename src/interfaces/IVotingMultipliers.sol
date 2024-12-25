@@ -14,7 +14,6 @@ interface IVotingMultipliers {
     error InvalidMultiplierIndex();
     /// @notice Emitted when a new multiplier is added to the allowlist
     /// @param multiplier The address of the added multiplier
-
     event MultiplierAdded(IMultiplier indexed multiplier);
     /// @notice Emitted when a multiplier is removed from the allowlist
     /// @param multiplier The address of the removed multiplier
