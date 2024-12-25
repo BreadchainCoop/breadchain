@@ -112,10 +112,9 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultip
      * @return uint256 The voting power of the user
      */
     function getCurrentVotingPower(address _account) public view returns (uint256) {
-        uint256 lastCycleStart = lastClaimedBlockNumber - cycleLength;
-        uint256 breadVotingPower = getVotingPowerForPeriod(BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+        uint256 breadVotingPower = getVotingPowerForPeriod(BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
         uint256 butteredBreadVotingPower =
-            getVotingPowerForPeriod(BUTTERED_BREAD, lastCycleStart, lastClaimedBlockNumber, _account);
+            getVotingPowerForPeriod(BUTTERED_BREAD, previousCycleStartingBlock, lastClaimedBlockNumber, _account);
         return breadVotingPower + butteredBreadVotingPower;
     }
 
