@@ -5,6 +5,8 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/a
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuardUpgradeable} from
+    "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 import {IButteredBread} from "src/interfaces/IButteredBread.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
@@ -17,7 +19,7 @@ import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
  * @custom:coauthor @daopunk
  * @custom:coauthor @bagelface
  */
-contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradeable {
+contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Value used for calculating the precision of scaling factors
     uint256 public constant FIXED_POINT_PERCENT = 100;
     /// @notice `IERC20Votes` contract used for powering `ButteredBread` voting
@@ -47,6 +49,8 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
 
         __Ownable_init(msg.sender);
         __ERC20_init(_initData.name, _initData.symbol);
+        __ERC20Votes_init();
+        __ReentrancyGuard_init();
 
         for (uint256 i; i < _initData.liquidityPools.length; ++i) {
             scalingFactors[_initData.liquidityPools[i]] = _initData.scalingFactors[i];
@@ -70,26 +74,31 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
     }
 
     /**
-     * @notice Deposit LP tokens
+     * @notice Deposit LP tokens and mint ButteredBread
+     *  NOTE: Additional ButteredBread can be minted/burned due to scaling factor changes
      * @param _lp Liquidity Pool token
      * @param _amount Value of LP token
      */
-    function deposit(address _lp, uint256 _amount) external onlyAllowed(_lp) {
+    function deposit(address _lp, uint256 _amount) external onlyAllowed(_lp) nonReentrant {
+        if (_amount == 0) revert AmountZero();
         _deposit(msg.sender, _lp, _amount);
     }
 
     /**
-     * @notice Withdraw LP tokens
+     * @notice Withdraw LP tokens and burn ButteredBread
+     *  NOTE: Additional ButteredBread can be minted/burned due to scaling factor changes
      * @param _lp Liquidity Pool token
      * @param _amount Value of LP token
      */
-    function withdraw(address _lp, uint256 _amount) external onlyAllowed(_lp) {
+    function withdraw(address _lp, uint256 _amount) external onlyAllowed(_lp) nonReentrant {
+        if (_amount == 0) revert AmountZero();
         _withdraw(msg.sender, _lp, _amount);
     }
 
     /**
      * @notice Allow or deny LP token
      * @dev Must set scaling factor before sanctioning LP token
+     * @dev WARNING: When adding a new LP token, ensure that it has 18 decimals
      * @param _lp Liquidity Pool token
      * @param _allowed Sanction status of LP token
      */
@@ -123,24 +132,26 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
         revert NonDelegatable();
     }
 
-    /// @notice Get the balance of a specific LP for a given account
-    /// @param _holder The address of the account to get the balance for
-    /// @param _lp The address of the LP to get the balance for
-    /// @return LPData memory The balance of the LP for the given account
+    /// @notice Get the balance and scaling factor of a specific LP for a given account
+    /// @param _holder The address of the account to get the data for
+    /// @param _lp The address of the LP to get the data for
+    /// @return LPData memory The balance and scaling factor of the LP for the given account
     function balanceOfLP(address _holder, address _lp) external view returns (LPData memory) {
         return _accountToLPData[_holder][_lp];
     }
 
     /// @notice Deposit LP tokens and mint ButteredBread with corresponding LP scaling factor
     function _deposit(address _account, address _lp, uint256 _amount) internal {
-        IERC20(_lp).transferFrom(_account, address(this), _amount);
+        bool success = IERC20(_lp).transferFrom(_account, address(this), _amount);
+        if (!success) revert TransferFailed();
+
+        _syncDelegation(_account);
+
+        /// @dev ensure proper accounting in case of admin error in `modifyScalingFactor` where not all holders are updated
+        _syncVotingWeight(_account, _lp);
         _accountToLPData[_account][_lp].balance += _amount;
 
-        uint256 currentScalingFactor = scalingFactors[_lp];
-        _accountToLPData[_account][_lp].scalingFactor = currentScalingFactor;
-
-        _mint(_account, _amount * currentScalingFactor / FIXED_POINT_PERCENT);
-        _syncDelegation(_account);
+        _mint(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
 
         emit ButterAdded(_account, _lp, _amount);
     }
@@ -155,7 +166,8 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, OwnableUpgradea
         _accountToLPData[_account][_lp].balance -= _amount;
 
         _burn(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
-        IERC20(_lp).transfer(_account, _amount);
+        bool success = IERC20(_lp).transfer(_account, _amount);
+        if (!success) revert TransferFailed();
 
         emit ButterRemoved(_account, _lp, _amount);
     }

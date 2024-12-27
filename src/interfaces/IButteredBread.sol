@@ -17,6 +17,10 @@ interface IButteredBread {
     error NonTransferable();
     /// @notice Occurs when a dependent variable is not set
     error UnsetVariable();
+    /// @notice Occurs when a transfer fails
+    error TransferFailed();
+    /// @notice Occurs when an amount is 0
+    error AmountZero();
 
     /// @notice The event emitted when an LP Token (Butter) has been added
     event ButterAdded(address _account, address _lp, uint256 _amount);
