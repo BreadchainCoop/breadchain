@@ -1,0 +1,6 @@
+{
+    "deployerPrivateKey": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "nftContractAddress": "0x1234567890123456789012345678901234567890",
+    "initialMultiplyingFactor": 100,
+    "validUntilBlock": 1000000
+}

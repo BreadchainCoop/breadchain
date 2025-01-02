@@ -9,11 +9,15 @@ import {ERC20VotesUpgradeable} from
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
-
 import {ButteredBread} from "src/ButteredBread.sol";
+import {VotingMultipliers, IVotingMultipliers} from "src/VotingMultipliers.sol";
+import {MockMultiplier} from "src/test/MockMultiplier.sol";
+import {IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
+import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
+import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
+import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
@@ -55,7 +59,7 @@ contract YieldDistributorTest is Test {
 
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
-    function setUp() public {
+    function setUp() public virtual {
         vm.createSelectFork(vm.rpcUrl("gnosis"));
 
         YieldDistributorTestWrapper yieldDistributorImplementation = new YieldDistributorTestWrapper();
@@ -177,7 +181,7 @@ contract YieldDistributorTest is Test {
         uint256 votedSplit = yieldAccrued - fixedSplit;
         uint256 projectsLength = yieldDistributor2.getProjectsLength();
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
-        uint256 bread_bal_after = bread.balanceOf(address(secondProject));
+        uint256 bread_bal_after = bread.balanceOf(secondProject);
         assertGt(bread_bal_after, ((fixedSplit + votedSplit) / projectsLength) - marginOfError);
     }
 
@@ -444,5 +448,261 @@ contract YieldDistributorTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
         yieldDistributor.castVote(percentages);
+    }
+}
+
+contract VotingMultipliersTest is YieldDistributorTest {
+    MockMultiplier public mockMultiplier1;
+    MockMultiplier public mockMultiplier2;
+    NFTMultiplier public nftMultiplier;
+
+    function setUp() public override {
+        super.setUp();
+
+        mockMultiplier1 = new MockMultiplier();
+        mockMultiplier2 = new MockMultiplier();
+    }
+
+    function testAddMultiplier() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        assertEq(address(yieldDistributor.allowlistedMultipliers(0)), address(mockMultiplier1));
+    }
+
+    function testAddMultiplierRevertAlreadyAllowlisted() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        vm.expectRevert(IVotingMultipliers.MultiplierAlreadyAllowlisted.selector);
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+    }
+
+    function testRemoveMultiplier() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        yieldDistributor.removeMultiplier(IMultiplier(address(mockMultiplier1)));
+        vm.expectRevert();
+        yieldDistributor.allowlistedMultipliers(0);
+    }
+
+    function testRemoveMultiplierRevertNotallowlisted() public {
+        vm.expectRevert(IVotingMultipliers.MultiplierNotAllowlisted.selector);
+        yieldDistributor.removeMultiplier(IMultiplier(address(mockMultiplier1)));
+    }
+
+    function testGetTotalMultipliers() public {
+        uint256 factor1 = 1.5e18;
+        uint256 factor2 = 2e18;
+        uint256 validUntil = block.number + 1000;
+        mockMultiplier1.setMultiplier(factor1, validUntil);
+        mockMultiplier2.setMultiplier(factor2, validUntil);
+
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier2)));
+
+        uint256 totalMultiplier = yieldDistributor.getTotalMultipliers(address(this));
+        assertEq(totalMultiplier, factor1 + factor2);
+    }
+
+    function testCastVoteWithMultipliersIndices() public {
+        // Set up two multipliers with different factors
+        mockMultiplier1.setMultiplier(1.5e18, type(uint256).max);
+        mockMultiplier2.setMultiplier(2e18, type(uint256).max);
+
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256 initialVotingPower = yieldDistributor.getCurrentVotingPower(voter);
+
+        // Add multipliers to the distributor
+        yieldDistributor.addMultiplier(mockMultiplier1);
+        yieldDistributor.addMultiplier(mockMultiplier2);
+
+        // Set up vote points and multiplier indices
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](2);
+        multiplierIndices[0] = 0; // mockMultiplier1
+        multiplierIndices[1] = 1; // mockMultiplier2
+
+        vm.startPrank(voter);
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+
+        // Expected voting power = initial * (1.5 + 2.0)
+        uint256 expectedVotingPower = (initialVotingPower * 3.5e18) / yieldDistributor.PRECISION();
+        assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
+        vm.stopPrank();
+    }
+
+    function testCastVoteWithMultipliersIndicesInvalidIndex() public {
+        mockMultiplier1.setMultiplier(1.5e18, type(uint256).max);
+
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        yieldDistributor.addMultiplier(mockMultiplier1);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](1);
+        multiplierIndices[0] = 999; // Invalid index
+
+        vm.startPrank(voter);
+        vm.expectRevert();
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+        vm.stopPrank();
+    }
+
+    function testCastVoteWithMultipliersExpiredMultiplier() public {
+        // Set up one expired and one valid multiplier
+        mockMultiplier1.setMultiplier(1.5e18, block.number - 1); // Expired
+        mockMultiplier2.setMultiplier(2e18, type(uint256).max); // Valid
+
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256 initialVotingPower = yieldDistributor.getCurrentVotingPower(voter);
+
+        yieldDistributor.addMultiplier(mockMultiplier1);
+        yieldDistributor.addMultiplier(mockMultiplier2);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](2);
+        multiplierIndices[0] = 0;
+        multiplierIndices[1] = 1;
+
+        vm.startPrank(voter);
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+
+        // Only the valid multiplier should be applied
+        uint256 expectedVotingPower = (initialVotingPower * 2e18) / yieldDistributor.PRECISION();
+        assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
+        vm.stopPrank();
+    }
+
+    function testFuzzCastVoteWithMultipliersIndices(
+        uint256 multiplier1Factor,
+        uint256 multiplier2Factor,
+        uint8 numIndices
+    ) public {
+        // Bound the inputs to reasonable ranges
+        multiplier1Factor = bound(multiplier1Factor, 1e18, 5e18);
+        multiplier2Factor = bound(multiplier2Factor, 1e18, 5e18);
+        numIndices = uint8(bound(numIndices, 1, 2));
+
+        mockMultiplier1.setMultiplier(multiplier1Factor, type(uint256).max);
+        mockMultiplier2.setMultiplier(multiplier2Factor, type(uint256).max);
+
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256 initialVotingPower = yieldDistributor.getCurrentVotingPower(voter);
+
+        yieldDistributor.addMultiplier(mockMultiplier1);
+        yieldDistributor.addMultiplier(mockMultiplier2);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](numIndices);
+        for (uint8 i = 0; i < numIndices; i++) {
+            multiplierIndices[i] = i;
+        }
+
+        vm.prank(voter);
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+
+        // Calculate expected total multiplier based on number of indices
+        uint256 totalMultiplier = numIndices == 1 ? multiplier1Factor : (multiplier1Factor + multiplier2Factor);
+        uint256 expectedVotingPower = (initialVotingPower * totalMultiplier) / yieldDistributor.PRECISION();
+
+        assertApproxEqRel(yieldDistributor.projectDistributions(0), expectedVotingPower, 1e15); // Allow 0.1% deviation
+    }
+
+    function testFuzzCastVoteWithDynamicMultipliers(uint8 numMultipliers, bytes32[] calldata multiplierSeeds) public {
+        // Bound number of multipliers to reasonable range (1-10)
+        numMultipliers = uint8(bound(numMultipliers, 1, 10));
+
+        // Create array of mock multipliers
+        MockMultiplier[] memory multipliers = new MockMultiplier[](numMultipliers);
+        uint256 expectedTotalMultiplier = 0;
+        uint256 numValidMultipliers = 0;
+        // Set up each multiplier with unique factor based on seed
+        for (uint8 i = 0; i < numMultipliers; i++) {
+            multipliers[i] = new MockMultiplier();
+
+            // Generate multiplier factor from seed (between 1x and 5x)
+            uint256 multiplierFactor;
+            if (i < multiplierSeeds.length) {
+                multiplierFactor = bound(uint256(multiplierSeeds[i]), 1e18, 5e18);
+            } else {
+                multiplierFactor = bound(uint256(keccak256(abi.encode(i))), 1e18, 5e18);
+            }
+
+            // Randomly decide if multiplier should be expired (10% chance)
+            bool isExpired = uint256(keccak256(abi.encode(multiplierFactor, i))) % 10 == 0;
+            uint256 validUntil = isExpired ? block.number - 1 : type(uint256).max;
+
+            multipliers[i].setMultiplier(multiplierFactor, validUntil);
+            yieldDistributor.addMultiplier(multipliers[i]);
+
+            if (!isExpired) {
+                expectedTotalMultiplier += multiplierFactor;
+                numValidMultipliers++;
+            }
+        }
+
+        // Set up voter
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256 initialVotingPower = yieldDistributor.getCurrentVotingPower(voter);
+
+        // Create vote points and multiplier indices
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](numMultipliers);
+        for (uint8 i = 0; i < numMultipliers; i++) {
+            multiplierIndices[i] = i;
+        }
+        uint256[] memory fetchedMultipliers = yieldDistributor.getValidMultiplierIndexes(voter);
+        assertEq(fetchedMultipliers.length, numValidMultipliers);
+        vm.prank(voter);
+        yieldDistributor.castVoteWithMultipliers(points, fetchedMultipliers);
+
+        // If no valid multipliers, should use precision as multiplier
+        if (expectedTotalMultiplier == 0) {
+            expectedTotalMultiplier = yieldDistributor.PRECISION();
+        }
+
+        uint256 expectedVotingPower = (initialVotingPower * expectedTotalMultiplier) / yieldDistributor.PRECISION();
+
+        // Allow for small rounding errors in calculation
+        assertApproxEqRel(
+            yieldDistributor.projectDistributions(0),
+            expectedVotingPower,
+            1e15 // 0.1% tolerance
+        );
+
+        // Verify all multipliers were properly registered
+        for (uint8 i = 0; i < numMultipliers; i++) {
+            assertEq(address(yieldDistributor.allowlistedMultipliers(i)), address(multipliers[i]));
+        }
     }
 }

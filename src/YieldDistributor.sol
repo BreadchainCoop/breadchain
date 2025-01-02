@@ -9,18 +9,20 @@ import {ERC20VotesUpgradeable} from
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
+import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
  * @title Breadchain Yield Distributor
  * @notice Distribute $BREAD yield to eligible member projects based on a voted distribution
  * @author Breadchain Collective
- * @custom:coauthor @RonTuretzky
+ * @custom:coauthor postcapitalistcrypto.eth
  * @custom:coauthor bagelface.eth
  * @custom:coauthor prosalads.eth
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
+ * @custom:coauthor github.com/daopunk
  */
-contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
+contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
     /// @notice The precision to use for calculations
@@ -135,7 +137,7 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
         uint256 _start,
         uint256 _end,
         address _account
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         if (_start >= _end) revert StartMustBeBeforeEnd();
         if (_end > block.number) revert EndAfterCurrentBlock();
 
@@ -224,6 +226,19 @@ contract YieldDistributor is IYieldDistributor, OwnableUpgradeable {
 
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
 
+        _castVote(msg.sender, _points, _currentVotingPower);
+    }
+
+    /**
+     * @notice Cast votes for the distribution of $BREAD yield with multipliers
+     * @param _points List of points as integers for each project
+     * @param _multiplierIndices List of indices of multipliers to use for each project
+     */
+    function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
+        uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
+        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
+        _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
+        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
