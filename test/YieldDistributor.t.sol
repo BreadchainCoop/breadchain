@@ -6,7 +6,7 @@ import "forge-std/StdJson.sol";
 
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
@@ -19,7 +19,7 @@ import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
 import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
 import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
-abstract contract Bread is ERC20VotesUpgradeable, OwnableUpgradeable {
+abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
     function yieldAccrued() external view virtual returns (uint256);
     function setYieldClaimer(address _yieldClaimer) external virtual;

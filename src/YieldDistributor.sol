@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {Checkpoints} from
     "openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/structs/Checkpoints.sol";
 import {ERC20VotesUpgradeable} from
@@ -22,7 +22,7 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @custom:coauthor theblockchainsocialist.eth
  * @custom:coauthor github.com/daopunk
  */
-contract YieldDistributor is IYieldDistributor, OwnableUpgradeable, VotingMultipliers {
+contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
     /// @notice The precision to use for calculations
