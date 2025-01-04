@@ -23,21 +23,21 @@ contract PermanentNFTMultiplier is INFTMultiplier {
 
     /// @notice Get the multiplying factor for a _user
     /// @param _user The address of the _user
-    /// @return The multiplying factor if the _user has an NFT, 0 otherwise
-    function getMultiplyingFactor(address _user) external view override returns (uint256) {
-        return hasNFT(_user) ? FACTOR : 0;
+    /// @return factor The multiplying factor if the _user has an NFT, 0 otherwise
+    function getMultiplyingFactor(address _user) external view override returns (uint256 factor) {
+        factor = hasNFT(_user) ? FACTOR : 0;
     }
 
     /// @notice Get the validity period for a _user's factor
-    /// @return Always returns type(uint256).max as the factor is permanent
-    function validUntil(address /* _user */ ) external pure override returns (uint256) {
-        return type(uint256).max;
+    /// @return validUntilTimestamp Always returns type(uint256).max as the factor is permanent
+    function validUntil(address /* _user */ ) external pure override returns (uint256 validUntilTimestamp) {
+        validUntilTimestamp = type(uint256).max;
     }
 
     /// @notice Check if a _user owns an NFT
     /// @param _user The address of the _user to check
-    /// @return True if the _user owns at least one NFT, false otherwise
-    function hasNFT(address _user) public view override returns (bool) {
-        return NFT_ADDRESS.balanceOf(_user) > 0;
+    /// @return hasNft True if the _user owns at least one NFT, false otherwise
+    function hasNFT(address _user) public view override returns (bool hasNft) {
+        hasNft = NFT_ADDRESS.balanceOf(_user) > 0;
     }
 }

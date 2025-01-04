@@ -3,13 +3,13 @@ pragma solidity ^0.8.22;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @title NFT Multiplier
 /// @notice Implementation of INFTMultiplier interface
 /// @dev Provides multiplying factors based on NFT ownership
-contract NFTMultiplier is INFTMultiplier, Initializable, OwnableUpgradeable {
+contract NFTMultiplier is INFTMultiplier, Initializable, Ownable2StepUpgradeable {
     IERC721 public nftContract;
     uint256 public multiplyingFactor;
     uint256 public validUntilBlock;
@@ -35,29 +35,29 @@ contract NFTMultiplier is INFTMultiplier, Initializable, OwnableUpgradeable {
     }
 
     /// @notice Get the address of the NFT contract
-    /// @return The address of the NFT contract used for checking ownership
-    function NFT_ADDRESS() external view override returns (IERC721) {
-        return nftContract;
+    /// @return _nftContract The address of the NFT contract used for checking ownership
+    function NFT_ADDRESS() external view override returns (IERC721 _nftContract) {
+        _nftContract = nftContract;
     }
 
     /// @notice Check if a _user owns an NFT
     /// @param _user The address of the _user to check
-    /// @return True if the _user owns at least one NFT, false otherwise
-    function hasNFT(address _user) public view override returns (bool) {
-        return nftContract.balanceOf(_user) > 0;
+    /// @return _hasNFT True if the _user owns at least one NFT, false otherwise
+    function hasNFT(address _user) public view override returns (bool _hasNFT) {
+        _hasNFT = nftContract.balanceOf(_user) > 0;
     }
 
     /// @notice Get the multiplying factor for a given _user
     /// @param _user The address of the _user
-    /// @return The multiplying factor if the _user owns an NFT, 0 otherwise
-    function getMultiplyingFactor(address _user) external view override returns (uint256) {
-        return hasNFT(_user) ? multiplyingFactor : 0;
+    /// @return _factor The multiplying factor if the _user owns an NFT, 0 otherwise
+    function getMultiplyingFactor(address _user) external view override returns (uint256 _factor) {
+        _factor = hasNFT(_user) ? multiplyingFactor : 0;
     }
 
     /// @notice Get the block number until which the multiplier is valid
-    /// @return The block number until which the multiplier is valid
-    function validUntil(address /* _user */ ) external view override returns (uint256) {
-        return validUntilBlock;
+    /// @return _validUntil The block number until which the multiplier is valid
+    function validUntil(address /* _user */ ) external view override returns (uint256 _validUntil) {
+        _validUntil = validUntilBlock;
     }
 
     /// @notice Update the multiplying factor

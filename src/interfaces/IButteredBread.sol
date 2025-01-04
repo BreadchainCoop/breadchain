@@ -56,13 +56,16 @@ interface IButteredBread {
     function initialize(InitData calldata _initData) external;
 
     /// @notice Returns whether a given liquidity pool is Breadchain sanctioned or not
-    function allowlistedLPs(address _lp) external view returns (bool _allowed);
+    /// @return allowed True if the LP is allowlisted, false otherwise
+    function allowlistedLPs(address _lp) external view returns (bool allowed);
 
-    /// @notice Returns the factor that determines how much `ButteredBread` should be minted for a Liquidity Pool token (Butter)
-    function scalingFactors(address _lp) external view returns (uint256 _factor);
+    /// @notice Returns the factor that determines how much `ButteredBread` should be minted for a Liquidity Pool token
+    /// @return factor The scaling factor for the LP token where 10000 = 100%
+    function scalingFactors(address _lp) external view returns (uint256 factor);
 
     /// @notice Returns the amount of LP tokens (Butter) deposited for an account
-    function accountToLPBalance(address _account, address _lp) external view returns (uint256 _balance);
+    /// @return balance The amount of LP tokens deposited
+    function accountToLPBalance(address _account, address _lp) external view returns (uint256 balance);
 
     /// @notice Deposits LP tokens (Butter) and mints `ButteredBread` according to the respective LP scaling factor
     function deposit(address _lp, uint256 _amount) external;
@@ -75,4 +78,16 @@ interface IButteredBread {
 
     /// @notice Modifies how much `ButteredBread` should be minted for a Liquidity Pool token (Butter)
     function modifyScalingFactor(address _lp, uint256 _factor, address[] calldata holders) external;
+
+    /// @notice Get the current multiplier value for a user
+    /// @return multiplier The current multiplier value as a percentage where 10000 = 100%
+    function getMultiplier(address user) external view returns (uint256 multiplier);
+
+    /// @notice Get the timestamp when the user's temporary multiplier boost expires
+    /// @return expiry The expiry timestamp of the multiplier boost
+    function getMultiplierBoostExpiry(address user) external view returns (uint256 expiry);
+
+    /// @notice Get the user's base multiplier without any temporary boosts
+    /// @return baseMultiplier The base multiplier value as a percentage where 10000 = 100%
+    function getBaseMultiplier(address user) external view returns (uint256 baseMultiplier);
 }
