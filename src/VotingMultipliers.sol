@@ -2,12 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 /// @title VotingMultipliers
 /// @notice A contract for managing voting multipliers
 /// @dev Implements IVotingMultipliers interface
-contract VotingMultipliers is OwnableUpgradeable, IVotingMultipliers {
+contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 

@@ -15,7 +15,7 @@ import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {IBread} from "bread-token/src/interfaces/IBread.sol";
-import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {ERC20Mock} from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
@@ -544,10 +544,10 @@ contract ButteredBreadTest_Integration is ButteredBreadTest {
 
     function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor) public {
         vm.roll(start - (_cycleLength));
-        address yieldDistributorOwner = OwnableUpgradeable(_yieldDistributor).owner();
+        address yieldDistributorOwner = Ownable2StepUpgradeable(_yieldDistributor).owner();
         vm.prank(yieldDistributorOwner);
         _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
-        address breadOwner = OwnableUpgradeable(GNOSIS_BREAD).owner();
+        address breadOwner = Ownable2StepUpgradeable(GNOSIS_BREAD).owner();
         vm.prank(breadOwner);
         IBread(GNOSIS_BREAD).setYieldClaimer(address(_yieldDistributor));
         vm.roll(start - (_cycleLength + 1));
