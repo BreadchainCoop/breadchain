@@ -55,8 +55,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
-    /// @notice The address of the `VotingMultipliers` contract
-    VotingMultipliers public votingMultipliers;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -271,8 +269,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             if (!_hasVotedInCycle) _voterDistributions.push(0);
             else projectDistributions[i] -= _voterDistributions[i];
 
-            uint256 _currentProjectDistribution =
-                ((_points[i] * adjustedVotingPower * PRECISION) / _totalPoints) / PRECISION;
+            uint256 _currentProjectDistribution = ((_points[i] * _votingPower * PRECISION) / _totalPoints) / PRECISION;
             projectDistributions[i] += _currentProjectDistribution;
             _voterDistributions[i] = _currentProjectDistribution;
         }
