@@ -56,8 +56,14 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
-    /// @notice The interface for the `VotingStreakMultiplier` contract
-    IVotingStreakMultiplier public votingStreakMultiplier;
+    /// @notice Mapping of user addresses to their current multiplier factor
+    mapping(address => uint256) public userToMultiplier;
+    /// @notice Mapping of user addresses to their multiplier validity period
+    mapping(address => uint256) public userToValidity;
+    /// @notice The maximum multiplier incrementation
+    uint256 public maxVotingStreakMultiplier;
+    /// @notice The increment value for the multiplier
+    uint256 public votingStreakMultiplierIncrement;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _votingStreakMultiplier) {
@@ -233,6 +239,17 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
+    /// @notice Calculate and return the voting streak multiplier for a user
+    /// @param _account Address of the user to calculate the multiplier for
+    /// @return uint256 The calculated voting streak multiplier
+    function votingStreakMultiplier(address _account) public view returns (uint256) {
+        uint256 validity = userToValidity[_account];
+        if (block.number > validity) {
+            return 0; // No active multiplier
+        }
+        return userToMultiplier[_account]; // Return the current multiplier
+    }
+
     /**
      * @notice Cast votes for the distribution of $BREAD yield with multipliers
      * @param _points List of points as integers for each project
@@ -240,7 +257,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
-        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
+        uint256 baseMultiplier = votingStreakMultiplier(msg.sender);
+        uint256 multiplier = getTotalMultipliers(msg.sender, baseMultiplier, _multiplierIndices);
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
@@ -409,5 +427,17 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function setButteredBread(address _butteredBread) public onlyOwner {
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
+    }
+
+    /// @notice Sets the multiplier increment value
+    /// @param _multiplierIncrement The new multiplier increment value
+    function setVotingStreakMultiplierIncrement(uint256 _votingStreakMultiplierIncrement) external onlyOwner {
+        votingStreakMultiplierIncrement = _votingStreakMultiplierIncrement;
+    }
+
+    /// @notice Sets the maximum multiplier value
+    /// @param _maxMultiplier The new maximum multiplier value
+    function setMaxVotingStreakMultiplier(uint256 _maxVotingStreakMultiplier) external onlyOwner {
+        maxVotingStreakMultiplier = _maxVotingStreakMultiplier;
     }
 }
