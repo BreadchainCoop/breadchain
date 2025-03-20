@@ -10,6 +10,7 @@ import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
 import {VotingMultipliers} from "src/VotingMultipliers.sol";
+import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -43,11 +44,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     address[] public queuedProjectsForAddition;
     /// @notice Array of projects queued for removal from the next cycle
     address[] public queuedProjectsForRemoval;
-    /// @notice The voting power allocated to projects by voters in the current cycle
+    /// @notice The voting power allocated to each project by voters in the current cycle
     uint256[] public projectDistributions;
     /// @notice The last block number in which a specified account cast a vote
     mapping(address => uint256) public accountLastVoted;
-    /// @notice The voting power allocated to projects by voters in the current cycle
+    /// @notice The voting power allocated to each project by a specific voter in the current cycle
     mapping(address => uint256[]) voterDistributions;
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
@@ -55,10 +56,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
+    /// @notice The interface for the `VotingStreakMultiplier` contract
+    IVotingStreakMultiplier public votingStreakMultiplier;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address _votingStreakMultiplier) {
         _disableInitializers();
+        votingStreakMultiplier = IVotingStreakMultiplier(_votingStreakMultiplier);
     }
 
     function initialize(
@@ -240,6 +244,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
+        votingStreakMultiplier.onVoteCast(msg.sender);
     }
 
     /**
