@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {IDynamicNFTMultiplier} from "src/interfaces/multipliers/IDynamicNFTMultiplier.sol";
+import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
 import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -17,7 +17,7 @@ contract VotingStreakMultiplier is
     Initializable,
     ERC721Upgradeable,
     OwnableUpgradeable,
-    IDynamicNFTMultiplier,
+    IMultiplier,
     IVotingStreakMultiplier
 {
     /// @notice The maximum multiplier incrementation
@@ -30,10 +30,10 @@ contract VotingStreakMultiplier is
     YieldDistributor public yieldDistributor;
 
     /// @notice Mapping of user addresses to their current multiplier factor
-    mapping(address => uint256) public override userToFactor;
+    mapping(address => uint256) public userToMultiplier;
 
     /// @notice Mapping of user addresses to their multiplier validity period
-    mapping(address => uint256) public override userToValidity;
+    mapping(address => uint256) public userToValidity;
 
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
@@ -47,18 +47,13 @@ contract VotingStreakMultiplier is
     }
 
     /// @notice Initializes the contract
-    /// @param name The name of the NFT
-    /// @param symbol The symbol of the NFT
     /// @param _yieldDistributor The address of the YieldDistributor contract
     /// @param _multiplierIncrement The initial multiplier increment value
     /// @param _maxMultiplier The maximum multiplier value
-    function initialize(
-        string memory name,
-        string memory symbol,
-        address _yieldDistributor,
-        uint256 _multiplierIncrement,
-        uint256 _maxMultiplier
-    ) public initializer {
+    function initialize(address _yieldDistributor, uint256 _multiplierIncrement, uint256 _maxMultiplier)
+        public
+        initializer
+    {
         __ERC721_init(name, symbol);
         __Ownable_init(msg.sender);
 
@@ -72,19 +67,15 @@ contract VotingStreakMultiplier is
     function onVoteCast(address voter) external {
         require(msg.sender == address(yieldDistributor), "Only YieldDistributor can call");
 
-        if (this.balanceOf(voter) == 0) {
-            _safeMint(voter, uint256(uint160(voter)));
-        }
-
-        uint256 currentFactor = userToFactor[voter];
-        uint256 newFactor = (currentFactor == 0)
+        uint256 currentMultiplier = userToMultiplier[voter];
+        uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
-            : Math.min(currentFactor + multiplierIncrement, maxMultiplier * multiplierIncrement);
+            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
 
-        userToFactor[voter] = newFactor;
+        userToMultiplier[voter] = newMultiplier;
         userToValidity[voter] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
 
-        emit MultiplierUpdated(voter, newFactor, userToValidity[voter]);
+        emit MultiplierUpdated(voter, newMultiplier, userToValidity[voter]);
     }
 
     /// @notice Gets the current multiplying factor for a user
@@ -94,7 +85,7 @@ contract VotingStreakMultiplier is
         if (block.number > userToValidity[user]) {
             return 0;
         }
-        return userToFactor[user];
+        return userToMultiplier[user];
     }
 
     /// @notice Gets the validity period for a user's multiplier
@@ -102,19 +93,6 @@ contract VotingStreakMultiplier is
     /// @return The block number until which the multiplier is valid
     function validUntil(address user) external view override returns (uint256) {
         return userToValidity[user];
-    }
-
-    /// @notice Checks if a user has an NFT
-    /// @param user The address of the user
-    /// @return True if the user has an NFT, false otherwise
-    function hasNFT(address user) public view override returns (bool) {
-        return balanceOf(user) > 0;
-    }
-
-    /// @notice Gets the address of this NFT contract
-    /// @return The address of this contract as an IERC721
-    function NFTAddress() external view override returns (IERC721) {
-        return IERC721(address(this));
     }
 
     /// @notice Sets the YieldDistributor contract address
