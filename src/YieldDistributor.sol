@@ -10,7 +10,6 @@ import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
 import {VotingMultipliers} from "src/VotingMultipliers.sol";
-import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -56,19 +55,21 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
-    /// @notice Mapping of user addresses to their current multiplier factor
-    mapping(address => uint256) public userToMultiplier;
-    /// @notice Mapping of user addresses to their multiplier validity period
-    mapping(address => uint256) public userToValidity;
-    /// @notice The maximum multiplier incrementation
-    uint256 public maxVotingStreakMultiplier;
-    /// @notice The increment value for the multiplier
-    uint256 public votingStreakMultiplierIncrement;
+
+    struct Cycle {
+        uint256 startBlock; // block number cycle started at
+        uint256 endBlock; // block number cycle ended at
+        uint256 totalVotes; // total number of votes
+        address[] projects; // list of projects
+        uint256[] voteDistribution; // distribution of votes
+        mapping(address => bool) voted; // addresses that voted
+    }
+
+    mapping(uint256 => Cycle) public cycles; // Mapping of cycle ID to Cycle struct
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _votingStreakMultiplier) {
+    constructor() {
         _disableInitializers();
-        votingStreakMultiplier = IVotingStreakMultiplier(_votingStreakMultiplier);
     }
 
     function initialize(
@@ -206,6 +207,9 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         (bool _resolved,) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
+        cycles[previousCycleStartingBlock].voteDistribution = projectDistributions;
+        cycles[previousCycleStartingBlock].totalVotes = currentVotes;
+
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
         previousCycleStartingBlock = lastClaimedBlockNumber;
         lastClaimedBlockNumber = block.number;
@@ -213,6 +217,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _fixedYield = balance / yieldFixedSplitDivisor;
         uint256 _baseSplit = _fixedYield / projects.length;
         uint256 _votedYield = balance - _fixedYield;
+
+        // start a new cycle
+        cycles[lastClaimedBlockNumber] = Cycle({
+            startBlock: lastClaimedBlockNumber,
+            endBlock: lastClaimedBlockNumber + cycleLength,
+            projects: projects
+        });
 
         for (uint256 i; i < projects.length; ++i) {
             uint256 _votedSplit = ((projectDistributions[i] * _votedYield * PRECISION) / currentVotes) / PRECISION;
@@ -239,17 +250,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
-    /// @notice Calculate and return the voting streak multiplier for a user
-    /// @param _account Address of the user to calculate the multiplier for
-    /// @return uint256 The calculated voting streak multiplier
-    function votingStreakMultiplier(address _account) public view returns (uint256) {
-        uint256 validity = userToValidity[_account];
-        if (block.number > validity) {
-            return 0; // No active multiplier
-        }
-        return userToMultiplier[_account]; // Return the current multiplier
-    }
-
     /**
      * @notice Cast votes for the distribution of $BREAD yield with multipliers
      * @param _points List of points as integers for each project
@@ -257,8 +257,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
-        uint256 baseMultiplier = votingStreakMultiplier(msg.sender);
-        uint256 multiplier = getTotalMultipliers(msg.sender, baseMultiplier, _multiplierIndices);
+        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
@@ -298,7 +297,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
 
         accountLastVoted[_account] = block.number;
-
+        cycles[lastClaimedBlockNumber].voted[_account] = true;
         emit BreadHolderVoted(_account, _points, projects);
     }
 
@@ -427,17 +426,5 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function setButteredBread(address _butteredBread) public onlyOwner {
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
-    }
-
-    /// @notice Sets the multiplier increment value
-    /// @param _multiplierIncrement The new multiplier increment value
-    function setVotingStreakMultiplierIncrement(uint256 _votingStreakMultiplierIncrement) external onlyOwner {
-        votingStreakMultiplierIncrement = _votingStreakMultiplierIncrement;
-    }
-
-    /// @notice Sets the maximum multiplier value
-    /// @param _maxMultiplier The new maximum multiplier value
-    function setMaxVotingStreakMultiplier(uint256 _maxVotingStreakMultiplier) external onlyOwner {
-        maxVotingStreakMultiplier = _maxVotingStreakMultiplier;
     }
 }

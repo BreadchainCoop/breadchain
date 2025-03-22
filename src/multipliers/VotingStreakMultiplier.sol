@@ -29,12 +29,6 @@ contract VotingStreakMultiplier is
     /// @notice The YieldDistributor contract
     YieldDistributor public yieldDistributor;
 
-    /// @notice Mapping of user addresses to their current multiplier factor
-    mapping(address => uint256) public userToMultiplier;
-
-    /// @notice Mapping of user addresses to their multiplier validity period
-    mapping(address => uint256) public userToValidity;
-
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
     /// @param newFactor The new multiplier factor
@@ -62,37 +56,25 @@ contract VotingStreakMultiplier is
         maxMultiplier = _maxMultiplier;
     }
 
-    /// @notice Updates the user's multiplier when a vote is cast
-    /// @param voter The address of the voter
-    function onVoteCast(address voter) external {
-        require(msg.sender == address(yieldDistributor), "Only YieldDistributor can call");
-
-        uint256 currentMultiplier = userToMultiplier[voter];
-        uint256 newMultiplier = (currentMultiplier == 0)
-            ? multiplierIncrement
-            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
-
-        userToMultiplier[voter] = newMultiplier;
-        userToValidity[voter] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
-
-        emit MultiplierUpdated(voter, newMultiplier, userToValidity[voter]);
-    }
-
     /// @notice Gets the current multiplying factor for a user
     /// @param user The address of the user
     /// @return The current multiplying factor
     function getMultiplyingFactor(address user) external view override returns (uint256) {
-        if (block.number > userToValidity[user]) {
-            return 0;
+        uint256 count = 0;
+        for (uint256 i = 0; i < 3; i++) {
+            uint256 index = yieldDistributor.cycles.length - 1 - i; // Get the index for the latest, second latest, and third latest cycles
+            if (index < yieldDistributor.cycles.length && yieldDistributor.cycles[index].voted[user]) {
+                count++; // Increment if the user has voted in the cycle
+            }
         }
-        return userToMultiplier[user];
+        return multiplierIncrement * count;
     }
 
     /// @notice Gets the validity period for a user's multiplier
     /// @param user The address of the user
     /// @return The block number until which the multiplier is valid
     function validUntil(address user) external view override returns (uint256) {
-        return userToValidity[user];
+        return yieldDistributor.lastClaimedBlockNumber() + yieldDistributor.cycleLength();
     }
 
     /// @notice Sets the YieldDistributor contract address

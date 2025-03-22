@@ -69,15 +69,10 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
 
     /// @notice Calculates the total multiplier for a given user using specific multiplier indexes
     /// @param _user The address of the user
-    /// @param _baseMultiplier A base multiplier provided by the function caller
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
-    function getTotalMultipliers(address _user, uint256 baseMultiplier, uint256[] calldata _multiplierIndexes)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 _totalMultiplier = baseMultiplier;
+    function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public view returns (uint256) {
+        uint256 _totalMultiplier = 0;
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
