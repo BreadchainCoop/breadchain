@@ -48,14 +48,10 @@ contract YieldDistributorTest is Test {
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
+    uint256 _currentCycle = stdJson.readUint(config_data, "._currentCycle");
     Bread public bread = Bread(address(_bread));
     ButteredBread public butteredBread = ButteredBread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
-
-    // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
-    // uint256 minHoldingDuration = 10 days;
-    // uint256 blockTime = 5;
-    // uint256 minRequiredVotingPower = (minVotingAmount * minHoldingDuration) / blockTime; // We can assume that blockTime is small enough
 
     uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
@@ -72,6 +68,7 @@ contract YieldDistributorTest is Test {
             _precision,
             _minRequiredVotingPower,
             _maxPoints,
+            _currentCycle,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
@@ -91,6 +88,7 @@ contract YieldDistributorTest is Test {
             _precision,
             _minRequiredVotingPower,
             _maxPoints,
+            _currentCycle,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
@@ -148,6 +146,10 @@ contract YieldDistributorTest is Test {
         // Getting the balance of the project after the distribution and checking if it similiar to the yield accrued (there may be rounding issues)
         uint256 bread_bal_after = bread.balanceOf(address(this));
         assertGt(bread_bal_after, yieldAccrued - marginOfError);
+
+        // Verify that closed Cycle was finalized and new Cycle was initialized
+        assertEq(yieldDistributor.getCycleEndBlock(_currentCycle), yieldDistributor.lastClaimedBlockNumber());
+        assertEq(yieldDistributor.getCycleStartBlock(_currentCycle + 1), yieldDistributor.lastClaimedBlockNumber());
     }
 
     function test_fixed_yield_split() public {

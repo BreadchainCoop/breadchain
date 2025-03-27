@@ -55,6 +55,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ERC20VotesUpgradeable public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
+    /// @notice The current distribution cycle
+    uint256 public currentCycle;
 
     struct Cycle {
         uint256 startBlock; // block number cycle started at
@@ -65,7 +67,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         mapping(address => bool) voted; // addresses that voted
     }
 
-    mapping(uint256 => Cycle) public cycles; // Mapping of cycle ID to Cycle struct
+    mapping(uint256 id => Cycle) public cycles; // Mapping of cycle ID to Cycle struct
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -78,6 +80,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _precision,
         uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
+        uint256 _currentCycle,
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
@@ -98,6 +101,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
+        currentCycle = _currentCycle;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
 
@@ -200,6 +204,20 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
     }
 
+    /// @notice Finalize the current cycle
+    function finalizeCycle() internal {
+        cycles[currentCycle].voteDistribution = projectDistributions;
+        cycles[currentCycle].totalVotes = currentVotes;
+        cycles[currentCycle].endBlock = lastClaimedBlockNumber;
+        currentCycle++;
+    }
+
+    /// @notice Initialize the new cycle
+    function initializeCycle() internal {
+        cycles[currentCycle].startBlock = lastClaimedBlockNumber;
+        cycles[currentCycle].projects = projects;
+    }
+
     /**
      * @notice Distribute $BREAD yield to projects based on cast votes
      */
@@ -207,23 +225,17 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         (bool _resolved,) = resolveYieldDistribution();
         if (!_resolved) revert YieldNotResolved();
 
-        cycles[previousCycleStartingBlock].voteDistribution = projectDistributions;
-        cycles[previousCycleStartingBlock].totalVotes = currentVotes;
-
         BREAD.claimYield(BREAD.yieldAccrued(), address(this));
-        previousCycleStartingBlock = lastClaimedBlockNumber;
+
         lastClaimedBlockNumber = block.number;
+        finalizeCycle();
+
         uint256 balance = BREAD.balanceOf(address(this));
         uint256 _fixedYield = balance / yieldFixedSplitDivisor;
         uint256 _baseSplit = _fixedYield / projects.length;
         uint256 _votedYield = balance - _fixedYield;
 
-        // start a new cycle
-        cycles[lastClaimedBlockNumber] = Cycle({
-            startBlock: lastClaimedBlockNumber,
-            endBlock: lastClaimedBlockNumber + cycleLength,
-            projects: projects
-        });
+        initializeCycle();
 
         for (uint256 i; i < projects.length; ++i) {
             uint256 _votedSplit = ((projectDistributions[i] * _votedYield * PRECISION) / currentVotes) / PRECISION;
@@ -261,7 +273,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
-        votingStreakMultiplier.onVoteCast(msg.sender);
     }
 
     /**
@@ -297,7 +308,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
 
         accountLastVoted[_account] = block.number;
-        cycles[lastClaimedBlockNumber].voted[_account] = true;
+        cycles[currentCycle].voted[_account] = true;
         emit BreadHolderVoted(_account, _points, projects);
     }
 
@@ -411,6 +422,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
+     * @notice Set a new current cycle
+     * @param _currentCycle New current cycle
+     */
+    function setCurrentCycle(uint256 _currentCycle) public onlyOwner {
+        if (_currentCycle == 0) revert MustBeGreaterThanZero();
+
+        currentCycle = _currentCycle;
+    }
+
+    /**
      * @notice Set a new fixed split for the yield distribution
      * @param _yieldFixedSplitDivisor New fixed split for the yield distribution
      */
@@ -426,5 +447,30 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function setButteredBread(address _butteredBread) public onlyOwner {
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
+    }
+
+    /// @notice Check if a user has voted in the current cycle
+    /// @param _user The address of the user
+    /// @return bool True if the user has voted, false otherwise
+    function hasVotedInCurrentCycle(address _user) external view returns (bool) {
+        return cycles[currentCycle].voted[_user];
+    }
+
+    /// @notice Get the start block of a cycle
+    /// @param _cycleIndex The index of the cycle
+    /// @return uint256 The start block of the cycle
+    function getCycleStartBlock(uint256 _cycleIndex) external view returns (uint256) {
+        require(cycles[_cycleIndex].startBlock > 0, "Cycle does not exist");
+
+        return cycles[_cycleIndex].startBlock;
+    }
+
+    /// @notice Get the end block of a cycle
+    /// @param _cycleIndex The index of the cycle
+    /// @return uint256 The end block of the cycle
+    function getCycleEndBlock(uint256 _cycleIndex) external view returns (uint256) {
+        require(cycles[_cycleIndex].endBlock > 0, "Cycle does not exist");
+
+        return cycles[_cycleIndex].endBlock;
     }
 }

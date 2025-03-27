@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
@@ -13,13 +12,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /// @notice A contract for managing voting streak multipliers as NFTs
 /// @dev Implements IDynamicNFTMultiplier interface
 
-contract VotingStreakMultiplier is
-    Initializable,
-    ERC721Upgradeable,
-    OwnableUpgradeable,
-    IMultiplier,
-    IVotingStreakMultiplier
-{
+contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier, IVotingStreakMultiplier {
     /// @notice The maximum multiplier incrementation
     uint256 public maxMultiplier;
 
@@ -29,10 +22,19 @@ contract VotingStreakMultiplier is
     /// @notice The YieldDistributor contract
     YieldDistributor public yieldDistributor;
 
+    struct Cycle {
+        uint256 startBlock; // block number cycle started at
+        uint256 endBlock; // block number cycle ended at
+        uint256 totalVotes; // total number of votes
+        address[] projects; // list of projects
+        uint256[] voteDistribution; // distribution of votes
+        mapping(address => bool) voted; // addresses that voted
+    }
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
     /// @param newFactor The new multiplier factor
     /// @param validity The new validity period
+
     event MultiplierUpdated(address indexed user, uint256 newFactor, uint256 validity);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -48,7 +50,6 @@ contract VotingStreakMultiplier is
         public
         initializer
     {
-        __ERC721_init(name, symbol);
         __Ownable_init(msg.sender);
 
         yieldDistributor = YieldDistributor(_yieldDistributor);
@@ -61,9 +62,15 @@ contract VotingStreakMultiplier is
     /// @return The current multiplying factor
     function getMultiplyingFactor(address user) external view override returns (uint256) {
         uint256 count = 0;
+
         for (uint256 i = 0; i < 3; i++) {
-            uint256 index = yieldDistributor.cycles.length - 1 - i; // Get the index for the latest, second latest, and third latest cycles
-            if (index < yieldDistributor.cycles.length && yieldDistributor.cycles[index].voted[user]) {
+            uint256 index = yieldDistributor.currentCycle() - 1 - i; // Get the index for the latest, second latest, and third latest cycles
+
+            if (index < 1) {
+                break; // Exit the loop if index is less than 1
+            }
+
+            if (index < yieldDistributor.currentCycle() && yieldDistributor.hasVotedInCurrentCycle(user)) {
                 count++; // Increment if the user has voted in the cycle
             }
         }
@@ -74,6 +81,8 @@ contract VotingStreakMultiplier is
     /// @param user The address of the user
     /// @return The block number until which the multiplier is valid
     function validUntil(address user) external view override returns (uint256) {
+        require(yieldDistributor.hasVotedInCurrentCycle(user) == true, "User has not voted in the current cycle");
+
         return yieldDistributor.lastClaimedBlockNumber() + yieldDistributor.cycleLength();
     }
 
