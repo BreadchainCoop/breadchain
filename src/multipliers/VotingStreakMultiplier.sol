@@ -70,7 +70,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
                 break; // Exit the loop if index is less than 1
             }
 
-            if (index < yieldDistributor.currentCycle() && yieldDistributor.hasVotedInCurrentCycle(user)) {
+            if (index < yieldDistributor.currentCycle() && yieldDistributor.hasVotedInCycle(user, index)) {
                 count++; // Increment if the user has voted in the cycle
             }
         }
@@ -81,7 +81,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @param user The address of the user
     /// @return The block number until which the multiplier is valid
     function validUntil(address user) external view override returns (uint256) {
-        require(yieldDistributor.hasVotedInCurrentCycle(user) == true, "User has not voted in the current cycle");
+        require(yieldDistributor.hasVotedInCycle(user) == true, "User has not voted in the current cycle");
 
         return yieldDistributor.lastClaimedBlockNumber() + yieldDistributor.cycleLength();
     }

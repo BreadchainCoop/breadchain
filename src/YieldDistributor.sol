@@ -449,11 +449,20 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
     }
 
-    /// @notice Check if a user has voted in the current cycle
+    /// @notice Check if a user has voted in a specific cycle
+    /// @param _user The address of the user
+    /// @param _cycleIndex Optional cycle index to check (defaults to current cycle)
+    /// @return bool True if the user has voted, false otherwise
+    function hasVotedInCycle(address _user, uint256 _cycleIndex) external view returns (bool) {
+        require(cycles[_cycleIndex].startBlock > 0, "Cycle does not exist");
+        return cycles[_cycleIndex].voted[_user];
+    }
+
+    /// @notice Check if a user has voted in a specific cycle
     /// @param _user The address of the user
     /// @return bool True if the user has voted, false otherwise
-    function hasVotedInCurrentCycle(address _user) external view returns (bool) {
-        return cycles[currentCycle].voted[_user];
+    function hasVotedInCycle(address _user) external view returns (bool) {
+        return hasVotedInCycle(_user, currentCycle);
     }
 
     /// @notice Get the start block of a cycle
