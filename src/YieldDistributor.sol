@@ -60,9 +60,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     IVotingStreakMultiplier public votingStreakMultiplier;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _votingStreakMultiplier) {
+    constructor() {
         _disableInitializers();
-        votingStreakMultiplier = IVotingStreakMultiplier(_votingStreakMultiplier);
     }
 
     function initialize(
@@ -74,17 +73,19 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects
+        address[] memory _projects,
+        address _votingStreakMultiplier
     ) public initializer {
         __Ownable_init(msg.sender);
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0
+                || _projects.length == 0 || _votingStreakMultiplier == address(0)
         ) {
             revert MustBeGreaterThanZero();
         }
 
+        votingStreakMultiplier = IVotingStreakMultiplier(_votingStreakMultiplier);
         BREAD = Bread(_bread);
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;
