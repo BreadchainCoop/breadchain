@@ -1,25 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
 import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title VotingStreakMultiplier
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
-contract VotingStreakMultiplier is
-    Initializable,
-    ERC721Upgradeable,
-    OwnableUpgradeable,
-    IMultiplier,
-    IVotingStreakMultiplier
-{
+contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier, IVotingStreakMultiplier {
     /// @notice The maximum multiplier incrementation
     uint256 public maxMultiplier;
 
@@ -54,7 +46,6 @@ contract VotingStreakMultiplier is
         public
         initializer
     {
-        __ERC721_init(name, symbol);
         __Ownable_init(msg.sender);
 
         yieldDistributor = YieldDistributor(_yieldDistributor);
