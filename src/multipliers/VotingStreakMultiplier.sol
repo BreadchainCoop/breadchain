@@ -67,7 +67,7 @@ contract VotingStreakMultiplier is
     function onVoteCast(address voter) external {
         require(msg.sender == address(yieldDistributor), "Only YieldDistributor can call");
 
-        uint256 currentMultiplier = userToMultiplier[voter];
+        uint256 currentMultiplier = getMultiplyingFactor(voter);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
