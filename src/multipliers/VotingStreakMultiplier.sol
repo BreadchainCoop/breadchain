@@ -9,10 +9,10 @@ import {YieldDistributor} from "src/YieldDistributor.sol";
 import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-/// @title VotingStreakMultiplier
-/// @notice A contract for managing voting streak multipliers as NFTs
-/// @dev Implements IDynamicNFTMultiplier interface
 
+/// @title VotingStreakMultiplier
+/// @notice A contract for managing voting streak multipliers
+/// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
 contract VotingStreakMultiplier is
     Initializable,
     ERC721Upgradeable,
