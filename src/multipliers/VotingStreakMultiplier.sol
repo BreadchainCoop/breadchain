@@ -67,7 +67,7 @@ contract VotingStreakMultiplier is
     function onVoteCast(address voter) external {
         require(msg.sender == address(yieldDistributor), "Only YieldDistributor can call");
 
-        uint256 currentMultiplier = getMultiplyingFactor(voter);
+        uint256 currentMultiplier = _getMultiplyingFactor(voter);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
@@ -82,6 +82,13 @@ contract VotingStreakMultiplier is
     /// @param user The address of the user
     /// @return The current multiplying factor
     function getMultiplyingFactor(address user) external view override returns (uint256) {
+        return _getMultiplyingFactor(user);
+    }
+
+    /// @notice Internal function to get the current multiplying factor for a user
+    /// @param user The address of the user
+    /// @return The current multiplying factor
+    function _getMultiplyingFactor(address user) internal view returns (uint256) {
         if (block.number > userToValidity[user]) {
             return 0;
         }
