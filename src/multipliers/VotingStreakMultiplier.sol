@@ -5,13 +5,12 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
-import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title VotingStreakMultiplier
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
-contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier, IVotingStreakMultiplier {
+contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier {
     /// @notice The maximum multiplier incrementation
     uint256 public maxMultiplier;
 
