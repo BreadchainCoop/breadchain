@@ -77,7 +77,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             return;
         }
 
-        uint256 currentMultiplier = _getMultiplyingFactor(user);
+        uint256 currentMultiplier = getMultiplyingFactor(user);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
