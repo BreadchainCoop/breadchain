@@ -20,7 +20,6 @@ contract DeployYieldDistributor is Script {
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
     address _owner = stdJson.readAddress(config_data, "._owner");
-    address _votingStreakMultiplier = stdJson.readAddress(config_data, "._votingStreakMultiplier");
     bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
     address[] projects = abi.decode(projectsRaw, (address[]));
     bytes initData = abi.encodeWithSelector(
@@ -33,8 +32,7 @@ contract DeployYieldDistributor is Script {
         _cycleLength,
         _yieldFixedSplitDivisor,
         _lastClaimedBlockNumber,
-        projects,
-        _votingStreakMultiplier
+        projects
     );
 
     function run() external {

@@ -10,7 +10,6 @@ import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
 import {VotingMultipliers} from "src/VotingMultipliers.sol";
-import {IVotingStreakMultiplier} from "src/interfaces/multipliers/IVotingStreakMultiplier.sol";
 
 /**
  * @title Breadchain Yield Distributor
@@ -71,19 +70,17 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects,
-        address _votingStreakMultiplier
+        address[] memory _projects
     ) public initializer {
         __Ownable_init(msg.sender);
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0 || _votingStreakMultiplier == address(0)
+                || _projects.length == 0
         ) {
             revert MustBeGreaterThanZero();
         }
 
-        votingStreakMultiplier = IVotingStreakMultiplier(_votingStreakMultiplier);
         BREAD = Bread(_bread);
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
         PRECISION = _precision;

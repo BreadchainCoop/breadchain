@@ -81,8 +81,8 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             }
 
             IMultiplier multiplier = allowlistedMultipliers[index];
+            multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
-                multiplier.updateMultiplyingFactor(_user);
                 _totalMultiplier += multiplier.getMultiplyingFactor(_user);
             }
         }
