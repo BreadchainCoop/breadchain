@@ -53,37 +53,39 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         maxMultiplier = _maxMultiplier;
     }
 
-    /// @notice Updates the user's multiplier when a vote is cast
-    /// @param voter The address of the voter
-    function onVoteCast(address voter) external {
-        require(msg.sender == address(yieldDistributor), "Only YieldDistributor can call");
-
-        uint256 currentMultiplier = _getMultiplyingFactor(voter);
-        uint256 newMultiplier = (currentMultiplier == 0)
-            ? multiplierIncrement
-            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
-
-        userToMultiplier[voter] = newMultiplier;
-        userToValidity[voter] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
-
-        emit MultiplierUpdated(voter, newMultiplier, userToValidity[voter]);
-    }
-
     /// @notice Gets the current multiplying factor for a user
     /// @param user The address of the user
     /// @return The current multiplying factor
     function getMultiplyingFactor(address user) external view override returns (uint256) {
-        return _getMultiplyingFactor(user);
+        if (
+            yieldDistributor.accountLastVoted(user)
+                > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
+                && block.number < userToValidity[user]
+        ) {
+            return userToMultiplier[user];
+        }
+        return 0;
     }
 
-    /// @notice Internal function to get the current multiplying factor for a user
-    /// @param user The address of the user
-    /// @return The current multiplying factor
-    function _getMultiplyingFactor(address user) internal view returns (uint256) {
-        if (block.number > userToValidity[user]) {
-            return 0;
+    function updateMultiplyingFactor(address user) external override {
+        // Check if user has already voted in current cycle
+        uint256 lastVotedBlock = yieldDistributor.accountLastVoted(user);
+        uint256 lastClaimedBlock = yieldDistributor.lastClaimedBlockNumber();
+        uint256 cycleLength = yieldDistributor.cycleLength();
+
+        // If user has already voted in current cycle, do nothing
+        if (lastVotedBlock > lastClaimedBlock - cycleLength) {
+            return;
         }
-        return userToMultiplier[user];
+
+        uint256 currentMultiplier = _getMultiplyingFactor(user);
+        uint256 newMultiplier = (currentMultiplier == 0)
+            ? multiplierIncrement
+            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
+
+        userToMultiplier[user] = newMultiplier;
+        userToValidity[user] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
+        emit MultiplierUpdated(user, newMultiplier, userToValidity[user]);
     }
 
     /// @notice Gets the validity period for a user's multiplier
