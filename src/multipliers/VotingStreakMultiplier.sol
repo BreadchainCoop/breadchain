@@ -66,6 +66,8 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         return 0;
     }
 
+    /// @notice Updates the multiplying factor for a user
+    /// @param user The address of the user
     function updateMultiplyingFactor(address user) external override {
         // Check if user has already voted in current cycle
         uint256 lastVotedBlock = yieldDistributor.accountLastVoted(user);

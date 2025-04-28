@@ -28,4 +28,10 @@ contract MockMultiplier is IMultiplier {
     function validUntil(address /* _user */ ) external view returns (uint256) {
         return _validUntil;
     }
+
+    /// @notice Updates the multiplying factor for a user
+    /// @param user The address of the user
+    function updateMultiplyingFactor(address user) external {
+        return;
+    }
 }
