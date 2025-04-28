@@ -29,9 +29,17 @@ contract MockMultiplier is IMultiplier {
         return _validUntil;
     }
 
-    /// @notice Updates the multiplying factor for a user
-    /// @param user The address of the user
-    function updateMultiplyingFactor(address user) external {
+    /// @notice Updates the multiplying factor
+    /// @param _newMultiplyingFactor The new multiplying factor
+    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure {
+        _multiplyingFactor = _newMultiplyingFactor;
+        return;
+    }
+
+    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
+    /// @dev This function does nothing and always returns, as the actual multiplier update logic
+    ///      is handled by passing a new multiplying factor to updateMultiplyingFactor(uint256)
+    function updateMultiplyingFactor() external pure {
         return;
     }
 }

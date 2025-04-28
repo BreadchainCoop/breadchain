@@ -55,7 +55,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Gets the current multiplying factor for a user
     /// @param user The address of the user
     /// @return The current multiplying factor
-    function getMultiplyingFactor(address user) external view override returns (uint256) {
+    function getMultiplyingFactor(address user) public view override returns (uint256) {
         if (
             yieldDistributor.accountLastVoted(user)
                 > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
@@ -66,9 +66,17 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         return 0;
     }
 
-    /// @notice Updates the multiplying factor for a user
+    /// @notice Gets the current multiplying factor for a user
     /// @param user The address of the user
-    function updateMultiplyingFactor(address user) external override {
+    /// @return The current multiplying factor
+    function _getMultiplyingFactor(address user) external view returns (uint256) {
+        return getMultiplyingFactor(user);
+    }
+
+    /// @notice Updates the multiplying factor for a user
+    function updateMultiplyingFactor() external override {
+        address user = msg.sender;
+
         // Check if user has already voted in current cycle
         uint256 lastVotedBlock = yieldDistributor.accountLastVoted(user);
         uint256 lastClaimedBlock = yieldDistributor.lastClaimedBlockNumber();
@@ -87,6 +95,14 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         userToMultiplier[user] = newMultiplier;
         userToValidity[user] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
         emit MultiplierUpdated(user, newMultiplier, userToValidity[user]);
+    }
+
+    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
+    /// @dev This function does nothing and always returns, as the actual multiplier update logic
+    ///      is handled by the parameterless updateMultiplyingFactor() function
+    /// @param _newMultiplyingFactor Unused parameter
+    function updateMultiplyingFactor(uint256 /* _newMultiplyingFactor */ ) external pure override {
+        return;
     }
 
     /// @notice Gets the validity period for a user's multiplier

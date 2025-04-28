@@ -66,6 +66,13 @@ contract NFTMultiplier is INFTMultiplier, Initializable, Ownable2StepUpgradeable
         multiplyingFactor = _newMultiplyingFactor;
     }
 
+    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
+    /// @dev This function does nothing and always returns, as the actual multiplier update logic
+    ///      is handled by passing a new multiplying factor to updateMultiplyingFactor(uint256)
+    function updateMultiplyingFactor() external onlyOwner {
+        return;
+    }
+
     /// @notice Update the valid until block
     /// @param _newValidUntilBlock New block number until which the multiplier is valid
     function updateValidUntilBlock(uint256 _newValidUntilBlock) external onlyOwner {

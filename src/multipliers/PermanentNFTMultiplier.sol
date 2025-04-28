@@ -24,6 +24,7 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     /// @notice Get the multiplying factor for a _user
     /// @param _user The address of the _user
     /// @return The multiplying factor if the _user has an NFT, 0 otherwise
+
     function getMultiplyingFactor(address _user) external view override returns (uint256) {
         return hasNFT(_user) ? FACTOR : 0;
     }
@@ -39,5 +40,18 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     /// @return True if the _user owns at least one NFT, false otherwise
     function hasNFT(address _user) public view override returns (bool) {
         return NFT_ADDRESS.balanceOf(_user) > 0;
+    }
+
+    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
+    /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
+    /// @param _newMultiplyingFactor Unused parameter
+    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure override {
+        return;
+    }
+
+    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
+    /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
+    function updateMultiplyingFactor() external pure override {
+        return;
     }
 }
