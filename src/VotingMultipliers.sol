@@ -71,7 +71,7 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @param _user The address of the user
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
-    function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public view returns (uint256) {
+    function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public returns (uint256) {
         uint256 _totalMultiplier = 0;
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {

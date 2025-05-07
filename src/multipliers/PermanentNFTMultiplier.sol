@@ -44,15 +44,13 @@ contract PermanentNFTMultiplier is INFTMultiplier {
 
     /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
     /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
-    /// @param _newMultiplyingFactor Unused parameter
-    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure override {
+    function updateMultiplyingFactor(uint256 /* _newMultiplyingFactor */ ) external pure override {
         return;
     }
 
     /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
     /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
-    /// @param _user Unused parameter
-    function updateMultiplyingFactor(address _user) external pure override {
+    function updateMultiplyingFactor(address /* _user */ ) external pure override {
         return;
     }
 }

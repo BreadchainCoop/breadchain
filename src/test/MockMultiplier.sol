@@ -31,7 +31,7 @@ contract MockMultiplier is IMultiplier {
 
     /// @notice Updates the multiplying factor
     /// @param _newMultiplyingFactor The new multiplying factor
-    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure {
+    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external {
         _multiplyingFactor = _newMultiplyingFactor;
         return;
     }
@@ -39,8 +39,7 @@ contract MockMultiplier is IMultiplier {
     /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
     /// @dev This function does nothing and always returns, as the actual multiplier update logic
     ///      is handled by passing a new multiplying factor to updateMultiplyingFactor(uint256)
-    /// @param _user Unused parameter
-    function updateMultiplyingFactor(address _user) external pure {
+    function updateMultiplyingFactor(address /* _user */ ) external pure {
         return;
     }
 }
