@@ -6,8 +6,9 @@ interface IMultiplier {
     /// @param _newMultiplyingFactor The new multiplying factor
     function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external;
 
-    /// @notice Updates the multiplying factor
-    function updateMultiplyingFactor() external;
+    /// @notice Updates the multiplying factor for a specific user
+    /// @param _user The address of the user to update the multiplying factor for
+    function updateMultiplyingFactor(address _user) external;
 
     /// @notice Returns the multiplying factor for `_user`.
     function getMultiplyingFactor(address _user) external view returns (uint256);

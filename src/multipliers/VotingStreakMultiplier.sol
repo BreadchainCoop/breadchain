@@ -74,11 +74,10 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     }
 
     /// @notice Updates the multiplying factor for a user
-    function updateMultiplyingFactor() external override {
-        address user = msg.sender;
-
+    /// @param _user The address of the user to update the multiplying factor for
+    function updateMultiplyingFactor(address _user) external override {
         // Check if user has already voted in current cycle
-        uint256 lastVotedBlock = yieldDistributor.accountLastVoted(user);
+        uint256 lastVotedBlock = yieldDistributor.accountLastVoted(_user);
         uint256 lastClaimedBlock = yieldDistributor.lastClaimedBlockNumber();
         uint256 cycleLength = yieldDistributor.cycleLength();
 
@@ -87,21 +86,21 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             return;
         }
 
-        uint256 currentMultiplier = getMultiplyingFactor(user);
+        uint256 currentMultiplier = getMultiplyingFactor(_user);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
 
-        userToMultiplier[user] = newMultiplier;
-        userToValidity[user] = yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength();
-        emit MultiplierUpdated(user, newMultiplier, userToValidity[user]);
+        userToMultiplier[_user] = newMultiplier;
+        userToValidity[_user] = lastClaimedBlock + 2 * cycleLength;
+        emit MultiplierUpdated(_user, newMultiplier, userToValidity[_user]);
     }
 
     /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
     /// @dev This function does nothing and always returns, as the actual multiplier update logic
     ///      is handled by the parameterless updateMultiplyingFactor() function
     /// @param _newMultiplyingFactor Unused parameter
-    function updateMultiplyingFactor(uint256 /* _newMultiplyingFactor */ ) external pure override {
+    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure override {
         return;
     }
 

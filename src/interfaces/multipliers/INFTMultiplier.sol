@@ -17,9 +17,9 @@ interface INFTMultiplier is IMultiplier {
     /// @return True if the _user owns at least one NFT, false otherwise
     function hasNFT(address _user) external view returns (bool);
 
-    /// @notice Updates the multiplying factor
-    /// @param _newMultiplyingFactor The new multiplying factor
-    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external;
+    /// @notice Updates the multiplying factor for a specific user
+    /// @param _user The address of the user to update the multiplying factor for
+    function updateMultiplyingFactor(address _user) external;
 
     /// @notice Updates the multiplying factor
     function updateMultiplyingFactor() external;
