@@ -9,6 +9,8 @@ import {ERC20VotesUpgradeable} from
 import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {ButteredBread} from "src/ButteredBread.sol";
@@ -17,7 +19,6 @@ import {MockMultiplier} from "src/test/MockMultiplier.sol";
 import {IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
 import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
-import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
