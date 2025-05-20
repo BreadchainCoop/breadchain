@@ -32,6 +32,26 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @param validity The new validity period
     event MultiplierUpdated(address indexed user, uint256 newFactor, uint256 validity);
 
+    // /// @notice Emitted when a user's multiplier is not updated
+    // /// @param lastVotedBlock The last voted block number
+    // /// @param lastClaimedBlock The last claimed block number
+    // /// @param lastClaimedBlockPlusCycleLength The last claimed block number + cycle length
+    // event MultiplierFailUpdated(
+    //     uint256 lastVotedBlock, uint256 lastClaimedBlock, uint256 lastClaimedBlockPlusCycleLength
+    // );
+
+    // /// @notice Emitted when a user's multiplier is not updated
+    // /// @param user The address of the user
+    // /// @param currentMultiplier The current multiplier factor
+    // /// @param validity The validity period
+    // event MultiplierIs(address indexed user, uint256 currentMultiplier, uint256 validity);
+
+    // /// @notice Emitted when a user's multiplier is ended
+    // /// @param lastVotedBlock The last voted block number
+    // /// @param previousCycleBlock The last voted block number
+    // /// @param blockNumber The last claimed block number
+    // event MultiplierEnded(uint256 lastVotedBlock, uint256 previousCycleBlock, uint256 blockNumber);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -59,10 +79,11 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         if (
             yieldDistributor.accountLastVoted(user)
                 > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
-                && block.number < userToValidity[user]
+                && block.number <= userToValidity[user]
         ) {
             return userToMultiplier[user];
         }
+
         return 0;
     }
 
@@ -82,11 +103,13 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         uint256 cycleLength = yieldDistributor.cycleLength();
 
         // If user has already voted in current cycle, do nothing
-        if (lastVotedBlock > lastClaimedBlock - cycleLength) {
+        if (lastVotedBlock > lastClaimedBlock) {
+            // emit MultiplierFailUpdated(lastVotedBlock, lastClaimedBlock, lastClaimedBlock + cycleLength);
             return;
         }
 
         uint256 currentMultiplier = getMultiplyingFactor(_user);
+        // emit MultiplierIs(_user, currentMultiplier, userToValidity[_user]);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
