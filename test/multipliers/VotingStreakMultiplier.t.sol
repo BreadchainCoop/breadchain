@@ -84,14 +84,14 @@ contract VoteStreakMultiplierTest is Test {
         yieldDistributor.addMultiplier(IMultiplier(address(proxy)));
     }
 
-    // CYCLE 1
-    function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor) public {
-        vm.roll(START - (_cycleLength));
+    function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor, uint256 iterator) public {
+        // vm.roll(START - (_cycleLength));
+        vm.roll(START + (_cycleLength * (iterator)));
         _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(_yieldDistributor));
-        vm.roll(START);
+        vm.roll(START + (_cycleLength * ((iterator) + 1)));
     }
 
     function setUpAccountsForVoting(address[] memory accounts) public {
@@ -101,39 +101,6 @@ contract VoteStreakMultiplierTest is Test {
             vm.prank(accounts[i]);
             bread.mint{value: _minVotingAmount}(accounts[i]);
         }
-    }
-
-    // CYCLE 2
-    function setUpForNextCycle(YieldDistributorTestWrapper _yieldDistributor) public {
-        vm.roll(START);
-
-        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
-        address owner = bread.owner();
-        vm.prank(owner);
-        bread.setYieldClaimer(address(_yieldDistributor));
-        vm.roll(START + _cycleLength);
-    }
-
-    // CYCLE 3
-    function setUpForThirdCycle(YieldDistributorTestWrapper _yieldDistributor) public {
-        vm.roll(START + _cycleLength);
-
-        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
-        address owner = bread.owner();
-        vm.prank(owner);
-        bread.setYieldClaimer(address(_yieldDistributor));
-        vm.roll(START + 2 * _cycleLength);
-    }
-
-    // CYCLE 4
-    function setUpForFourthCycle(YieldDistributorTestWrapper _yieldDistributor) public {
-        vm.roll(START + 2 * _cycleLength);
-
-        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
-        address owner = bread.owner();
-        vm.prank(owner);
-        bread.setYieldClaimer(address(_yieldDistributor));
-        vm.roll(START + 3 * _cycleLength);
     }
 
     function castVote(address account) public {
@@ -146,23 +113,31 @@ contract VoteStreakMultiplierTest is Test {
         vm.stopPrank();
     }
 
-    // when an account votes, it sets the account's multiplier to multiplierIncrement
-    function test_multiplier_increment_after_vote() public {
-        // Set up test account
+    function setUpTestAccount() public returns (address) {
         address testAccount = address(0x1234);
         address[] memory accounts = new address[](1);
         accounts[0] = testAccount;
         setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
+        return testAccount;
+    }
 
-        // Get the VotingStreakMultiplier contract
+    function setUpVotingStreakMultiplier() public returns (VotingStreakMultiplier) {
         VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
         multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
+        multiplier.setMaxMultiplier(MAX_MULTIPLIER);
+        return multiplier;
+    }
+
+    // when an account votes, it sets the account's multiplier to multiplierIncrement
+    function test_multiplier_increment_after_vote() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -171,21 +146,14 @@ contract VoteStreakMultiplierTest is Test {
 
     // when the account votes again in the same cycle, the account's multiplier value does not change
     function test_multiplier_no_change_after_vote_in_same_cycle() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
-
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -200,21 +168,14 @@ contract VoteStreakMultiplierTest is Test {
 
     // when the account votes in 2 subsequent cycles, the account's multiplier is updated to 2 * multiplierIncrement
     function test_multiplier_increment_after_2_subsequent_cycles() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
-
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -223,12 +184,10 @@ contract VoteStreakMultiplierTest is Test {
             multiplier.validUntil(testAccount),
             yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
         );
-        // Roll to the next cycle
-        // vm.roll(START + _cycleLength);
-        // setUpAccountsForVotingNext(accounts);
-        setUpForNextCycle(yieldDistributor);
 
-        // Cast a vote
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
         castVote(testAccount);
 
         // Verify multiplier was updated to 2 * multiplierIncrement
@@ -237,21 +196,14 @@ contract VoteStreakMultiplierTest is Test {
 
     // when the account votes in 3 subsequent cycles, the account's multiplier is updated to 3 * multiplierIncrement
     function test_multiplier_increment_after_3_subsequent_cycles() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
-
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -260,20 +212,20 @@ contract VoteStreakMultiplierTest is Test {
             multiplier.validUntil(testAccount),
             yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
         );
-        // Roll to the next cycle
-        // vm.roll(START + _cycleLength);
-        // setUpAccountsForVotingNext(accounts);
-        setUpForNextCycle(yieldDistributor);
 
-        // Cast a vote
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
         castVote(testAccount);
 
         // Verify multiplier was updated to 2 * multiplierIncrement
         assertEq(multiplier.getMultiplyingFactor(testAccount), 2 * multiplier.multiplierIncrement());
 
-        setUpForThirdCycle(yieldDistributor);
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to 3 * multiplierIncrement
@@ -282,21 +234,14 @@ contract VoteStreakMultiplierTest is Test {
 
     // when the account has voted in 4 subsequent cycles, the account's multiplier is equal to maxMultiplier
     function test_multiplier_increment_after_4_subsequent_cycles() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
-        multiplier.setMaxMultiplier(MAX_MULTIPLIER);
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -305,51 +250,45 @@ contract VoteStreakMultiplierTest is Test {
             multiplier.validUntil(testAccount),
             yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
         );
-        // Roll to the next cycle
-        // vm.roll(START + _cycleLength);
-        // setUpAccountsForVotingNext(accounts);
-        setUpForNextCycle(yieldDistributor);
 
-        // Cast a vote
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
         castVote(testAccount);
 
         // Verify multiplier was updated to 2 * multiplierIncrement
         assertEq(multiplier.getMultiplyingFactor(testAccount), 2 * multiplier.multiplierIncrement());
 
-        setUpForThirdCycle(yieldDistributor);
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to 3 * multiplierIncrement
         assertEq(multiplier.getMultiplyingFactor(testAccount), 3 * multiplier.multiplierIncrement());
 
-        setUpForFourthCycle(yieldDistributor);
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Cast a vote
         castVote(testAccount);
 
-        // Verify multiplier was updated to 3 * multiplierIncrement
+        // Verify multiplier does not exceed maxMultiplier * multiplierIncrement
         assertEq(multiplier.getMultiplyingFactor(testAccount), MAX_MULTIPLIER * MULTIPLIER_INCREMENT);
     }
 
     // when the account votes, but has not voted in the previous cycle, the multiplier is reset
     function test_multiplier_reset_after_missed_cycle() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
-
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
         // Initial multiplier should be 0
         assertEq(multiplier.getMultiplyingFactor(testAccount), 0);
 
-        // Cast a vote
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplierIncrement
@@ -358,42 +297,37 @@ contract VoteStreakMultiplierTest is Test {
             multiplier.validUntil(testAccount),
             yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
         );
-        // Roll to the next cycle
-        // vm.roll(START + _cycleLength);
-        // setUpAccountsForVotingNext(accounts);
-        setUpForNextCycle(yieldDistributor);
 
-        // Cast a vote
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
         castVote(testAccount);
 
         // Verify multiplier was updated to 2 * multiplierIncrement
         assertEq(multiplier.getMultiplyingFactor(testAccount), 2 * multiplier.multiplierIncrement());
 
-        setUpForThirdCycle(yieldDistributor);
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        setUpForFourthCycle(yieldDistributor);
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Cast a vote
         castVote(testAccount);
 
-        // Verify multiplier was updated to 3 * multiplierIncrement
+        // Verify multiplier was reset to the base multiplier
         assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplierIncrement());
     }
 
     // when the account votes, the multiplier validity is updated to a block number equal to the last claimed block number + 2 * cycleLength
     function test_multiplier_validity_after_vote() public {
-        // Set up test account
-        address testAccount = address(0x1234);
-        address[] memory accounts = new address[](1);
-        accounts[0] = testAccount;
-        setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributor);
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Get the VotingStreakMultiplier contract
-        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
-
-        // Cast a vote
         castVote(testAccount);
 
         // Verify the multiplier validity is updated to the last claimed block number + 2 * cycleLength
