@@ -97,14 +97,6 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         emit MultiplierUpdated(_user, newMultiplier, userToValidity[_user]);
     }
 
-    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
-    /// @dev This function does nothing and always returns, as the actual multiplier update logic
-    ///      is handled by the parameterless updateMultiplyingFactor() function
-    /// @param _newMultiplyingFactor Unused parameter
-    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external pure override {
-        return;
-    }
-
     /// @notice Gets the validity period for a user's multiplier
     /// @param user The address of the user
     /// @return The block number until which the multiplier is valid

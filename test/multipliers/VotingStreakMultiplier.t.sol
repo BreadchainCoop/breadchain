@@ -21,7 +21,7 @@ abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
     function mint(address receiver) external payable virtual;
 }
 
-contract VoteStreakMultiplierTest is Test {
+contract VotingStreakMultiplierTest is Test {
     uint256 constant START = 32_323_232_323;
     uint256 constant MULTIPLIER_INCREMENT = 0.02e20;
     uint256 constant MAX_MULTIPLIER = 3;

@@ -42,15 +42,9 @@ contract PermanentNFTMultiplier is INFTMultiplier {
         return NFT_ADDRESS.balanceOf(_user) > 0;
     }
 
-    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
-    /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
-    function updateMultiplyingFactor(uint256 /* _newMultiplyingFactor */ ) external pure override {
-        return;
-    }
-
-    /// @notice This is a no-op function that exists solely to implement the IMultiplier interface
-    /// @dev This function does nothing and always returns, as this contract defines a permanent multiplier
-    function updateMultiplyingFactor(address /* _user */ ) external pure override {
+    /// @notice Updates the multiplying factor for a specific user
+    /// @param _user The address of the user to update the multiplying factor for
+    function updateMultiplyingFactor(address _user) external pure override {
         return;
     }
 }
