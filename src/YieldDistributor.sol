@@ -72,7 +72,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _lastClaimedBlockNumber,
         address[] memory _projects
     ) public initializer {
-        __Ownable_init(msg.sender);
+        VotingMultipliers.initialize();
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
