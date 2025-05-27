@@ -11,16 +11,6 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract
-    function initialize() public initializer {
-        __Ownable_init(msg.sender);
-    }
-
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external onlyOwner {
