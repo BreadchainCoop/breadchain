@@ -11,6 +11,9 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
 contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier {
+    /// @notice Error emitted when an invalid multiplier increment is provided
+    error InvalidMultiplierIncrement();
+
     /// @notice The maximum number of times the multiplier can be incremented
     uint256 public maxMultiplierIncrements;
 
@@ -107,6 +110,11 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Sets the multiplier increment value
     /// @param _multiplierIncrement The new multiplier increment value
     function setMultiplierIncrement(uint256 _multiplierIncrement) external onlyOwner {
+        // Check if the value is properly formatted as a fixed-point percentage
+        // e.g., 0.02e18 (2%) is valid, but 2 (200%) is not
+        if (_multiplierIncrement >= 1e18 || _multiplierIncrement < 1e16) {
+            revert InvalidMultiplierIncrement();
+        }
         multiplierIncrement = _multiplierIncrement;
     }
 

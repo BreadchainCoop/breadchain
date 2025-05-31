@@ -621,6 +621,24 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         // Verify multiplier was reset to the base multiplier
         assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplierIncrement());
     }
+
+    function test_set_invalid_multiplier_increment() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+
+        // Try to set multiplier increment to 2 (200%)
+        vm.expectRevert(VotingStreakMultiplier.InvalidMultiplierIncrement.selector);
+        multiplier.setMultiplierIncrement(2);
+    }
+
+    function test_set_valid_multiplier_increment() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+
+        // Set multiplier increment to 2% (0.02e18)
+        multiplier.setMultiplierIncrement(0.02e18);
+
+        // Verify the multiplier increment was set correctly
+        assertEq(multiplier.multiplierIncrement(), 0.02e18);
+    }
 }
 
 contract VotingMultipliersTest is YieldDistributorTest {
