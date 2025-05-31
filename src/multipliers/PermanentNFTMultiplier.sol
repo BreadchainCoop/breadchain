@@ -42,8 +42,7 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     }
 
     /// @notice Updates the multiplying factor for a specific user
-    /// @param _user The address of the user to update the multiplying factor for
-    function updateMultiplyingFactor(address _user) external pure override {
+    function updateMultiplyingFactor(address /* _user */ ) external pure override {
         return;
     }
 }
