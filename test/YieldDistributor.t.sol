@@ -456,7 +456,7 @@ contract YieldDistributorTest is Test {
 
 contract VotingStreakMultiplierTest is YieldDistributorTest {
     uint256 constant MULTIPLIER_INCREMENT = 0.02e18; // 2% in fixed-point representation
-    uint256 constant MAX_MULTIPLIER = 3;
+    uint256 constant MAX_MULTIPLIER_INCREMENTS = 3;
 
     function setUp() public override {
         super.setUp();
@@ -465,7 +465,10 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
 
         // Create initialization data
         bytes memory initDataForMultiplier = abi.encodeWithSelector(
-            VotingStreakMultiplier.initialize.selector, address(yieldDistributor), MULTIPLIER_INCREMENT, MAX_MULTIPLIER
+            VotingStreakMultiplier.initialize.selector,
+            address(yieldDistributor),
+            MULTIPLIER_INCREMENT,
+            MAX_MULTIPLIER_INCREMENTS
         );
 
         // Deploy proxy
@@ -533,8 +536,9 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
             if (i == 0) {
                 expectedMultiplier = multiplier.multiplierIncrement();
             } else {
-                expectedMultiplier =
-                    Math.min((i + 1) * multiplier.multiplierIncrement(), MAX_MULTIPLIER * MULTIPLIER_INCREMENT);
+                expectedMultiplier = Math.min(
+                    (i + 1) * multiplier.multiplierIncrement(), MAX_MULTIPLIER_INCREMENTS * MULTIPLIER_INCREMENT
+                );
             }
 
             // Verify multiplier was updated correctly

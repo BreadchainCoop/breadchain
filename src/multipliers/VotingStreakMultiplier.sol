@@ -11,8 +11,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
 contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier {
-    /// @notice The maximum multiplier incrementation
-    uint256 public maxMultiplier;
+    /// @notice The maximum number of times the multiplier can be incremented
+    uint256 public maxMultiplierIncrements;
 
     /// @notice The increment value for the multiplier
     /// @dev must be a fixed-point representation of the percentage i.e. 0.02e18 (2%)
@@ -41,8 +41,8 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Initializes the contract
     /// @param _yieldDistributor The address of the YieldDistributor contract
     /// @param _multiplierIncrement The initial multiplier increment value
-    /// @param _maxMultiplier The maximum multiplier value
-    function initialize(address _yieldDistributor, uint256 _multiplierIncrement, uint256 _maxMultiplier)
+    /// @param _maxMultiplierIncrements The maximum number of times the multiplier can be incremented
+    function initialize(address _yieldDistributor, uint256 _multiplierIncrement, uint256 _maxMultiplierIncrements)
         public
         initializer
     {
@@ -50,7 +50,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
         yieldDistributor = YieldDistributor(_yieldDistributor);
         multiplierIncrement = _multiplierIncrement;
-        maxMultiplier = _maxMultiplier;
+        maxMultiplierIncrements = _maxMultiplierIncrements;
     }
 
     /// @notice Gets the current multiplying factor for a user
@@ -91,7 +91,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         uint256 currentMultiplier = getMultiplyingFactor(_user);
         uint256 newMultiplier = (currentMultiplier == 0)
             ? multiplierIncrement
-            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
+            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplierIncrements * multiplierIncrement);
 
         userToMultiplier[_user] = newMultiplier;
         userToValidUntil[_user] = lastClaimedBlock + (2 * cycleLength);
@@ -110,9 +110,9 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         multiplierIncrement = _multiplierIncrement;
     }
 
-    /// @notice Sets the maximum multiplier value
-    /// @param _maxMultiplier The new maximum multiplier value
-    function setMaxMultiplier(uint256 _maxMultiplier) external onlyOwner {
-        maxMultiplier = _maxMultiplier;
+    /// @notice Sets the maximum number of times the multiplier can be incremented
+    /// @param _maxMultiplierIncrements The new maximum number of times the multiplier can be incremented
+    function setMaxMultiplierIncrements(uint256 _maxMultiplierIncrements) external onlyOwner {
+        maxMultiplierIncrements = _maxMultiplierIncrements;
     }
 }
