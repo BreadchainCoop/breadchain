@@ -455,25 +455,8 @@ contract YieldDistributorTest is Test {
 }
 
 contract VotingStreakMultiplierTest is YieldDistributorTest {
-    // uint256 constant START = 32_323_232_323;
-    uint256 constant MULTIPLIER_INCREMENT = 0.02e20;
+    uint256 constant MULTIPLIER_INCREMENT = 0.02e18; // 2% in fixed-point representation
     uint256 constant MAX_MULTIPLIER = 3;
-
-    // YieldDistributorTestWrapper public yieldDistributor;
-    // string public deployConfigPath = string(bytes("./test/test_deploy.json"));
-    // string config_data = vm.readFile(deployConfigPath);
-
-    // address _bread = stdJson.readAddress(config_data, "._bread");
-    // Bread public bread = Bread(address(_bread));
-    // ButteredBread public butteredBread = ButteredBread(address(_bread));
-
-    // uint256 _precision = stdJson.readUint(config_data, "._precision");
-    // uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
-    // uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
-    // uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
-    // uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
-    // uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
-    // uint256 _minVotingAmount = stdJson.readUint(config_data, "._minVotingAmount");
 
     function setUp() public override {
         super.setUp();
@@ -523,10 +506,8 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         return testAccount;
     }
 
-    function setUpVotingStreakMultiplier() public returns (VotingStreakMultiplier) {
+    function setUpVotingStreakMultiplier() public view returns (VotingStreakMultiplier) {
         VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
-        multiplier.setMultiplierIncrement(MULTIPLIER_INCREMENT);
-        multiplier.setMaxMultiplier(MAX_MULTIPLIER);
         return multiplier;
     }
 

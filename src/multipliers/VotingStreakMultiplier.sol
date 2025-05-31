@@ -15,6 +15,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     uint256 public maxMultiplier;
 
     /// @notice The increment value for the multiplier
+    /// @dev must be a fixed-point representation of the percentage i.e. 0.02e18 (2%)
     uint256 public multiplierIncrement;
 
     /// @notice The YieldDistributor contract
@@ -24,7 +25,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     mapping(address => uint256) public userToMultiplier;
 
     /// @notice Mapping of user addresses to their multiplier validity period
-    mapping(address => uint256) public userToValidity;
+    mapping(address => uint256) public userToValidUntil;
 
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
@@ -59,7 +60,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         if (
             yieldDistributor.accountLastVoted(user)
                 > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
-                && block.number <= userToValidity[user]
+                && block.number <= userToValidUntil[user]
         ) {
             return userToMultiplier[user];
         }
@@ -67,11 +68,11 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         return 0;
     }
 
-    /// @notice Gets the current multiplying factor for a user
+    /// @notice Gets the validity period for a user's multiplier
     /// @param user The address of the user
-    /// @return The current multiplying factor
-    function _getMultiplyingFactor(address user) external view returns (uint256) {
-        return getMultiplyingFactor(user);
+    /// @return The block number until which the multiplier is valid
+    function validUntil(address user) external view override returns (uint256) {
+        return userToValidUntil[user];
     }
 
     /// @notice Updates the multiplying factor for a user
@@ -93,15 +94,8 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             : Math.min(currentMultiplier + multiplierIncrement, maxMultiplier * multiplierIncrement);
 
         userToMultiplier[_user] = newMultiplier;
-        userToValidity[_user] = lastClaimedBlock + 2 * cycleLength;
-        emit MultiplierUpdated(_user, newMultiplier, userToValidity[_user]);
-    }
-
-    /// @notice Gets the validity period for a user's multiplier
-    /// @param user The address of the user
-    /// @return The block number until which the multiplier is valid
-    function validUntil(address user) external view override returns (uint256) {
-        return userToValidity[user];
+        userToValidUntil[_user] = lastClaimedBlock + (2 * cycleLength);
+        emit MultiplierUpdated(_user, newMultiplier, userToValidUntil[_user]);
     }
 
     /// @notice Sets the YieldDistributor contract address

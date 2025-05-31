@@ -24,7 +24,6 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     /// @notice Get the multiplying factor for a _user
     /// @param _user The address of the _user
     /// @return The multiplying factor if the _user has an NFT, 0 otherwise
-
     function getMultiplyingFactor(address _user) external view override returns (uint256) {
         return hasNFT(_user) ? FACTOR : 0;
     }
