@@ -77,7 +77,7 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
     function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public returns (uint256) {
-        uint256 _totalMultiplier = 0;
+        uint256 _totalMultiplier = 1e18; // Start with 100% (1.0)
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
@@ -88,7 +88,8 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             IMultiplier multiplier = allowlistedMultipliers[index];
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
-                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+                uint256 factor = multiplier.getMultiplyingFactor(_user);
+                _totalMultiplier += factor;
             }
         }
         return _totalMultiplier;
