@@ -18,7 +18,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     uint256 public maxMultiplierIncrements;
 
     /// @notice The increment value for the multiplier
-    /// @dev must be a fixed-point representation of the percentage i.e. 0.02e18 (2%)
+    /// @dev must be a fixed-point representation of the percentage i.e. 1.02e18 (102%)
     uint256 public multiplierIncrement;
 
     /// @notice The YieldDistributor contract
@@ -110,9 +110,9 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Sets the multiplier increment value
     /// @param _multiplierIncrement The new multiplier increment value
     function setMultiplierIncrement(uint256 _multiplierIncrement) external onlyOwner {
-        // Check if the value is properly formatted as a fixed-point percentage
-        // e.g., 0.02e18 (2%) is valid, but 2 (200%) is not
-        if (_multiplierIncrement >= 1e18 || _multiplierIncrement < 1e16) {
+        // Check if the value is properly formatted as a fixed-point percentage greater than 100%
+        // e.g., 1.02e18 (102%) is valid, but 0.02e18 (2%) is not
+        if (_multiplierIncrement <= 1e18) {
             revert InvalidMultiplierIncrement();
         }
         multiplierIncrement = _multiplierIncrement;

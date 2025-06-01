@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title VotingMultipliers
 /// @notice A contract for managing voting multipliers
@@ -89,10 +90,12 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
-                _totalMultiplier += factor;
+                // Add only the bonus amount (factor - 1e18) to the total
+                _totalMultiplier += (factor - 1e18);
             }
         }
-        return _totalMultiplier;
+        // Ensure we never return less than 100% (1e18)
+        return Math.max(_totalMultiplier, 1e18);
     }
 
     /// @notice Calculates the total multiplier for a given user

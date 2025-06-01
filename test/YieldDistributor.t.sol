@@ -625,19 +625,19 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
     function test_set_invalid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 
-        // Try to set multiplier increment to 2 (200%)
+        // Try to set multiplier increment to 2%
         vm.expectRevert(VotingStreakMultiplier.InvalidMultiplierIncrement.selector);
-        multiplier.setMultiplierIncrement(2);
+        multiplier.setMultiplierIncrement(0.02e18);
     }
 
     function test_set_valid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 
-        // Set multiplier increment to 2% (0.02e18)
-        multiplier.setMultiplierIncrement(0.02e18);
+        // Set multiplier increment to 102% (1.02e18)
+        multiplier.setMultiplierIncrement(1.02e18);
 
         // Verify the multiplier increment was set correctly
-        assertEq(multiplier.multiplierIncrement(), 0.02e18);
+        assertEq(multiplier.multiplierIncrement(), 1.02e18);
     }
 }
 
@@ -718,8 +718,11 @@ contract VotingMultipliersTest is YieldDistributorTest {
         vm.startPrank(voter);
         yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
 
-        // Expected voting power = initial * (1.5 + 2.0)
-        uint256 expectedVotingPower = (initialVotingPower * 3.5e18) / yieldDistributor.PRECISION();
+        // Expected voting power = initial * boost
+        // Start with base 100% (1e18) and add only the bonus amounts
+        uint256 totalMultiplier = 1e18; // Base 100%
+        totalMultiplier += (1.5e18 - 1e18) + (2e18 - 1e18); // Add bonuses from both multipliers
+        uint256 expectedVotingPower = (initialVotingPower * totalMultiplier) / yieldDistributor.PRECISION();
         assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
         vm.stopPrank();
     }
@@ -815,7 +818,13 @@ contract VotingMultipliersTest is YieldDistributorTest {
         yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
 
         // Calculate expected total multiplier based on number of indices
-        uint256 totalMultiplier = numIndices == 1 ? multiplier1Factor : (multiplier1Factor + multiplier2Factor);
+        // Start with base 100% (1e18) and add only the bonus amounts
+        uint256 totalMultiplier = 1e18; // Base 100%
+        if (numIndices == 1) {
+            totalMultiplier += (multiplier1Factor - 1e18); // Add bonus from first multiplier
+        } else {
+            totalMultiplier += (multiplier1Factor - 1e18) + (multiplier2Factor - 1e18); // Add bonuses from both multipliers
+        }
         uint256 expectedVotingPower = (initialVotingPower * totalMultiplier) / yieldDistributor.PRECISION();
 
         assertApproxEqRel(yieldDistributor.projectDistributions(0), expectedVotingPower, 1e15); // Allow 0.1% deviation
@@ -827,7 +836,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
 
         // Create array of mock multipliers
         MockMultiplier[] memory multipliers = new MockMultiplier[](numMultipliers);
-        uint256 expectedTotalMultiplier = 0;
+        uint256 expectedTotalMultiplier = 1e18; // Start with base 100%
         uint256 numValidMultipliers = 0;
         // Set up each multiplier with unique factor based on seed
         for (uint8 i = 0; i < numMultipliers; i++) {
@@ -849,7 +858,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
             yieldDistributor.addMultiplier(multipliers[i]);
 
             if (!isExpired) {
-                expectedTotalMultiplier += multiplierFactor;
+                expectedTotalMultiplier += (multiplierFactor - 1e18); // Add only the bonus amount
                 numValidMultipliers++;
             }
         }
