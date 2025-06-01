@@ -90,8 +90,10 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
-                // Add only the bonus amount (factor - 1e18) to the total
-                _totalMultiplier += (factor - 1e18);
+                if (factor > 1e18) {
+                    // Add only the bonus amount (factor - 1e18) to the total
+                    _totalMultiplier += (factor - 1e18);
+                }
             }
         }
         // Ensure we never return less than 100% (1e18)
@@ -103,13 +105,18 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @return The total multiplier value for the _user
     /// @dev This function is intended for frontend and testing purposes
     function getTotalMultipliers(address _user) public view returns (uint256) {
-        uint256 _totalMultiplier = 0;
+        uint256 _totalMultiplier = 1e18;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
-                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+                uint256 factor = multiplier.getMultiplyingFactor(_user);
+                if (factor > 1e18) {
+                    // Add only the bonus amount (factor - 1e18) to the total
+                    _totalMultiplier += (factor - 1e18);
+                }
             }
         }
-        return _totalMultiplier;
+        // Ensure we never return less than 100% (1e18)
+        return Math.max(_totalMultiplier, 1e18);
     }
 }

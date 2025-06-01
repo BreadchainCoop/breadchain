@@ -18,8 +18,14 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     uint256 public maxMultiplierIncrements;
 
     /// @notice The increment value for the multiplier
-    /// @dev must be a fixed-point representation of the percentage i.e. 1.02e18 (102%)
+    /// @dev must be a fixed-point representation of the percentage i.e. 1e18 (1%)
     uint256 public multiplierIncrement;
+
+    /// @notice The value for the multiplier
+    /// @dev must be a fixed-point representation of the percentage i.e. 1.01e18 (101%)
+    uint256 public multiplyingFactor;
+
+    //TODO update so that each cycle applies the multiplierIncrement on top of the multiplyingFactor
 
     /// @notice The YieldDistributor contract
     YieldDistributor public yieldDistributor;
@@ -43,15 +49,19 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
     /// @notice Initializes the contract
     /// @param _yieldDistributor The address of the YieldDistributor contract
+    /// @param _multiplyingFactor The initial multiplying factor value
     /// @param _multiplierIncrement The initial multiplier increment value
     /// @param _maxMultiplierIncrements The maximum number of times the multiplier can be incremented
-    function initialize(address _yieldDistributor, uint256 _multiplierIncrement, uint256 _maxMultiplierIncrements)
-        public
-        initializer
-    {
+    function initialize(
+        address _yieldDistributor,
+        uint256 _multiplyingFactor,
+        uint256 _multiplierIncrement,
+        uint256 _maxMultiplierIncrements
+    ) public initializer {
         __Ownable_init(msg.sender);
 
         yieldDistributor = YieldDistributor(_yieldDistributor);
+        multiplyingFactor = _multiplyingFactor;
         multiplierIncrement = _multiplierIncrement;
         maxMultiplierIncrements = _maxMultiplierIncrements;
     }
@@ -68,7 +78,8 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             return userToMultiplier[user];
         }
 
-        return 0;
+        // If the user does not have a multiplier, returning 1e18 ensures that the user's voting power is not modified by this multiplier
+        return 1e18;
     }
 
     /// @notice Gets the validity period for a user's multiplier
@@ -93,8 +104,11 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
         uint256 currentMultiplier = getMultiplyingFactor(_user);
         uint256 newMultiplier = (currentMultiplier == 0)
-            ? multiplierIncrement
-            : Math.min(currentMultiplier + multiplierIncrement, maxMultiplierIncrements * multiplierIncrement);
+            ? multiplyingFactor
+            : Math.min(
+                currentMultiplier + multiplierIncrement,
+                (multiplyingFactor + (maxMultiplierIncrements * multiplierIncrement))
+            );
 
         userToMultiplier[_user] = newMultiplier;
         userToValidUntil[_user] = lastClaimedBlock + (2 * cycleLength);
@@ -116,6 +130,12 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             revert InvalidMultiplierIncrement();
         }
         multiplierIncrement = _multiplierIncrement;
+    }
+
+    /// @notice Sets the multiplying factor value
+    /// @param _multiplyingFactor The new multiplying factor value
+    function setMultiplyingFactor(uint256 _multiplyingFactor) external onlyOwner {
+        multiplyingFactor = _multiplyingFactor;
     }
 
     /// @notice Sets the maximum number of times the multiplier can be incremented
