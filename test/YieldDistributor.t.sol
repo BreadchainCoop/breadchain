@@ -455,7 +455,6 @@ contract YieldDistributorTest is Test {
 }
 
 contract VotingStreakMultiplierTest is YieldDistributorTest {
-    uint256 constant MULTIPLYING_FACTOR = 1.01e18; // 101% in fixed-point representation
     uint256 constant MULTIPLIER_INCREMENT = 0.01e18; // 1% in fixed-point representation
     uint256 constant MAX_MULTIPLIER_INCREMENTS = 3;
 
@@ -468,7 +467,6 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         bytes memory initDataForMultiplier = abi.encodeWithSelector(
             VotingStreakMultiplier.initialize.selector,
             address(yieldDistributor),
-            MULTIPLYING_FACTOR,
             MULTIPLIER_INCREMENT,
             MAX_MULTIPLIER_INCREMENTS
         );
@@ -523,11 +521,12 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
 
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
         address testAccount = setUpTestAccount();
+        uint256 baseMultiplier = 1e18;
         uint256 cycleIterator = 0;
         setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Initial multiplier should be 1e18
-        assertEq(multiplier.getMultiplyingFactor(testAccount), 1e18);
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
 
         // Vote in each cycle and verify multiplier
         for (uint8 i = 0; i < numCycles; i++) {
@@ -536,11 +535,11 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
             // Calculate expected multiplier based on cycle number
             uint256 expectedMultiplier;
             if (i == 0) {
-                expectedMultiplier = MULTIPLYING_FACTOR;
+                expectedMultiplier = baseMultiplier + multiplier.multiplierIncrement();
             } else {
                 // For each cycle, add the bonus amount from multiplierIncrement
-                uint256 numIncrements = Math.min(i, MAX_MULTIPLIER_INCREMENTS);
-                expectedMultiplier = MULTIPLYING_FACTOR + (numIncrements * MULTIPLIER_INCREMENT);
+                uint256 numIncrements = Math.min(i + 1, MAX_MULTIPLIER_INCREMENTS);
+                expectedMultiplier = baseMultiplier + (numIncrements * multiplier.multiplierIncrement());
             }
 
             // Verify multiplier was updated correctly
@@ -565,21 +564,22 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
         address testAccount = setUpTestAccount();
         uint256 cycleIterator = 0;
+        uint256 baseMultiplier = 1e18;
         setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Initial multiplier should be 1e18
-        assertEq(multiplier.getMultiplyingFactor(testAccount), 1e18);
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
 
         castVote(testAccount);
 
         // Verify multiplier was updated to multiplyingFactor
-        assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplyingFactor());
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
 
         // Cast a vote again in the same cycle
         castVote(testAccount);
 
         // Verify multiplier value did not change
-        assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplyingFactor());
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
     }
 
     // when the account votes, but has not voted in the previous cycle, the multiplier is reset
@@ -587,15 +587,16 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
         address testAccount = setUpTestAccount();
         uint256 cycleIterator = 0;
+        uint256 baseMultiplier = 1e18;
         setUpForCycle(yieldDistributor, cycleIterator);
 
-        // Initial multiplier should be 1e18
-        assertEq(multiplier.getMultiplyingFactor(testAccount), 1e18);
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
 
         castVote(testAccount);
 
-        // Verify multiplier was updated to multiplyingFactor
-        assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplyingFactor());
+        // Verify multiplier was increased by multiplierIncrement
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
         assertEq(
             multiplier.validUntil(testAccount),
             yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
@@ -607,11 +608,8 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
 
         castVote(testAccount);
 
-        // Verify multiplier was updated by multiplierIncrement
-        assertEq(
-            multiplier.getMultiplyingFactor(testAccount),
-            multiplier.multiplyingFactor() + multiplier.multiplierIncrement()
-        );
+        // Verify multiplier was increased by multiplierIncrement
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + (2 * multiplier.multiplierIncrement()));
 
         // Roll to the next cycle
         cycleIterator++;
@@ -623,26 +621,26 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
 
         castVote(testAccount);
 
-        // Verify multiplier was reset to the base multiplier
-        assertEq(multiplier.getMultiplyingFactor(testAccount), multiplier.multiplyingFactor());
+        // Verify multiplier was reset
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
     }
 
     function test_set_invalid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 
-        // Try to set multiplier increment to 2%
+        // Try to set multiplier increment to 0
         vm.expectRevert(VotingStreakMultiplier.InvalidMultiplierIncrement.selector);
-        multiplier.setMultiplierIncrement(0.02e18);
+        multiplier.setMultiplierIncrement(0);
     }
 
     function test_set_valid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 
-        // Set multiplier increment to 102% (1.02e18)
-        multiplier.setMultiplierIncrement(1.02e18);
+        // Set multiplier increment to 2% (0.02e18)
+        multiplier.setMultiplierIncrement(0.02e18);
 
         // Verify the multiplier increment was set correctly
-        assertEq(multiplier.multiplierIncrement(), 1.02e18);
+        assertEq(multiplier.multiplierIncrement(), 0.02e18);
     }
 }
 

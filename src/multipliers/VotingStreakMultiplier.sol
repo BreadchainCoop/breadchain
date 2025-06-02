@@ -11,8 +11,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
 contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier {
-    /// @notice Error emitted when an invalid multiplier increment is provided
-    error InvalidMultiplierIncrement();
+    /// @notice The base multiplier value (100% in fixed-point representation)
+    uint256 constant BASE_MULTIPLIER = 1e18;
 
     /// @notice The maximum number of times the multiplier can be incremented
     uint256 public maxMultiplierIncrements;
@@ -20,12 +20,6 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice The increment value for the multiplier
     /// @dev must be a fixed-point representation of the percentage i.e. 1e18 (1%)
     uint256 public multiplierIncrement;
-
-    /// @notice The value for the multiplier
-    /// @dev must be a fixed-point representation of the percentage i.e. 1.01e18 (101%)
-    uint256 public multiplyingFactor;
-
-    //TODO update so that each cycle applies the multiplierIncrement on top of the multiplyingFactor
 
     /// @notice The YieldDistributor contract
     YieldDistributor public yieldDistributor;
@@ -35,6 +29,9 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
     /// @notice Mapping of user addresses to their multiplier validity period
     mapping(address => uint256) public userToValidUntil;
+
+    /// @notice Error emitted when an invalid multiplier increment is provided
+    error InvalidMultiplierIncrement();
 
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
@@ -49,19 +46,15 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
     /// @notice Initializes the contract
     /// @param _yieldDistributor The address of the YieldDistributor contract
-    /// @param _multiplyingFactor The initial multiplying factor value
     /// @param _multiplierIncrement The initial multiplier increment value
     /// @param _maxMultiplierIncrements The maximum number of times the multiplier can be incremented
-    function initialize(
-        address _yieldDistributor,
-        uint256 _multiplyingFactor,
-        uint256 _multiplierIncrement,
-        uint256 _maxMultiplierIncrements
-    ) public initializer {
+    function initialize(address _yieldDistributor, uint256 _multiplierIncrement, uint256 _maxMultiplierIncrements)
+        public
+        initializer
+    {
         __Ownable_init(msg.sender);
 
         yieldDistributor = YieldDistributor(_yieldDistributor);
-        multiplyingFactor = _multiplyingFactor;
         multiplierIncrement = _multiplierIncrement;
         maxMultiplierIncrements = _maxMultiplierIncrements;
     }
@@ -79,7 +72,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         }
 
         // If the user does not have a multiplier, returning 1e18 ensures that the user's voting power is not modified by this multiplier
-        return 1e18;
+        return BASE_MULTIPLIER;
     }
 
     /// @notice Gets the validity period for a user's multiplier
@@ -103,11 +96,10 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         }
 
         uint256 currentMultiplier = getMultiplyingFactor(_user);
-        uint256 newMultiplier = (currentMultiplier == 0)
-            ? multiplyingFactor
+        uint256 newMultiplier = (currentMultiplier == BASE_MULTIPLIER)
+            ? BASE_MULTIPLIER + multiplierIncrement
             : Math.min(
-                currentMultiplier + multiplierIncrement,
-                (multiplyingFactor + (maxMultiplierIncrements * multiplierIncrement))
+                currentMultiplier + multiplierIncrement, (BASE_MULTIPLIER + (maxMultiplierIncrements * multiplierIncrement))
             );
 
         userToMultiplier[_user] = newMultiplier;
@@ -124,18 +116,10 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Sets the multiplier increment value
     /// @param _multiplierIncrement The new multiplier increment value
     function setMultiplierIncrement(uint256 _multiplierIncrement) external onlyOwner {
-        // Check if the value is properly formatted as a fixed-point percentage greater than 100%
-        // e.g., 1.02e18 (102%) is valid, but 0.02e18 (2%) is not
-        if (_multiplierIncrement <= 1e18) {
+        if (_multiplierIncrement == 0) {
             revert InvalidMultiplierIncrement();
         }
         multiplierIncrement = _multiplierIncrement;
-    }
-
-    /// @notice Sets the multiplying factor value
-    /// @param _multiplyingFactor The new multiplying factor value
-    function setMultiplyingFactor(uint256 _multiplyingFactor) external onlyOwner {
-        multiplyingFactor = _multiplyingFactor;
     }
 
     /// @notice Sets the maximum number of times the multiplier can be incremented
