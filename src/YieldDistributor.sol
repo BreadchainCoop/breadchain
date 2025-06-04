@@ -236,7 +236,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
-        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
+        uint256 multiplier = calculateTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);
