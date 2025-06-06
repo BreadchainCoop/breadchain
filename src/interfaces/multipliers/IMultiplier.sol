@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
+
 interface IMultiplier {
     /// @notice Updates the multiplying factor for a specific user
     /// @param _user The address of the user to update the multiplying factor for

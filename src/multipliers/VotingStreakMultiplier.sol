@@ -11,9 +11,6 @@ import {YieldDistributor} from "src/YieldDistributor.sol";
 /// @notice A contract for managing voting streak multipliers
 /// @dev Implements IMultiplier and IVotingStreakMultiplier interfaces
 contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplier {
-    /// @notice The base multiplier value (100% in fixed-point representation)
-    uint256 constant BASE_MULTIPLIER = 1e18;
-
     /// @notice The maximum number of times the multiplier can be incremented
     uint256 public maxMultiplierIncrements;
 
@@ -72,7 +69,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         }
 
         // If the user does not have a multiplier, returning 1e18 ensures that the user's voting power is not modified by this multiplier
-        return BASE_MULTIPLIER;
+        return MultiplierConstants.BASE_MULTIPLIER;
     }
 
     /// @notice Gets the validity period for a user's multiplier
@@ -96,10 +93,11 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         }
 
         uint256 currentMultiplier = getMultiplyingFactor(_user);
-        uint256 newMultiplier = (currentMultiplier == BASE_MULTIPLIER)
-            ? BASE_MULTIPLIER + multiplierIncrement
+        uint256 newMultiplier = (currentMultiplier == MultiplierConstants.BASE_MULTIPLIER)
+            ? MultiplierConstants.BASE_MULTIPLIER + multiplierIncrement
             : Math.min(
-                currentMultiplier + multiplierIncrement, (BASE_MULTIPLIER + (maxMultiplierIncrements * multiplierIncrement))
+                currentMultiplier + multiplierIncrement,
+                (MultiplierConstants.BASE_MULTIPLIER + (maxMultiplierIncrements * multiplierIncrement))
             );
 
         userToMultiplier[_user] = newMultiplier;

@@ -9,9 +9,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 /// @notice A contract for managing voting multipliers
 /// @dev Implements IVotingMultipliers interface
 contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
-    /// @notice The base multiplier value (100% in fixed-point representation)
-    uint256 constant BASE_MULTIPLIER = 1e18;
-
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
 
@@ -82,7 +79,7 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
     function calculateTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public returns (uint256) {
-        uint256 _totalMultiplier = BASE_MULTIPLIER; // Start with 100% (1.0)
+        uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
@@ -94,13 +91,13 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
-                if (factor > BASE_MULTIPLIER) {
+                if (factor > MultiplierConstants.BASE_MULTIPLIER) {
                     // Add only the bonus amount to the total
-                    _totalMultiplier += (factor - BASE_MULTIPLIER);
+                    _totalMultiplier += (factor - MultiplierConstants.BASE_MULTIPLIER);
                 }
             }
         }
-        return Math.max(_totalMultiplier, BASE_MULTIPLIER);
+        return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
     }
 
     /// @notice Calculates the total multiplier for a given user
@@ -108,17 +105,17 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @return The total multiplier value for the _user
     /// @dev This function is intended for frontend and testing purposes
     function getTotalMultipliers(address _user) public view returns (uint256) {
-        uint256 _totalMultiplier = BASE_MULTIPLIER;
+        uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
-                if (factor > BASE_MULTIPLIER) {
+                if (factor > MultiplierConstants.BASE_MULTIPLIER) {
                     // Add only the bonus amount to the total
-                    _totalMultiplier += (factor - BASE_MULTIPLIER);
+                    _totalMultiplier += (factor - MultiplierConstants.BASE_MULTIPLIER);
                 }
             }
         }
-        return Math.max(_totalMultiplier, BASE_MULTIPLIER);
+        return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
     }
 }
