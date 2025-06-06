@@ -3,9 +3,9 @@ pragma solidity ^0.8.22;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title VotingStreakMultiplier
 /// @notice A contract for managing voting streak multipliers

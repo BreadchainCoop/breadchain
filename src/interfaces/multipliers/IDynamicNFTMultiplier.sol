@@ -11,7 +11,6 @@ interface IDynamicNFTMultiplier is INFTMultiplier {
     /// @param _user The address of the _user
     /// @return The multiplying factor for the _user
     function userToFactor(address _user) external view returns (uint256);
-
     /// @notice Get the validity period for a _user's factor
     /// @param _user The address of the _user
     /// @return The timestamp until which the _user's factor is valid
