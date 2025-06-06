@@ -60,10 +60,9 @@ contract NFTMultiplier is INFTMultiplier, Initializable, Ownable2StepUpgradeable
         return validUntilBlock;
     }
 
-    /// @notice Update the multiplying factor
-    /// @param _newMultiplyingFactor New multiplying factor (in basis points)
-    function updateMultiplyingFactor(uint256 _newMultiplyingFactor) external onlyOwner {
-        multiplyingFactor = _newMultiplyingFactor;
+    /// @notice Updates the multiplying factor for a specific user
+    function updateMultiplyingFactor(address /* _user */ ) external pure {
+        return;
     }
 
     /// @notice Update the valid until block

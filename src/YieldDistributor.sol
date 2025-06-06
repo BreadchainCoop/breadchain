@@ -43,11 +43,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     address[] public queuedProjectsForAddition;
     /// @notice Array of projects queued for removal from the next cycle
     address[] public queuedProjectsForRemoval;
-    /// @notice The voting power allocated to projects by voters in the current cycle
+    /// @notice The voting power allocated to each project by voters in the current cycle
     uint256[] public projectDistributions;
     /// @notice The last block number in which a specified account cast a vote
     mapping(address => uint256) public accountLastVoted;
-    /// @notice The voting power allocated to projects by voters in the current cycle
+    /// @notice The voting power allocated to each project by a specific voter in the current cycle
     mapping(address => uint256[]) voterDistributions;
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
@@ -72,7 +72,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _lastClaimedBlockNumber,
         address[] memory _projects
     ) public initializer {
-        __Ownable_init(msg.sender);
+        VotingMultipliers.initialize();
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
@@ -236,7 +236,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices) public {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
-        uint256 multiplier = getTotalMultipliers(msg.sender, _multiplierIndices);
+        uint256 multiplier = calculateTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = multiplier == 0 ? _currentVotingPower : (_currentVotingPower * multiplier) / PRECISION;
         if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
         _castVote(msg.sender, _points, _currentVotingPower);

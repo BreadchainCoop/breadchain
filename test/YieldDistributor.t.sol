@@ -9,15 +9,18 @@ import {ERC20VotesUpgradeable} from
 import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {TransparentUpgradeableProxy} from
     "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {ButteredBread} from "src/ButteredBread.sol";
 import {VotingMultipliers, IVotingMultipliers} from "src/VotingMultipliers.sol";
+import {VotingStreakMultiplier} from "src/multipliers/VotingStreakMultiplier.sol";
 import {MockMultiplier} from "src/test/MockMultiplier.sol";
 import {IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
 import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
-import {IERC721} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
     function claimYield(uint256 amount, address receiver) public virtual;
@@ -451,6 +454,196 @@ contract YieldDistributorTest is Test {
     }
 }
 
+contract VotingStreakMultiplierTest is YieldDistributorTest {
+    uint256 constant MULTIPLIER_INCREMENT = 0.01e18; // 1% in fixed-point representation
+    uint256 constant MAX_MULTIPLIER_INCREMENTS = 3;
+
+    function setUp() public override {
+        super.setUp();
+
+        VotingStreakMultiplier multiplierImplementation = new VotingStreakMultiplier();
+
+        // Create initialization data
+        bytes memory initDataForMultiplier = abi.encodeWithSelector(
+            VotingStreakMultiplier.initialize.selector,
+            address(yieldDistributor),
+            MULTIPLIER_INCREMENT,
+            MAX_MULTIPLIER_INCREMENTS
+        );
+
+        // Deploy proxy
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(multiplierImplementation),
+            address(this), // admin
+            initDataForMultiplier
+        );
+
+        // Add the proxied multiplier to the yield distributor
+        yieldDistributor.addMultiplier(IMultiplier(address(proxy)));
+    }
+
+    function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor, uint256 iterator) public {
+        vm.roll(START + (_cycleLength * (iterator)));
+        _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
+        address owner = bread.owner();
+        vm.prank(owner);
+        bread.setYieldClaimer(address(_yieldDistributor));
+        vm.roll(START + (_cycleLength * ((iterator) + 1)));
+    }
+
+    function castVote(address account) public {
+        vm.startPrank(account);
+        uint256[] memory percentages = new uint256[](1);
+        percentages[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](1);
+        multiplierIndices[0] = 0;
+        yieldDistributor.castVoteWithMultipliers(percentages, multiplierIndices);
+        vm.stopPrank();
+    }
+
+    function setUpTestAccount() public returns (address) {
+        address testAccount = address(0x1234);
+        address[] memory accounts = new address[](1);
+        accounts[0] = testAccount;
+        setUpAccountsForVoting(accounts);
+        return testAccount;
+    }
+
+    function setUpVotingStreakMultiplier() public view returns (VotingStreakMultiplier) {
+        VotingStreakMultiplier multiplier = VotingStreakMultiplier(address(yieldDistributor.allowlistedMultipliers(0)));
+        return multiplier;
+    }
+
+    // when the account votes in multiple cycles, the multiplier is updated correctly
+    function testFuzz_multiplier_increment_after_cycles(uint8 numCycles) public {
+        // Bound number of cycles to reasonable range (1-10)
+        numCycles = uint8(bound(numCycles, 1, 10));
+
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 baseMultiplier = 1e18;
+        uint256 cycleIterator = 0;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
+
+        // Vote in each cycle and verify multiplier
+        for (uint8 i = 0; i < numCycles; i++) {
+            castVote(testAccount);
+
+            // Calculate expected multiplier based on cycle number
+            uint256 expectedMultiplier;
+            if (i == 0) {
+                expectedMultiplier = baseMultiplier + multiplier.multiplierIncrement();
+            } else {
+                // For each cycle, add the bonus amount from multiplierIncrement
+                uint256 numIncrements = Math.min(i + 1, MAX_MULTIPLIER_INCREMENTS);
+                expectedMultiplier = baseMultiplier + (numIncrements * multiplier.multiplierIncrement());
+            }
+
+            // Verify multiplier was updated correctly
+            assertEq(multiplier.getMultiplyingFactor(testAccount), expectedMultiplier);
+
+            // Verify validity period
+            assertEq(
+                multiplier.validUntil(testAccount),
+                yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
+            );
+
+            // Move to next cycle if not the last cycle
+            if (i < numCycles - 1) {
+                cycleIterator++;
+                setUpForCycle(yieldDistributor, cycleIterator);
+            }
+        }
+    }
+
+    // when the account votes again in the same cycle, the account's multiplier value does not change
+    function test_multiplier_no_change_after_vote_in_same_cycle() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        uint256 baseMultiplier = 1e18;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
+
+        castVote(testAccount);
+
+        // Verify multiplier was updated to multiplyingFactor
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
+
+        // Cast a vote again in the same cycle
+        castVote(testAccount);
+
+        // Verify multiplier value did not change
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
+    }
+
+    // when the account votes, but has not voted in the previous cycle, the multiplier is reset
+    function test_multiplier_reset_after_missed_cycle() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 cycleIterator = 0;
+        uint256 baseMultiplier = 1e18;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        // Initial multiplier should be the base multiplier
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
+
+        castVote(testAccount);
+
+        // Verify multiplier was increased by multiplierIncrement
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
+        assertEq(
+            multiplier.validUntil(testAccount),
+            yieldDistributor.lastClaimedBlockNumber() + 2 * yieldDistributor.cycleLength()
+        );
+
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        castVote(testAccount);
+
+        // Verify multiplier was increased by multiplierIncrement
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + (2 * multiplier.multiplierIncrement()));
+
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        // Roll to the next cycle
+        cycleIterator++;
+        setUpForCycle(yieldDistributor, cycleIterator);
+
+        castVote(testAccount);
+
+        // Verify multiplier was reset
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
+    }
+
+    function test_set_invalid_multiplier_increment() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+
+        // Try to set multiplier increment to 0
+        vm.expectRevert(VotingStreakMultiplier.InvalidMultiplierIncrement.selector);
+        multiplier.setMultiplierIncrement(0);
+    }
+
+    function test_set_valid_multiplier_increment() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+
+        // Set multiplier increment to 2% (0.02e18)
+        multiplier.setMultiplierIncrement(0.02e18);
+
+        // Verify the multiplier increment was set correctly
+        assertEq(multiplier.multiplierIncrement(), 0.02e18);
+    }
+}
+
 contract VotingMultipliersTest is YieldDistributorTest {
     MockMultiplier public mockMultiplier1;
     MockMultiplier public mockMultiplier2;
@@ -497,7 +690,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier2)));
 
         uint256 totalMultiplier = yieldDistributor.getTotalMultipliers(address(this));
-        assertEq(totalMultiplier, factor1 + factor2);
+        assertEq(totalMultiplier, 1e18 + (factor1 - 1e18) + (factor2 - 1e18));
     }
 
     function testCastVoteWithMultipliersIndices() public {
@@ -528,8 +721,11 @@ contract VotingMultipliersTest is YieldDistributorTest {
         vm.startPrank(voter);
         yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
 
-        // Expected voting power = initial * (1.5 + 2.0)
-        uint256 expectedVotingPower = (initialVotingPower * 3.5e18) / yieldDistributor.PRECISION();
+        // Expected voting power = initial * boost
+        // Start with base 100% (1e18) and add only the bonus amounts
+        uint256 totalMultiplier = 1e18; // Base 100%
+        totalMultiplier += (1.5e18 - 1e18) + (2e18 - 1e18); // Add bonuses from both multipliers
+        uint256 expectedVotingPower = (initialVotingPower * totalMultiplier) / yieldDistributor.PRECISION();
         assertEq(yieldDistributor.projectDistributions(0), expectedVotingPower);
         vm.stopPrank();
     }
@@ -625,7 +821,13 @@ contract VotingMultipliersTest is YieldDistributorTest {
         yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
 
         // Calculate expected total multiplier based on number of indices
-        uint256 totalMultiplier = numIndices == 1 ? multiplier1Factor : (multiplier1Factor + multiplier2Factor);
+        // Start with base 100% (1e18) and add only the bonus amounts
+        uint256 totalMultiplier = 1e18; // Base 100%
+        if (numIndices == 1) {
+            totalMultiplier += (multiplier1Factor - 1e18); // Add bonus from first multiplier
+        } else {
+            totalMultiplier += (multiplier1Factor - 1e18) + (multiplier2Factor - 1e18); // Add bonuses from both multipliers
+        }
         uint256 expectedVotingPower = (initialVotingPower * totalMultiplier) / yieldDistributor.PRECISION();
 
         assertApproxEqRel(yieldDistributor.projectDistributions(0), expectedVotingPower, 1e15); // Allow 0.1% deviation
@@ -637,7 +839,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
 
         // Create array of mock multipliers
         MockMultiplier[] memory multipliers = new MockMultiplier[](numMultipliers);
-        uint256 expectedTotalMultiplier = 0;
+        uint256 expectedTotalMultiplier = 1e18; // Start with base 100%
         uint256 numValidMultipliers = 0;
         // Set up each multiplier with unique factor based on seed
         for (uint8 i = 0; i < numMultipliers; i++) {
@@ -659,7 +861,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
             yieldDistributor.addMultiplier(multipliers[i]);
 
             if (!isExpired) {
-                expectedTotalMultiplier += multiplierFactor;
+                expectedTotalMultiplier += (multiplierFactor - 1e18); // Add only the bonus amount
                 numValidMultipliers++;
             }
         }

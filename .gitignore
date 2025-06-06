@@ -3,3 +3,4 @@ cache
 out
 broadcast
 .env
+.DS_Store

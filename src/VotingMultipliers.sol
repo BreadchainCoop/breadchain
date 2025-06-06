@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title VotingMultipliers
 /// @notice A contract for managing voting multipliers
@@ -10,6 +11,11 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @notice Array of allowlisted multiplier contracts
     IMultiplier[] public allowlistedMultipliers;
+
+    /// @notice Initializes the contract
+    function initialize() public initializer {
+        __Ownable_init(msg.sender);
+    }
 
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
@@ -68,11 +74,12 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     }
 
     /// @notice Calculates the total multiplier for a given user using specific multiplier indexes
+    /// @notice Performs the updateMultiplyingFactor function for each multiplier to ensure the multiplier is up to date
     /// @param _user The address of the user
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
-    function getTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public view returns (uint256) {
-        uint256 _totalMultiplier = 0;
+    function calculateTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public returns (uint256) {
+        uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
@@ -81,11 +88,16 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             }
 
             IMultiplier multiplier = allowlistedMultipliers[index];
+            multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
-                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+                uint256 factor = multiplier.getMultiplyingFactor(_user);
+                if (factor > MultiplierConstants.BASE_MULTIPLIER) {
+                    // Add only the bonus amount to the total
+                    _totalMultiplier += (factor - MultiplierConstants.BASE_MULTIPLIER);
+                }
             }
         }
-        return _totalMultiplier;
+        return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
     }
 
     /// @notice Calculates the total multiplier for a given user
@@ -93,13 +105,17 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @return The total multiplier value for the _user
     /// @dev This function is intended for frontend and testing purposes
     function getTotalMultipliers(address _user) public view returns (uint256) {
-        uint256 _totalMultiplier = 0;
+        uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
         for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
             IMultiplier multiplier = allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
-                _totalMultiplier += multiplier.getMultiplyingFactor(_user);
+                uint256 factor = multiplier.getMultiplyingFactor(_user);
+                if (factor > MultiplierConstants.BASE_MULTIPLIER) {
+                    // Add only the bonus amount to the total
+                    _totalMultiplier += (factor - MultiplierConstants.BASE_MULTIPLIER);
+                }
             }
         }
-        return _totalMultiplier;
+        return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
     }
 }

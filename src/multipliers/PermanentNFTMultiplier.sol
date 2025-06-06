@@ -40,4 +40,9 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     function hasNFT(address _user) public view override returns (bool) {
         return NFT_ADDRESS.balanceOf(_user) > 0;
     }
+
+    /// @notice Updates the multiplying factor for a specific user
+    function updateMultiplyingFactor(address /* _user */ ) external pure override {
+        return;
+    }
 }
