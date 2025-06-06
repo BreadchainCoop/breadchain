@@ -5,6 +5,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
+import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
 
 /// @title VotingStreakMultiplier
