@@ -21,6 +21,7 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
  * @custom:coauthor github.com/daopunk
+ * @custom:coauthor github.com/secbajor
  */
 contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingMultipliers {
     /// @notice The address of the $BREAD token contract
