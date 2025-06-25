@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 
@@ -10,35 +10,58 @@ import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 /// @notice A contract for managing voting multipliers
 /// @dev Implements IVotingMultipliers interface
 contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
-    /// @notice Array of allowlisted multiplier contracts
-    IMultiplier[] public allowlistedMultipliers;
+    /// @custom:storage-location erc7201:breadchain.VotingMultipliers.storage
+    struct VotingMultipliersStorage {
+        IMultiplier[] allowlistedMultipliers;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("breadchain.VotingMultipliers.storage")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 private constant VOTING_MULTIPLIERS_STORAGE_LOCATION = 0xf8ea84bd4d45550952f40e913fd59ad03bae30b4f3dc5a09695fefe1d0465d00;
 
     /// @notice Initializes the contract
     function initialize() public initializer {
         __Ownable_init(msg.sender);
     }
 
+    function _getVotingMultipliersStorage() private pure returns (VotingMultipliersStorage storage $) {
+        assembly {
+            $.slot := VOTING_MULTIPLIERS_STORAGE_LOCATION
+        }
+    }
+
+    /// @notice Returns the multiplier at the given index
+    /// @param index The index of the multiplier
+    /// @return multiplier The multiplier at the given index
+    function allowlistedMultipliers(uint256 index) external view returns (IMultiplier multiplier) {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+        return $.allowlistedMultipliers[index];
+    }
+
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external onlyOwner {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+
         // Check if the multiplier is already allowlisted
-        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
-            if (allowlistedMultipliers[i] == _multiplier) {
+        for (uint256 i = 0; i < $.allowlistedMultipliers.length; i++) {
+            if ($.allowlistedMultipliers[i] == _multiplier) {
                 revert MultiplierAlreadyAllowlisted();
             }
         }
-        allowlistedMultipliers.push(_multiplier);
+        $.allowlistedMultipliers.push(_multiplier);
         emit MultiplierAdded(_multiplier);
     }
 
     /// @notice Removes a multiplier from the allowlist
     /// @param _multiplier The multiplier contract to be removed
     function removeMultiplier(IMultiplier _multiplier) external onlyOwner {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+
         bool isallowlisted = false;
-        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
-            if (allowlistedMultipliers[i] == _multiplier) {
-                allowlistedMultipliers[i] = allowlistedMultipliers[allowlistedMultipliers.length - 1];
-                allowlistedMultipliers.pop();
+        for (uint256 i = 0; i < $.allowlistedMultipliers.length; i++) {
+            if ($.allowlistedMultipliers[i] == _multiplier) {
+                $.allowlistedMultipliers[i] = $.allowlistedMultipliers[$.allowlistedMultipliers.length - 1];
+                $.allowlistedMultipliers.pop();
                 isallowlisted = true;
                 emit MultiplierRemoved(_multiplier);
                 break;
@@ -53,13 +76,15 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @param _user The address of the user
     /// @return uint256[] Array of valid multiplier indexes
     function getValidMultiplierIndexes(address _user) public view returns (uint256[] memory) {
-        uint256[] memory validIndexes = new uint256[](allowlistedMultipliers.length);
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+
+        uint256[] memory validIndexes = new uint256[]($.allowlistedMultipliers.length);
         uint256 count = 0;
 
-        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
+        for (uint256 i = 0; i < $.allowlistedMultipliers.length; i++) {
             if (
-                block.number <= allowlistedMultipliers[i].validUntil(_user)
-                    && allowlistedMultipliers[i].getMultiplyingFactor(_user) > 0
+                block.number <= $.allowlistedMultipliers[i].validUntil(_user)
+                    && $.allowlistedMultipliers[i].getMultiplyingFactor(_user) > 0
             ) {
                 validIndexes[count] = i;
                 count++;
@@ -80,15 +105,17 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @param _multiplierIndexes Array of multiplier indexes to use
     /// @return The total multiplier value for the user
     function calculateTotalMultipliers(address _user, uint256[] calldata _multiplierIndexes) public returns (uint256) {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+
         uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
 
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
-            if (index >= allowlistedMultipliers.length) {
+            if (index >= $.allowlistedMultipliers.length) {
                 revert InvalidMultiplierIndex();
             }
 
-            IMultiplier multiplier = allowlistedMultipliers[index];
+            IMultiplier multiplier = $.allowlistedMultipliers[index];
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
@@ -106,9 +133,11 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @return The total multiplier value for the _user
     /// @dev This function is intended for frontend and testing purposes
     function getTotalMultipliers(address _user) public view returns (uint256) {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+
         uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
-        for (uint256 i = 0; i < allowlistedMultipliers.length; i++) {
-            IMultiplier multiplier = allowlistedMultipliers[i];
+        for (uint256 i = 0; i < $.allowlistedMultipliers.length; i++) {
+            IMultiplier multiplier = $.allowlistedMultipliers[i];
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);
                 if (factor > MultiplierConstants.BASE_MULTIPLIER) {
