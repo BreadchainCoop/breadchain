@@ -37,6 +37,13 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
         return $.allowlistedMultipliers[index];
     }
 
+    /// @notice Returns the array of allowlisted multipliers
+    /// @return IMultiplier[] The array of allowlisted multipliers
+    function allowlistedMultipliers() external view returns (IMultiplier[] memory) {
+        VotingMultipliersStorage storage $ = _getVotingMultipliersStorage();
+        return $.allowlistedMultipliers;
+    }
+
     /// @notice Adds a multiplier to the allowlist
     /// @param _multiplier The multiplier contract to be added
     function addMultiplier(IMultiplier _multiplier) external onlyOwner {
