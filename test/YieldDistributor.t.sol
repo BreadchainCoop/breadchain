@@ -679,6 +679,20 @@ contract VotingMultipliersTest is YieldDistributorTest {
         yieldDistributor.removeMultiplier(IMultiplier(address(mockMultiplier1)));
     }
 
+    function testAllowlistedMultiplier() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        assertEq(address(yieldDistributor.allowlistedMultipliers(0)), address(mockMultiplier1));
+    }
+
+    function testAllowlistedMultiplierArray() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier2)));
+        IMultiplier[] memory multipliers = yieldDistributor.allowlistedMultipliers();
+        assertEq(multipliers.length, 2);
+        assertEq(address(multipliers[0]), address(mockMultiplier1));
+        assertEq(address(multipliers[1]), address(mockMultiplier2));
+    }
+
     function testGetTotalMultipliers() public {
         uint256 factor1 = 1.5e18;
         uint256 factor2 = 2e18;
