@@ -9,11 +9,11 @@ import {VotingStreakMultiplier} from "../../src/multipliers/VotingStreakMultipli
 
 contract DeployVotingStreakMultiplier is Script {
     string public deployConfigPath = string(bytes("./script/deploy/config/deployVotingStreakMultiplier.json"));
-    string config_data = vm.readFile(deployConfigPath);
-    address _yieldDistributor = stdJson.readAddress(config_data, "._yieldDistributor");
-    uint256 _multiplierIncrement = stdJson.readUint(config_data, "._multiplierIncrement");
-    uint256 _maxMultiplierIncrements = stdJson.readUint(config_data, "._maxMultiplierIncrements");
-    address _owner = stdJson.readAddress(config_data, "._owner");
+    string configData = vm.readFile(deployConfigPath);
+    address _yieldDistributor = stdJson.readAddress(configData, "._yieldDistributor");
+    uint256 _multiplierIncrement = stdJson.readUint(configData, "._multiplierIncrement");
+    uint256 _maxMultiplierIncrements = stdJson.readUint(configData, "._maxMultiplierIncrements");
+    address _owner = stdJson.readAddress(configData, "._owner");
 
     bytes initData = abi.encodeWithSelector(
         VotingStreakMultiplier.initialize.selector, _yieldDistributor, _multiplierIncrement, _maxMultiplierIncrements
