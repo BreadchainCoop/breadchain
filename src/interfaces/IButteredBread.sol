@@ -26,6 +26,8 @@ interface IButteredBread {
     event ButterAdded(address _account, address _lp, uint256 _amount);
     /// @notice The event emitted when an LP Token (Butter) has been removed
     event ButterRemoved(address _account, address _lp, uint256 _amount);
+    /// @notice Emitted whenever a scaling factor is updated for a sanctioned LP
+    event ScalingFactorModified(address indexed _lp, uint256 _previousFactor, uint256 _newFactor);
 
     /**
      * @param breadToken Address of `BreadToken`
