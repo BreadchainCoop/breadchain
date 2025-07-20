@@ -292,6 +292,19 @@ contract ButteredBreadTest_Unit is ButteredBreadTest {
         assertEq(bb.balanceOf(ALICE), adjustedVotingWeight);
     }
 
+    function testModifyScalingFactorEmitsEvent() public {
+        address lp = GNOSIS_CURVE_POOL_XDAI_BREAD;
+        uint256 oldFactor = bb.scalingFactors(lp);
+        uint256 newFactor = oldFactor + 50;   
+
+        vm.expectEmit(true, false, false, true);
+        emit IButteredBread.ScalingFactorModified(lp, oldFactor, newFactor);
+
+        bb.modifyScalingFactor(lp, newFactor, userList);
+
+        assertEq(bb.scalingFactors(lp), newFactor);
+    }
+
     function testTransferRevertFuzzy(address _receiver) public {
         vm.assume(_receiver != address(0));
         vm.startPrank(ALICE);

@@ -175,7 +175,10 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
     function _modifyScalingFactor(address _lp, uint256 _factor, address[] calldata _holders) internal {
         if (_factor < FIXED_POINT_PERCENT) revert InvalidValue();
 
+        uint256 old = scalingFactors[_lp];
         scalingFactors[_lp] = _factor;
+        emit ScalingFactorModified(_lp, old, _factor);
+
         for (uint256 i = 0; i < _holders.length; i++) {
             _syncVotingWeight(_holders[i], _lp);
         }
