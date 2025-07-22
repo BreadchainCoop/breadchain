@@ -16,6 +16,12 @@ Before the deployment workflow can run successfully, you must configure the foll
 - **Format**: 64-character hexadecimal string (with or without `0x` prefix)
 - **Security**: This wallet should be used ONLY for testnet deployments and contain only testnet tokens
 
+### 3. ETHERSCAN_API_KEY
+- **Description**: API key for contract verification on block explorer (e.g., Etherscan, Gnosisscan)
+- **Format**: Alphanumeric string provided by the block explorer service
+- **Purpose**: Enables automatic contract source code verification after deployment
+- **Optional**: Verification will be skipped if this secret is not provided
+
 ## Setting Up GitHub Secrets
 
 1. Navigate to your GitHub repository
@@ -42,8 +48,38 @@ The deployment workflow runs automatically on:
 
 1. **Build**: Compiles all contracts using `forge build`
 2. **Test**: Runs tests with fork testing using the testnet RPC
-3. **Deploy**: Executes each deployment script in sequence
-4. **Logging**: Contract addresses and transaction hashes are logged in the workflow output
+3. **Deploy**: Executes each deployment script in sequence, capturing contract addresses
+4. **Verify**: Attempts to verify each deployed contract on the block explorer
+5. **Artifact Generation**: Creates `deployment.json` with all contract addresses and verification status
+6. **Logging**: Contract addresses and transaction hashes are logged in the workflow output
+
+## Deployment Artifacts
+
+After each deployment, the workflow generates several artifacts:
+
+### deployment.json
+Contains the complete deployment information:
+```json
+{
+  "timestamp": "2024-01-01T12:00:00Z",
+  "network": "testnet", 
+  "contracts": {
+    "ButteredBread": "0x1234...",
+    "YieldDistributor": "0x5678...",
+    "NFTMultiplier": "0x9abc...",
+    "VotingStreakMultiplier": "0xdef0..."
+  },
+  "verification_status": "success"
+}
+```
+
+### Individual deployment files
+- `butteredbread_deploy.json`
+- `yielddistributor_deploy.json` 
+- `nftmultiplier_deploy.json`
+- `votingstreakMultiplier_deploy.json`
+
+These artifacts are automatically uploaded and retained for 30 days.
 
 ## Monitoring Deployments
 
@@ -66,6 +102,11 @@ The deployment workflow runs automatically on:
 2. **RPC Errors**: Verify the TESTNET_RPC_URL is correct and accessible
 3. **Private Key Format**: Ensure the private key is properly formatted (64 hex characters)
 4. **Contract Dependencies**: Some contracts may depend on others being deployed first
+5. **Verification Failures**: 
+   - Check that ETHERSCAN_API_KEY is valid and has sufficient rate limits
+   - Ensure the block explorer supports the target network
+   - Verification may fail if contracts are not yet indexed (try again later)
+6. **Missing Contract Addresses**: If deployment.json shows null addresses, check individual deployment logs for errors
 
 ### Getting Help
 
