@@ -132,11 +132,11 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         revert NonDelegatable();
     }
 
-    /// @notice Get the balance and scaling factor of a specific LP for a given account
+    /// @notice Get the LP data (balance and scaling factor) of a specific LP for a given account
     /// @param _holder The address of the account to get the data for
     /// @param _lp The address of the LP to get the data for
-    /// @return LPData memory The balance and scaling factor of the LP for the given account
-    function balanceOfLP(address _holder, address _lp) external view returns (LPData memory) {
+    /// @return LPData memory The LP data containing balance and scaling factor for the given account
+    function getLPData(address _holder, address _lp) external view returns (LPData memory) {
         return _accountToLPData[_holder][_lp];
     }
 
