@@ -1,9 +1,15 @@
 name: test
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ dev, main ]
+  push:
+    branches: [ dev, main ]
 
 env:
   FOUNDRY_PROFILE: ci
+  FOUNDRY_DISABLE_NIGHTLY_WARNING: true
 
 jobs:
   check:
@@ -32,3 +38,29 @@ jobs:
         run: |
           forge test -vvv
         id: test
+
+  upgrade-safety:
+    name: Upgrade Safety Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Create CI directory
+        run: mkdir -p test/upgrades/ci
+
+      - name: Flatten contracts for upgrade validation
+        run: |
+          forge flatten src/YieldDistributor.sol > test/upgrades/ci/YieldDistributor.sol
+          forge flatten src/ButteredBread.sol > test/upgrades/ci/ButteredBread.sol
+
+      - name: Run upgrade safety validation
+        run: |
+          forge clean && forge build
+          forge script script/upgrades/ValidateUpgrade.s.sol
