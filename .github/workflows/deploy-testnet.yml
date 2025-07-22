@@ -25,30 +25,117 @@ jobs:
       - name: Run tests
         run: forge test --fork-url ${{ secrets.TESTNET_RPC_URL }} -vvvv
 
+      - name: Initialize deployment tracking
+        run: |
+          echo '{"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "network": "testnet", "contracts": {}}' > deployment.json
+
       - name: Deploy ButteredBread
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+          forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > butteredbread_deploy.json
+          ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json)
+          if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+            jq --arg addr "$ADDRESS" '.contracts.ButteredBread = $addr' deployment.json > temp.json && mv temp.json deployment.json
+            echo "ButteredBread deployed to: $ADDRESS"
+          fi
 
       - name: Deploy YieldDistributor
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > yielddistributor_deploy.json
+          ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json)
+          if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+            jq --arg addr "$ADDRESS" '.contracts.YieldDistributor = $addr' deployment.json > temp.json && mv temp.json deployment.json
+            echo "YieldDistributor deployed to: $ADDRESS"
+          fi
 
       - name: Deploy NFTMultiplier
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+          forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > nftmultiplier_deploy.json
+          ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json)
+          if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+            jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+            echo "NFTMultiplier deployed to: $ADDRESS"
+          fi
 
       - name: Deploy VotingStreakMultiplier
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+          forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json
+          ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json)
+          if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+            jq --arg addr "$ADDRESS" '.contracts.VotingStreakMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+            echo "VotingStreakMultiplier deployed to: $ADDRESS"
+          fi
+
+      - name: Verify contracts on block explorer
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: |
+          echo "Starting contract verification..."
+          VERIFICATION_FAILED=false
+          
+          # Verify ButteredBread
+          BUTTEREDBREAD_ADDR=$(jq -r '.contracts.ButteredBread // empty' deployment.json)
+          if [ -n "$BUTTEREDBREAD_ADDR" ] && [ "$BUTTEREDBREAD_ADDR" != "null" ]; then
+            echo "Verifying ButteredBread at $BUTTEREDBREAD_ADDR..."
+            forge verify-contract "$BUTTEREDBREAD_ADDR" src/ButteredBread.sol:ButteredBread --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+          fi
+          
+          # Verify YieldDistributor
+          YIELDDISTRIBUTOR_ADDR=$(jq -r '.contracts.YieldDistributor // empty' deployment.json)
+          if [ -n "$YIELDDISTRIBUTOR_ADDR" ] && [ "$YIELDDISTRIBUTOR_ADDR" != "null" ]; then
+            echo "Verifying YieldDistributor at $YIELDDISTRIBUTOR_ADDR..."
+            forge verify-contract "$YIELDDISTRIBUTOR_ADDR" src/YieldDistributor.sol:YieldDistributor --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+          fi
+          
+          # Verify NFTMultiplier
+          NFTMULTIPLIER_ADDR=$(jq -r '.contracts.NFTMultiplier // empty' deployment.json)
+          if [ -n "$NFTMULTIPLIER_ADDR" ] && [ "$NFTMULTIPLIER_ADDR" != "null" ]; then
+            echo "Verifying NFTMultiplier at $NFTMULTIPLIER_ADDR..."
+            forge verify-contract "$NFTMULTIPLIER_ADDR" src/NFTMultiplier.sol:NFTMultiplier --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+          fi
+          
+          # Verify VotingStreakMultiplier
+          VOTINGSTREAKMULTIPLIER_ADDR=$(jq -r '.contracts.VotingStreakMultiplier // empty' deployment.json)
+          if [ -n "$VOTINGSTREAKMULTIPLIER_ADDR" ] && [ "$VOTINGSTREAKMULTIPLIER_ADDR" != "null" ]; then
+            echo "Verifying VotingStreakMultiplier at $VOTINGSTREAKMULTIPLIER_ADDR..."
+            forge verify-contract "$VOTINGSTREAKMULTIPLIER_ADDR" src/VotingStreakMultiplier.sol:VotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+          fi
+          
+          # Update deployment.json with verification status
+          if [ "$VERIFICATION_FAILED" = "true" ]; then
+            jq '.verification_status = "partial_failure"' deployment.json > temp.json && mv temp.json deployment.json
+            echo "⚠️ Some contract verifications failed. Check logs above for details."
+          else
+            jq '.verification_status = "success"' deployment.json > temp.json && mv temp.json deployment.json
+            echo "✅ All contracts verified successfully!"
+          fi
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifacts
+          path: |
+            deployment.json
+            *_deploy.json
+          retention-days: 30
+
+      - name: Display deployment summary
+        run: |
+          echo "📋 Deployment Summary"
+          echo "===================="
+          cat deployment.json | jq '.'
+          echo ""
+          echo "🔗 Contract Addresses:"
+          jq -r '.contracts | to_entries[] | "- \(.key): \(.value)"' deployment.json
