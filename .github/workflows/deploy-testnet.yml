@@ -1,0 +1,53 @@
+name: Deploy All Contracts to Testnet
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run tests
+        run: forge test --fork-url ${{ secrets.TESTNET_RPC_URL }} -vvvv
+
+      - name: Deploy ButteredBread
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+
+      - name: Deploy YieldDistributor
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+
+      - name: Deploy NFTMultiplier
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
+
+      - name: Deploy VotingStreakMultiplier
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
