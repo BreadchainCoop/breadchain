@@ -32,9 +32,9 @@ jobs:
       - name: Deploy ButteredBread
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > butteredbread_deploy.json
+          forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > butteredbread_deploy.json
           ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json)
           if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
             jq --arg addr "$ADDRESS" '.contracts.ButteredBread = $addr' deployment.json > temp.json && mv temp.json deployment.json
@@ -44,9 +44,9 @@ jobs:
       - name: Deploy YieldDistributor
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > yielddistributor_deploy.json
+          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > yielddistributor_deploy.json
           ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json)
           if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
             jq --arg addr "$ADDRESS" '.contracts.YieldDistributor = $addr' deployment.json > temp.json && mv temp.json deployment.json
@@ -56,9 +56,9 @@ jobs:
       - name: Deploy NFTMultiplier
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > nftmultiplier_deploy.json
+          forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > nftmultiplier_deploy.json
           ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json)
           if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
             jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
@@ -68,9 +68,9 @@ jobs:
       - name: Deploy VotingStreakMultiplier
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
-          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
-          forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json
+          forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json
           ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json)
           if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
             jq --arg addr "$ADDRESS" '.contracts.VotingStreakMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
