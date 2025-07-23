@@ -4823,9 +4823,9 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         if (_initData.liquidityPools.length != _initData.scalingFactors.length) revert InvalidValue();
         bread = IERC20Votes(_initData.breadToken);
 
-        __Ownable_init(msg.sender);
         __ERC20_init(_initData.name, _initData.symbol);
         __ERC20Votes_init();
+        __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
 
         for (uint256 i; i < _initData.liquidityPools.length; ++i) {
