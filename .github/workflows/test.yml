@@ -52,14 +52,6 @@ jobs:
         with:
           version: nightly
 
-      - name: Create CI directory
-        run: mkdir -p test/upgrades/ci
-
-      - name: Flatten contracts for upgrade validation
-        run: |
-          forge flatten src/YieldDistributor.sol > test/upgrades/ci/YieldDistributor.sol
-          forge flatten src/ButteredBread.sol > test/upgrades/ci/ButteredBread.sol
-
       - name: Run upgrade safety validation
         run: |
           forge clean && forge build
