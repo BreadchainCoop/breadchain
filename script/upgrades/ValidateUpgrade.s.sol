@@ -10,15 +10,15 @@ contract ValidateUpgrade is Script {
     function run() external {
         vm.startBroadcast();
         
-        // Validate that YieldDistributor implementation is upgrade-safe
+        // Validate YieldDistributor upgrade
         Options memory yieldOpts;
-        yieldOpts.unsafeSkipStorageCheck = true; // Skip storage check since we're not comparing versions
-        Upgrades.validateImplementation("YieldDistributor.sol:YieldDistributor", yieldOpts);
+        yieldOpts.referenceContract = "ci/YieldDistributor.sol:YieldDistributor";
+        Upgrades.validateUpgrade("YieldDistributor.sol:YieldDistributor", yieldOpts);
         
-        // Validate that ButteredBread implementation is upgrade-safe
+        // Validate ButteredBread upgrade
         Options memory breadOpts;
-        breadOpts.unsafeSkipStorageCheck = true; // Skip storage check since we're not comparing versions
-        Upgrades.validateImplementation("ButteredBread.sol:ButteredBread", breadOpts);
+        breadOpts.referenceContract = "ci/ButteredBread.sol:ButteredBread";
+        Upgrades.validateUpgrade("ButteredBread.sol:ButteredBread", breadOpts);
         
         vm.stopBroadcast();
     }
