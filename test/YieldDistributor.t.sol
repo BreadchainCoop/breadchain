@@ -235,7 +235,7 @@ contract YieldDistributorTest is Test {
             // Generating random values for the test
             uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
             uint256 vote = randomval % 100;
-            address holder = address(uint160(randomval));
+            address holder = vm.addr(randomval);
             uint256 token_amount = bound(randomval, _minVotingAmount, 1000 * _minVotingAmount);
 
             // Setting up the account for voting
