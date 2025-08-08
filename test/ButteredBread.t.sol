@@ -6,8 +6,8 @@ import "forge-std/StdJson.sol";
 import "forge-std/StdUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from
-    "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
@@ -15,8 +15,8 @@ import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
 import {IBread} from "bread-token/src/interfaces/IBread.sol";
-import {Ownable2StepUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
-import {ERC20Mock} from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
