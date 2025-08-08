@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {ERC20VotesUpgradeable} from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuardUpgradeable} from
@@ -47,9 +48,10 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         if (_initData.liquidityPools.length != _initData.scalingFactors.length) revert InvalidValue();
         bread = IERC20Votes(_initData.breadToken);
 
-        __Ownable_init(msg.sender);
         __ERC20_init(_initData.name, _initData.symbol);
+        __EIP712_init(_initData.name, "1");
         __ERC20Votes_init();
+        __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
 
         for (uint256 i; i < _initData.liquidityPools.length; ++i) {
