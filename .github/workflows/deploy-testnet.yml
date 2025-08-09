@@ -26,14 +26,21 @@ jobs:
       - name: Build contracts
         run: forge build
 
-      - name: Run tests
+      - name: Run tests (with fork)
+        if: ${{ secrets.TESTNET_RPC_URL != '' }}
         run: forge test --fork-url ${{ secrets.TESTNET_RPC_URL }} -vvvv
+      
+      - name: Run tests (without fork)
+        if: ${{ secrets.TESTNET_RPC_URL == '' }}
+        run: forge test -vvvv
 
       - name: Initialize deployment tracking
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         run: |
           echo '{"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "network": "testnet", "contracts": {}}' > deployment.json
 
       - name: Deploy ButteredBread
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
@@ -46,6 +53,7 @@ jobs:
           fi
 
       - name: Deploy YieldDistributor
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
@@ -58,6 +66,7 @@ jobs:
           fi
 
       - name: Deploy NFTMultiplier
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
@@ -70,6 +79,7 @@ jobs:
           fi
 
       - name: Deploy VotingStreakMultiplier
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
@@ -82,6 +92,7 @@ jobs:
           fi
 
       - name: Verify contracts on block explorer
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.ETHERSCAN_API_KEY != '' }}
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
@@ -127,6 +138,7 @@ jobs:
           fi
 
       - name: Upload deployment artifacts
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: deployment-artifacts
@@ -136,6 +148,7 @@ jobs:
           retention-days: 30
 
       - name: Display deployment summary
+        if: ${{ secrets.TESTNET_RPC_URL != '' && secrets.TESTNET_PRIVATE_KEY != '' }}
         run: |
           echo "📋 Deployment Summary"
           echo "===================="
