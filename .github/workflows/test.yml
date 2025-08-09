@@ -55,7 +55,15 @@ jobs:
       - name: Run upgrade safety validation
         run: |
           forge clean && forge build
-          forge script script/upgrades/ValidateUpgrade.s.sol
+          
+          # Check if previous flattened contracts exist
+          if [ -f "test/upgrades/flattened/previous/YieldDistributor.sol" ] && [ -f "test/upgrades/flattened/previous/ButteredBread.sol" ]; then
+            echo "Previous version found, running upgrade validation..."
+            forge script script/upgrades/ValidateUpgrade.s.sol
+          else
+            echo "No previous version found, skipping upgrade validation (initial deployment)"
+            echo "Contracts will be validated and flattened on first merge to dev"
+          fi
 
   flatten:
     name: Flatten and Track Contracts
