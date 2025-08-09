@@ -59,11 +59,24 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > butteredbread_deploy.json
-            ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json)
-            if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
-              jq --arg addr "$ADDRESS" '.contracts.ButteredBread = $addr' deployment.json > temp.json && mv temp.json deployment.json
-              echo "ButteredBread deployed to: $ADDRESS"
+            echo "Deploying ButteredBread..."
+            if forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > butteredbread_deploy.json 2>&1; then
+              # Check if the output is valid JSON
+              if jq empty butteredbread_deploy.json 2>/dev/null; then
+                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json)
+                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+                  jq --arg addr "$ADDRESS" '.contracts.ButteredBread = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  echo "✅ ButteredBread deployed to: $ADDRESS"
+                else
+                  echo "⚠️ ButteredBread deployment completed but no contract address found"
+                fi
+              else
+                echo "❌ ButteredBread deployment failed. Output:"
+                cat butteredbread_deploy.json
+              fi
+            else
+              echo "❌ ButteredBread deployment script failed"
+              cat butteredbread_deploy.json
             fi
           fi
 
@@ -75,11 +88,24 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > yielddistributor_deploy.json
-            ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json)
-            if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
-              jq --arg addr "$ADDRESS" '.contracts.YieldDistributor = $addr' deployment.json > temp.json && mv temp.json deployment.json
-              echo "YieldDistributor deployed to: $ADDRESS"
+            echo "Deploying YieldDistributor..."
+            if forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > yielddistributor_deploy.json 2>&1; then
+              # Check if the output is valid JSON
+              if jq empty yielddistributor_deploy.json 2>/dev/null; then
+                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json)
+                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+                  jq --arg addr "$ADDRESS" '.contracts.YieldDistributor = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  echo "✅ YieldDistributor deployed to: $ADDRESS"
+                else
+                  echo "⚠️ YieldDistributor deployment completed but no contract address found"
+                fi
+              else
+                echo "❌ YieldDistributor deployment failed. Output:"
+                cat yielddistributor_deploy.json
+              fi
+            else
+              echo "❌ YieldDistributor deployment script failed"
+              cat yielddistributor_deploy.json
             fi
           fi
 
@@ -91,11 +117,24 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > nftmultiplier_deploy.json
-            ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json)
-            if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
-              jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
-              echo "NFTMultiplier deployed to: $ADDRESS"
+            echo "Deploying NFTMultiplier..."
+            if forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > nftmultiplier_deploy.json 2>&1; then
+              # Check if the output is valid JSON
+              if jq empty nftmultiplier_deploy.json 2>/dev/null; then
+                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json)
+                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+                  jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  echo "✅ NFTMultiplier deployed to: $ADDRESS"
+                else
+                  echo "⚠️ NFTMultiplier deployment completed but no contract address found"
+                fi
+              else
+                echo "❌ NFTMultiplier deployment failed. Output:"
+                cat nftmultiplier_deploy.json
+              fi
+            else
+              echo "❌ NFTMultiplier deployment script failed"
+              cat nftmultiplier_deploy.json
             fi
           fi
 
@@ -107,11 +146,24 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json
-            ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json)
-            if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
-              jq --arg addr "$ADDRESS" '.contracts.VotingStreakMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
-              echo "VotingStreakMultiplier deployed to: $ADDRESS"
+            echo "Deploying VotingStreakMultiplier..."
+            if forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json 2>&1; then
+              # Check if the output is valid JSON
+              if jq empty votingstreakMultiplier_deploy.json 2>/dev/null; then
+                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json)
+                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ]; then
+                  jq --arg addr "$ADDRESS" '.contracts.VotingStreakMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  echo "✅ VotingStreakMultiplier deployed to: $ADDRESS"
+                else
+                  echo "⚠️ VotingStreakMultiplier deployment completed but no contract address found"
+                fi
+              else
+                echo "❌ VotingStreakMultiplier deployment failed. Output:"
+                cat votingstreakMultiplier_deploy.json
+              fi
+            else
+              echo "❌ VotingStreakMultiplier deployment script failed"
+              cat votingstreakMultiplier_deploy.json
             fi
           fi
 
