@@ -2,11 +2,12 @@
 pragma solidity 0.8.25;
 
 import {ERC20VotesUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuardUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import {IButteredBread} from "src/interfaces/IButteredBread.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
@@ -48,6 +49,7 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         bread = IERC20Votes(_initData.breadToken);
 
         __ERC20_init(_initData.name, _initData.symbol);
+        __EIP712_init(_initData.name, "1");
         __ERC20Votes_init();
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
@@ -132,11 +134,11 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         revert NonDelegatable();
     }
 
-    /// @notice Get the balance and scaling factor of a specific LP for a given account
+    /// @notice Get the LP data (balance and scaling factor) of a specific LP for a given account
     /// @param _holder The address of the account to get the data for
     /// @param _lp The address of the LP to get the data for
-    /// @return LPData memory The balance and scaling factor of the LP for the given account
-    function balanceOfLP(address _holder, address _lp) external view returns (LPData memory) {
+    /// @return LPData memory The LP data containing balance and scaling factor for the given account
+    function getLPData(address _holder, address _lp) external view returns (LPData memory) {
         return _accountToLPData[_holder][_lp];
     }
 

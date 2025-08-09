@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import "forge-std/console.sol";
-import "openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {GNOSIS_BREAD} from "script/Constants.s.sol";
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 
