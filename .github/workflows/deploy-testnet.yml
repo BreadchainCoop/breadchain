@@ -56,6 +56,7 @@ jobs:
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > butteredbread_deploy.json
@@ -71,6 +72,7 @@ jobs:
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > yielddistributor_deploy.json
@@ -86,6 +88,7 @@ jobs:
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > nftmultiplier_deploy.json
@@ -101,6 +104,7 @@ jobs:
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --broadcast --private-key "$TESTNET_PRIVATE_KEY" --json > votingstreakMultiplier_deploy.json
