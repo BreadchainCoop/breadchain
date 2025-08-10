@@ -61,15 +61,21 @@ jobs:
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             echo "Deploying ButteredBread..."
             
-            # Run the deployment script
+            # Run the deployment script and capture exit code
+            set +e
             forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread \
               --rpc-url "$TESTNET_RPC_URL" \
               --broadcast \
               --private-key "$TESTNET_PRIVATE_KEY" \
               --json > butteredbread_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            # Always show output for debugging
+            echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
-            if jq -e . butteredbread_deploy.json >/dev/null 2>&1; then
+            if [ $EXIT_CODE -eq 0 ] && jq -e . butteredbread_deploy.json >/dev/null 2>&1; then
               ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
               if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
@@ -97,15 +103,21 @@ jobs:
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             echo "Deploying YieldDistributor..."
             
-            # Run the deployment script
+            # Run the deployment script and capture exit code
+            set +e
             forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor \
               --rpc-url "$TESTNET_RPC_URL" \
               --broadcast \
               --private-key "$TESTNET_PRIVATE_KEY" \
               --json > yielddistributor_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            # Always show output for debugging
+            echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
-            if jq -e . yielddistributor_deploy.json >/dev/null 2>&1; then
+            if [ $EXIT_CODE -eq 0 ] && jq -e . yielddistributor_deploy.json >/dev/null 2>&1; then
               ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
               if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
@@ -133,15 +145,21 @@ jobs:
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             echo "Deploying NFTMultiplier..."
             
-            # Run the deployment script
+            # Run the deployment script and capture exit code
+            set +e
             forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier \
               --rpc-url "$TESTNET_RPC_URL" \
               --broadcast \
               --private-key "$TESTNET_PRIVATE_KEY" \
               --json > nftmultiplier_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            # Always show output for debugging
+            echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
-            if jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
+            if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
               ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
               if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
@@ -169,15 +187,21 @@ jobs:
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
             echo "Deploying VotingStreakMultiplier..."
             
-            # Run the deployment script
+            # Run the deployment script and capture exit code
+            set +e
             forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier \
               --rpc-url "$TESTNET_RPC_URL" \
               --broadcast \
               --private-key "$TESTNET_PRIVATE_KEY" \
               --json > votingstreakMultiplier_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            # Always show output for debugging
+            echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
-            if jq -e . votingstreakMultiplier_deploy.json >/dev/null 2>&1; then
+            if [ $EXIT_CODE -eq 0 ] && jq -e . votingstreakMultiplier_deploy.json >/dev/null 2>&1; then
               ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
               if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
