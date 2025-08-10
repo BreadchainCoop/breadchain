@@ -48,7 +48,7 @@ jobs:
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            echo '{"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "network": "testnet", "contracts": {}}' > deployment.json
+            echo '{"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "network": "testnet", "contracts": {}, "implementations": {}}' > deployment.json
           fi
 
       - name: Deploy ButteredBread
@@ -71,21 +71,39 @@ jobs:
             EXIT_CODE=$?
             set -e
             
-            # Always show output for debugging
             echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
             if [ $EXIT_CODE -eq 0 ] && jq -e . butteredbread_deploy.json >/dev/null 2>&1; then
-              ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
-              if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' butteredbread_deploy.json || true
+              
+              # Try multiple paths to find the proxy address
+              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+              
+              # If receipts doesn't work, try transactions
+              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
+                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
-                  jq --arg addr "$ADDRESS" '.contracts.ButteredBread = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.ButteredBread = $proxy | .implementations.ButteredBread = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
                 fi
-                echo "✅ ButteredBread deployed to: $ADDRESS"
+                echo "✅ ButteredBread deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ ButteredBread deployment completed but no contract address found"
-                echo "Output:"
-                cat butteredbread_deploy.json
+                echo "Debug output - receipts:"
+                jq '.receipts' butteredbread_deploy.json 2>/dev/null || true
+                echo "Debug output - transactions:"
+                jq '.transactions' butteredbread_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ ButteredBread deployment failed. Output:"
@@ -113,21 +131,39 @@ jobs:
             EXIT_CODE=$?
             set -e
             
-            # Always show output for debugging
             echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
             if [ $EXIT_CODE -eq 0 ] && jq -e . yielddistributor_deploy.json >/dev/null 2>&1; then
-              ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
-              if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' yielddistributor_deploy.json || true
+              
+              # Try multiple paths to find the proxy address
+              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+              
+              # If receipts doesn't work, try transactions
+              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
+                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
-                  jq --arg addr "$ADDRESS" '.contracts.YieldDistributor = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.YieldDistributor = $proxy | .implementations.YieldDistributor = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
                 fi
-                echo "✅ YieldDistributor deployed to: $ADDRESS"
+                echo "✅ YieldDistributor deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ YieldDistributor deployment completed but no contract address found"
-                echo "Output:"
-                cat yielddistributor_deploy.json
+                echo "Debug output - receipts:"
+                jq '.receipts' yielddistributor_deploy.json 2>/dev/null || true
+                echo "Debug output - transactions:"
+                jq '.transactions' yielddistributor_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ YieldDistributor deployment failed. Output:"
@@ -166,21 +202,39 @@ jobs:
               EXIT_CODE=$?
               set -e
               
-              # Always show output for debugging
               echo "Forge script exit code: $EXIT_CODE"
               
               # Check if the output is valid JSON by trying to parse it
               if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
-                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
-                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
+                # Debug: show the structure
+                echo "Debug: Looking for contract addresses in receipts..."
+                jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' nftmultiplier_deploy.json || true
+                
+                # Try multiple paths to find the proxy address
+                PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                
+                # If receipts doesn't work, try transactions
+                if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
+                  PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                  IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                fi
+                
+                if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
                   if [ -f deployment.json ]; then
-                    jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                    jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                      '.contracts.NFTMultiplier = $proxy | .implementations.NFTMultiplier = $impl' \
+                      deployment.json > temp.json && mv temp.json deployment.json
                   fi
-                  echo "✅ NFTMultiplier deployed to: $ADDRESS"
+                  echo "✅ NFTMultiplier deployed:"
+                  echo "   Proxy: $PROXY_ADDRESS"
+                  [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
                 else
                   echo "⚠️ NFTMultiplier deployment completed but no contract address found"
-                  echo "Output:"
-                  cat nftmultiplier_deploy.json
+                  echo "Debug output - receipts:"
+                  jq '.receipts' nftmultiplier_deploy.json 2>/dev/null || true
+                  echo "Debug output - transactions:"
+                  jq '.transactions' nftmultiplier_deploy.json 2>/dev/null || true
                 fi
               else
                 echo "❌ NFTMultiplier deployment failed. Output:"
@@ -209,21 +263,39 @@ jobs:
             EXIT_CODE=$?
             set -e
             
-            # Always show output for debugging
             echo "Forge script exit code: $EXIT_CODE"
             
             # Check if the output is valid JSON by trying to parse it
             if [ $EXIT_CODE -eq 0 ] && jq -e . votingstreakMultiplier_deploy.json >/dev/null 2>&1; then
-              ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
-              if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' votingstreakMultiplier_deploy.json || true
+              
+              # Try multiple paths to find the proxy address
+              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+              
+              # If receipts doesn't work, try transactions
+              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
+                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
                 if [ -f deployment.json ]; then
-                  jq --arg addr "$ADDRESS" '.contracts.VotingStreakMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.VotingStreakMultiplier = $proxy | .implementations.VotingStreakMultiplier = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
                 fi
-                echo "✅ VotingStreakMultiplier deployed to: $ADDRESS"
+                echo "✅ VotingStreakMultiplier deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ VotingStreakMultiplier deployment completed but no contract address found"
-                echo "Output:"
-                cat votingstreakMultiplier_deploy.json
+                echo "Debug output - receipts:"
+                jq '.receipts' votingstreakMultiplier_deploy.json 2>/dev/null || true
+                echo "Debug output - transactions:"
+                jq '.transactions' votingstreakMultiplier_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ VotingStreakMultiplier deployment failed. Output:"
@@ -240,34 +312,55 @@ jobs:
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$ETHERSCAN_API_KEY" ] && [ -f deployment.json ]; then
             echo "Starting contract verification..."
+            echo "Deployment data:"
+            cat deployment.json | jq '.'
+            
             VERIFICATION_FAILED=false
             
-            # Verify ButteredBread
-            BUTTEREDBREAD_ADDR=$(jq -r '.contracts.ButteredBread // empty' deployment.json)
-            if [ -n "$BUTTEREDBREAD_ADDR" ] && [ "$BUTTEREDBREAD_ADDR" != "null" ]; then
-              echo "Verifying ButteredBread at $BUTTEREDBREAD_ADDR..."
-              forge verify-contract "$BUTTEREDBREAD_ADDR" src/ButteredBread.sol:ButteredBread --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            # Verify ButteredBread implementation
+            BUTTEREDBREAD_IMPL=$(jq -r '.implementations.ButteredBread // empty' deployment.json)
+            if [ -n "$BUTTEREDBREAD_IMPL" ] && [ "$BUTTEREDBREAD_IMPL" != "null" ] && [ "$BUTTEREDBREAD_IMPL" != "" ]; then
+              echo "Verifying ButteredBread implementation at $BUTTEREDBREAD_IMPL..."
+              forge verify-contract "$BUTTEREDBREAD_IMPL" src/ButteredBread.sol:ButteredBread \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
             fi
             
-            # Verify YieldDistributor
-            YIELDDISTRIBUTOR_ADDR=$(jq -r '.contracts.YieldDistributor // empty' deployment.json)
-            if [ -n "$YIELDDISTRIBUTOR_ADDR" ] && [ "$YIELDDISTRIBUTOR_ADDR" != "null" ]; then
-              echo "Verifying YieldDistributor at $YIELDDISTRIBUTOR_ADDR..."
-              forge verify-contract "$YIELDDISTRIBUTOR_ADDR" src/YieldDistributor.sol:YieldDistributor --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            # Verify YieldDistributor implementation
+            YIELDDISTRIBUTOR_IMPL=$(jq -r '.implementations.YieldDistributor // empty' deployment.json)
+            if [ -n "$YIELDDISTRIBUTOR_IMPL" ] && [ "$YIELDDISTRIBUTOR_IMPL" != "null" ] && [ "$YIELDDISTRIBUTOR_IMPL" != "" ]; then
+              echo "Verifying YieldDistributor implementation at $YIELDDISTRIBUTOR_IMPL..."
+              forge verify-contract "$YIELDDISTRIBUTOR_IMPL" src/YieldDistributor.sol:YieldDistributor \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
             fi
             
-            # Verify NFTMultiplier
-            NFTMULTIPLIER_ADDR=$(jq -r '.contracts.NFTMultiplier // empty' deployment.json)
-            if [ -n "$NFTMULTIPLIER_ADDR" ] && [ "$NFTMULTIPLIER_ADDR" != "null" ]; then
-              echo "Verifying NFTMultiplier at $NFTMULTIPLIER_ADDR..."
-              forge verify-contract "$NFTMULTIPLIER_ADDR" src/NFTMultiplier.sol:NFTMultiplier --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            # Verify NFTMultiplier implementation
+            NFTMULTIPLIER_IMPL=$(jq -r '.implementations.NFTMultiplier // empty' deployment.json)
+            if [ -n "$NFTMULTIPLIER_IMPL" ] && [ "$NFTMULTIPLIER_IMPL" != "null" ] && [ "$NFTMULTIPLIER_IMPL" != "" ]; then
+              echo "Verifying NFTMultiplier implementation at $NFTMULTIPLIER_IMPL..."
+              forge verify-contract "$NFTMULTIPLIER_IMPL" src/multipliers/NFTMultiplier.sol:NFTMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
             fi
             
-            # Verify VotingStreakMultiplier
-            VOTINGSTREAKMULTIPLIER_ADDR=$(jq -r '.contracts.VotingStreakMultiplier // empty' deployment.json)
-            if [ -n "$VOTINGSTREAKMULTIPLIER_ADDR" ] && [ "$VOTINGSTREAKMULTIPLIER_ADDR" != "null" ]; then
-              echo "Verifying VotingStreakMultiplier at $VOTINGSTREAKMULTIPLIER_ADDR..."
-              forge verify-contract "$VOTINGSTREAKMULTIPLIER_ADDR" src/VotingStreakMultiplier.sol:VotingStreakMultiplier --rpc-url "$TESTNET_RPC_URL" --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            # Verify VotingStreakMultiplier implementation
+            VOTINGSTREAKMULTIPLIER_IMPL=$(jq -r '.implementations.VotingStreakMultiplier // empty' deployment.json)
+            if [ -n "$VOTINGSTREAKMULTIPLIER_IMPL" ] && [ "$VOTINGSTREAKMULTIPLIER_IMPL" != "null" ] && [ "$VOTINGSTREAKMULTIPLIER_IMPL" != "" ]; then
+              echo "Verifying VotingStreakMultiplier implementation at $VOTINGSTREAKMULTIPLIER_IMPL..."
+              forge verify-contract "$VOTINGSTREAKMULTIPLIER_IMPL" src/multipliers/VotingStreakMultiplier.sol:VotingStreakMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            fi
+            
+            # Also verify proxies if they are different from implementations
+            BUTTEREDBREAD_PROXY=$(jq -r '.contracts.ButteredBread // empty' deployment.json)
+            if [ -n "$BUTTEREDBREAD_PROXY" ] && [ "$BUTTEREDBREAD_PROXY" != "$BUTTEREDBREAD_IMPL" ] && [ "$BUTTEREDBREAD_PROXY" != "null" ]; then
+              echo "Verifying ButteredBread proxy at $BUTTEREDBREAD_PROXY..."
+              forge verify-contract "$BUTTEREDBREAD_PROXY" \
+                @openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || true
             fi
             
             # Update deployment.json with verification status
@@ -276,8 +369,13 @@ jobs:
               echo "⚠️ Some contract verifications failed. Check logs above for details."
             else
               jq '.verification_status = "success"' deployment.json > temp.json && mv temp.json deployment.json
-              echo "✅ All contracts verified successfully!"
+              echo "✅ All contract implementations verified successfully!"
             fi
+          else
+            echo "Skipping verification: Missing required environment variables or deployment data"
+            [ ! -f deployment.json ] && echo "  - deployment.json not found"
+            [ -z "$TESTNET_RPC_URL" ] && echo "  - TESTNET_RPC_URL not set"
+            [ -z "$ETHERSCAN_API_KEY" ] && echo "  - ETHERSCAN_API_KEY not set"
           fi
 
       - name: Upload deployment artifacts
@@ -299,8 +397,11 @@ jobs:
             echo "===================="
             cat deployment.json | jq '.'
             echo ""
-            echo "🔗 Contract Addresses:"
+            echo "🔗 Contract Addresses (Proxies):"
             jq -r '.contracts | to_entries[] | "- \(.key): \(.value)"' deployment.json
+            echo ""
+            echo "🔧 Implementation Addresses:"
+            jq -r '.implementations | to_entries[] | "- \(.key): \(.value)"' deployment.json
           else
             echo "ℹ️ No deployment was performed (missing required secrets or fork PR)"
           fi
