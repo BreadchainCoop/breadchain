@@ -141,39 +141,51 @@ jobs:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          NFT_CONTRACT_ADDRESS: ${{ secrets.NFT_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000' }}
+          INITIAL_MULTIPLYING_FACTOR: ${{ secrets.INITIAL_MULTIPLYING_FACTOR || '1100' }}
+          VALID_UNTIL_BLOCK: ${{ secrets.VALID_UNTIL_BLOCK || '999999999' }}
         run: |
           if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
-            echo "Deploying NFTMultiplier..."
-            
-            # Run the deployment script and capture exit code
-            set +e
-            forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier \
-              --rpc-url "$TESTNET_RPC_URL" \
-              --broadcast \
-              --private-key "$TESTNET_PRIVATE_KEY" \
-              --json > nftmultiplier_deploy.json 2>&1
-            EXIT_CODE=$?
-            set -e
-            
-            # Always show output for debugging
-            echo "Forge script exit code: $EXIT_CODE"
-            
-            # Check if the output is valid JSON by trying to parse it
-            if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
-              ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
-              if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
-                if [ -f deployment.json ]; then
-                  jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+            # Check if NFT_CONTRACT_ADDRESS is set and not the zero address
+            if [ "$NFT_CONTRACT_ADDRESS" = "0x0000000000000000000000000000000000000000" ]; then
+              echo "⚠️ Skipping NFTMultiplier deployment: NFT_CONTRACT_ADDRESS not configured"
+              echo "To deploy NFTMultiplier, set the NFT_CONTRACT_ADDRESS secret in repository settings"
+            else
+              echo "Deploying NFTMultiplier..."
+              echo "NFT Contract: $NFT_CONTRACT_ADDRESS"
+              echo "Multiplying Factor: $INITIAL_MULTIPLYING_FACTOR"
+              echo "Valid Until Block: $VALID_UNTIL_BLOCK"
+              
+              # Run the deployment script and capture exit code
+              set +e
+              forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --broadcast \
+                --private-key "$TESTNET_PRIVATE_KEY" \
+                --json > nftmultiplier_deploy.json 2>&1
+              EXIT_CODE=$?
+              set -e
+              
+              # Always show output for debugging
+              echo "Forge script exit code: $EXIT_CODE"
+              
+              # Check if the output is valid JSON by trying to parse it
+              if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
+                ADDRESS=$(jq -r '.transactions[0].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                if [ -n "$ADDRESS" ] && [ "$ADDRESS" != "null" ] && [ "$ADDRESS" != "" ]; then
+                  if [ -f deployment.json ]; then
+                    jq --arg addr "$ADDRESS" '.contracts.NFTMultiplier = $addr' deployment.json > temp.json && mv temp.json deployment.json
+                  fi
+                  echo "✅ NFTMultiplier deployed to: $ADDRESS"
+                else
+                  echo "⚠️ NFTMultiplier deployment completed but no contract address found"
+                  echo "Output:"
+                  cat nftmultiplier_deploy.json
                 fi
-                echo "✅ NFTMultiplier deployed to: $ADDRESS"
               else
-                echo "⚠️ NFTMultiplier deployment completed but no contract address found"
-                echo "Output:"
+                echo "❌ NFTMultiplier deployment failed. Output:"
                 cat nftmultiplier_deploy.json
               fi
-            else
-              echo "❌ NFTMultiplier deployment failed. Output:"
-              cat nftmultiplier_deploy.json
             fi
           fi
 
@@ -221,6 +233,7 @@ jobs:
 
       - name: Verify contracts on block explorer
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         env:
           TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
