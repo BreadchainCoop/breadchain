@@ -12,12 +12,12 @@ contract ValidateUpgrade is Script {
         
         // Validate YieldDistributor upgrade
         Options memory yieldOpts;
-        yieldOpts.referenceContract = "test/upgrades/flattened/previous/YieldDistributor.sol:YieldDistributor";
+        yieldOpts.referenceContract = "test/upgrades/previous/YieldDistributor.sol:YieldDistributor";
         Upgrades.validateUpgrade("YieldDistributor.sol:YieldDistributor", yieldOpts);
         
         // Validate ButteredBread upgrade
         Options memory breadOpts;
-        breadOpts.referenceContract = "test/upgrades/flattened/previous/ButteredBread.sol:ButteredBread";
+        breadOpts.referenceContract = "test/upgrades/previous/ButteredBread.sol:ButteredBread";
         Upgrades.validateUpgrade("ButteredBread.sol:ButteredBread", breadOpts);
         
         vm.stopBroadcast();

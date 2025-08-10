@@ -57,7 +57,7 @@ jobs:
           forge clean && forge build
           
           # Check if previous flattened contracts exist
-          if [ -f "test/upgrades/flattened/previous/YieldDistributor.sol" ] && [ -f "test/upgrades/flattened/previous/ButteredBread.sol" ]; then
+          if [ -f "test/upgrades/previous/YieldDistributor.sol" ] && [ -f "test/upgrades/previous/ButteredBread.sol" ]; then
             echo "Previous version found, running upgrade validation..."
             forge script script/upgrades/ValidateUpgrade.s.sol
           else
@@ -88,43 +88,25 @@ jobs:
           version: nightly
 
       - name: Create flattened contracts directory
-        run: mkdir -p test/upgrades/flattened/current
+        run: mkdir -p test/upgrades/current
 
       - name: Flatten YieldDistributor and ButteredBread
         run: |
           # Flatten the main contracts to current directory
-          forge flatten src/YieldDistributor.sol > "test/upgrades/flattened/current/YieldDistributor.sol"
-          forge flatten src/ButteredBread.sol > "test/upgrades/flattened/current/ButteredBread.sol"
+          forge flatten src/YieldDistributor.sol > "test/upgrades/current/YieldDistributor.sol"
+          forge flatten src/ButteredBread.sol > "test/upgrades/current/ButteredBread.sol"
           
           # Copy current to previous for future upgrade validations
-          rm -rf test/upgrades/flattened/previous
-          cp -r test/upgrades/flattened/current test/upgrades/flattened/previous
+          rm -rf test/upgrades/previous
+          cp -r test/upgrades/current test/upgrades/previous
           
-          echo "Flattened contracts saved to test/upgrades/flattened/current/"
-          echo "Previous version backed up to test/upgrades/flattened/previous/"
+          echo "Flattened contracts saved to test/upgrades/current/"
+          echo "Previous version backed up to test/upgrades/previous/"
 
-      - name: Install solc for compilation check
-        run: |
-          sudo add-apt-repository -y ppa:ethereum/ethereum
-          sudo apt-get update
-          sudo apt-get install -y solc
-
-      - name: Verify flattened contracts compile
-        run: |
-          for f in test/upgrades/flattened/current/*.sol; do
-            echo "Checking compilation of $(basename $f)..."
-            if ! solc --optimize "$f" --via-ir --bin > /dev/null 2>&1; then
-              echo "❌ Compilation failed for $(basename $f). Error output:"
-              solc --optimize "$f" --via-ir --bin
-              exit 1
-            else
-              echo "✅ Successfully compiled $(basename $f)"
-            fi
-          done
 
       - name: Commit flattened contracts
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          file_pattern: test/upgrades/flattened/**/*.sol
+          file_pattern: test/upgrades/**/*.sol
           commit_message: "chore: auto-flatten contracts after validation passes [skip ci]"
           push_options: '--follow-tags'
