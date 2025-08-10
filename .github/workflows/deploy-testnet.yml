@@ -77,16 +77,27 @@ jobs:
             if [ $EXIT_CODE -eq 0 ] && jq -e . butteredbread_deploy.json >/dev/null 2>&1; then
               # Debug: show the structure
               echo "Debug: Looking for contract addresses in receipts..."
-              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' butteredbread_deploy.json || true
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' butteredbread_deploy.json 2>/dev/null || true
               
-              # Try multiple paths to find the proxy address
-              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
-              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' butteredbread_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
               
-              # If receipts doesn't work, try transactions
-              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
-                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
-                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
               fi
               
               if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
@@ -97,13 +108,11 @@ jobs:
                 fi
                 echo "✅ ButteredBread deployed:"
                 echo "   Proxy: $PROXY_ADDRESS"
-                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ ButteredBread deployment completed but no contract address found"
-                echo "Debug output - receipts:"
-                jq '.receipts' butteredbread_deploy.json 2>/dev/null || true
-                echo "Debug output - transactions:"
-                jq '.transactions' butteredbread_deploy.json 2>/dev/null || true
+                echo "Debug output - Full JSON structure:"
+                jq '.' butteredbread_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ ButteredBread deployment failed. Output:"
@@ -137,16 +146,27 @@ jobs:
             if [ $EXIT_CODE -eq 0 ] && jq -e . yielddistributor_deploy.json >/dev/null 2>&1; then
               # Debug: show the structure
               echo "Debug: Looking for contract addresses in receipts..."
-              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' yielddistributor_deploy.json || true
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' yielddistributor_deploy.json 2>/dev/null || true
               
-              # Try multiple paths to find the proxy address
-              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
-              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' yielddistributor_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
               
-              # If receipts doesn't work, try transactions
-              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
-                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
-                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
               fi
               
               if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
@@ -157,13 +177,11 @@ jobs:
                 fi
                 echo "✅ YieldDistributor deployed:"
                 echo "   Proxy: $PROXY_ADDRESS"
-                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ YieldDistributor deployment completed but no contract address found"
-                echo "Debug output - receipts:"
-                jq '.receipts' yielddistributor_deploy.json 2>/dev/null || true
-                echo "Debug output - transactions:"
-                jq '.transactions' yielddistributor_deploy.json 2>/dev/null || true
+                echo "Debug output - Full JSON structure:"
+                jq '.' yielddistributor_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ YieldDistributor deployment failed. Output:"
@@ -208,16 +226,27 @@ jobs:
               if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
                 # Debug: show the structure
                 echo "Debug: Looking for contract addresses in receipts..."
-                jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' nftmultiplier_deploy.json || true
+                jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' nftmultiplier_deploy.json 2>/dev/null || true
                 
-                # Try multiple paths to find the proxy address
-                PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
-                IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                # Extract all contract addresses from receipts
+                ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
                 
-                # If receipts doesn't work, try transactions
-                if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
-                  PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
-                  IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                # If we found addresses, use them
+                if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                  # Last address is usually the proxy, second-to-last is implementation
+                  if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                    IMPL_ADDRESS="${ADDRESSES[-2]}"
+                    PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  else
+                    # Only one address, it's probably not using proxy pattern
+                    PROXY_ADDRESS="${ADDRESSES[-1]}"
+                    IMPL_ADDRESS="${ADDRESSES[-1]}"
+                  fi
+                else
+                  # Fallback: try to get from returns array
+                  echo "Debug: No addresses in receipts, checking returns..."
+                  PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                  IMPL_ADDRESS="$PROXY_ADDRESS"
                 fi
                 
                 if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
@@ -228,13 +257,11 @@ jobs:
                   fi
                   echo "✅ NFTMultiplier deployed:"
                   echo "   Proxy: $PROXY_ADDRESS"
-                  [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
+                  [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
                 else
                   echo "⚠️ NFTMultiplier deployment completed but no contract address found"
-                  echo "Debug output - receipts:"
-                  jq '.receipts' nftmultiplier_deploy.json 2>/dev/null || true
-                  echo "Debug output - transactions:"
-                  jq '.transactions' nftmultiplier_deploy.json 2>/dev/null || true
+                  echo "Debug output - Full JSON structure:"
+                  jq '.' nftmultiplier_deploy.json 2>/dev/null || true
                 fi
               else
                 echo "❌ NFTMultiplier deployment failed. Output:"
@@ -269,16 +296,27 @@ jobs:
             if [ $EXIT_CODE -eq 0 ] && jq -e . votingstreakMultiplier_deploy.json >/dev/null 2>&1; then
               # Debug: show the structure
               echo "Debug: Looking for contract addresses in receipts..."
-              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' votingstreakMultiplier_deploy.json || true
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' votingstreakMultiplier_deploy.json 2>/dev/null || true
               
-              # Try multiple paths to find the proxy address
-              PROXY_ADDRESS=$(jq -r '.receipts[-1].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
-              IMPL_ADDRESS=$(jq -r '.receipts[-2].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
               
-              # If receipts doesn't work, try transactions
-              if [ -z "$PROXY_ADDRESS" ] || [ "$PROXY_ADDRESS" = "null" ]; then
-                PROXY_ADDRESS=$(jq -r '.transactions[-1].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
-                IMPL_ADDRESS=$(jq -r '.transactions[-2].contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
               fi
               
               if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
@@ -289,13 +327,11 @@ jobs:
                 fi
                 echo "✅ VotingStreakMultiplier deployed:"
                 echo "   Proxy: $PROXY_ADDRESS"
-                [ -n "$IMPL_ADDRESS" ] && [ "$IMPL_ADDRESS" != "null" ] && echo "   Implementation: $IMPL_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
               else
                 echo "⚠️ VotingStreakMultiplier deployment completed but no contract address found"
-                echo "Debug output - receipts:"
-                jq '.receipts' votingstreakMultiplier_deploy.json 2>/dev/null || true
-                echo "Debug output - transactions:"
-                jq '.transactions' votingstreakMultiplier_deploy.json 2>/dev/null || true
+                echo "Debug output - Full JSON structure:"
+                jq '.' votingstreakMultiplier_deploy.json 2>/dev/null || true
               fi
             else
               echo "❌ VotingStreakMultiplier deployment failed. Output:"
