@@ -3,7 +3,6 @@ name: test
 on:
   workflow_dispatch:
   pull_request:
-    # Run on PRs to dev/main, or any PR from a branch containing 'release'
   push:
     branches: [ dev, main ]
 
@@ -12,12 +11,14 @@ env:
 
 jobs:
   check:
-    # Skip PRs unless they target dev/main or come from a branch containing 'release'
+    # Only run on: pushes to dev/main, PRs to dev/main, PRs from branches with 'release', or manual trigger
     if: |
-      github.event_name != 'pull_request' || 
-      github.base_ref == 'dev' || 
-      github.base_ref == 'main' || 
-      contains(github.head_ref, 'release')
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && 
+       (github.base_ref == 'dev' || 
+        github.base_ref == 'main' || 
+        contains(github.head_ref, 'release')))
     
     strategy:
       fail-fast: true
@@ -46,12 +47,14 @@ jobs:
         id: test
 
   upgrade-safety:
-    # Skip PRs unless they target dev/main or come from a branch containing 'release'
+    # Only run on: pushes to dev/main, PRs to dev/main, PRs from branches with 'release', or manual trigger
     if: |
-      github.event_name != 'pull_request' || 
-      github.base_ref == 'dev' || 
-      github.base_ref == 'main' || 
-      contains(github.head_ref, 'release')
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && 
+       (github.base_ref == 'dev' || 
+        github.base_ref == 'main' || 
+        contains(github.head_ref, 'release')))
     
     name: Upgrade Safety Check
     runs-on: ubuntu-latest
