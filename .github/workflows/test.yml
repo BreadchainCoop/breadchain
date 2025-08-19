@@ -9,7 +9,6 @@ on:
 
 env:
   FOUNDRY_PROFILE: ci
-  FOUNDRY_DISABLE_NIGHTLY_WARNING: true
 
 jobs:
   check:
@@ -26,7 +25,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Run Forge build
         run: |
@@ -50,19 +49,18 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Run upgrade safety validation
         run: |
           forge clean && forge build
           
           # Check if previous flattened contracts exist
-          if [ -f "test/upgrades/previous/YieldDistributor.sol" ] && [ -f "test/upgrades/previous/ButteredBread.sol" ]; then
-            echo "Previous version found, running upgrade validation..."
+          if [ -d "test/upgrades/previous" ] && ls test/upgrades/previous/*.sol 1> /dev/null 2>&1; then
+            echo "Previous contracts found, running upgrade validation..."
             forge script script/upgrades/ValidateUpgrade.s.sol
           else
-            echo "No previous version found, skipping upgrade validation (initial deployment)"
-            echo "Contracts will be validated and flattened on first merge to dev"
+            echo "No previous contracts found, skipping upgrade validation (initial deployment)"
           fi
 
   flatten:
@@ -85,18 +83,20 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Create flattened contracts directory
         run: mkdir -p test/upgrades/current
 
-      - name: Flatten YieldDistributor and ButteredBread
+      - name: Flatten all top-level contracts
         run: |
-          # Flatten the main contracts to current directory
-          forge flatten src/YieldDistributor.sol > "test/upgrades/current/YieldDistributor.sol"
-          forge flatten src/ButteredBread.sol > "test/upgrades/current/ButteredBread.sol"
+          # Find all Solidity files directly under src/, not nested
+          for contract in $(find src -maxdepth 1 -type f -name "*.sol"); do
+            name=$(basename "$contract")
+            forge flatten "$contract" > "test/upgrades/current/$name"
+          done
           
-          # Copy current to previous for future upgrade validations
+          # Backup for future upgrade validations
           rm -rf test/upgrades/previous
           cp -r test/upgrades/current test/upgrades/previous
           
