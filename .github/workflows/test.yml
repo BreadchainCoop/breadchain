@@ -11,14 +11,15 @@ env:
 
 jobs:
   check:
-    # Only run on: pushes to dev/main, PRs to dev/main, PRs from branches with 'release', or manual trigger
+    # Only run on: pushes to dev/main, PRs to/from branches with 'release' or to dev/main, or manual trigger
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && 
        (github.base_ref == 'dev' || 
         github.base_ref == 'main' || 
-        contains(github.head_ref, 'release')))
+        contains(github.head_ref, 'release') ||
+        contains(github.base_ref, 'release')))
     
     strategy:
       fail-fast: true
@@ -47,14 +48,15 @@ jobs:
         id: test
 
   upgrade-safety:
-    # Only run on: pushes to dev/main, PRs to dev/main, PRs from branches with 'release', or manual trigger
+    # Only run on: pushes to dev/main, PRs to/from branches with 'release' or to dev/main, or manual trigger
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && 
        (github.base_ref == 'dev' || 
         github.base_ref == 'main' || 
-        contains(github.head_ref, 'release')))
+        contains(github.head_ref, 'release') ||
+        contains(github.base_ref, 'release')))
     
     name: Upgrade Safety Check
     runs-on: ubuntu-latest
