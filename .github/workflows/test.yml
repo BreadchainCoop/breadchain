@@ -1,12 +1,26 @@
 name: test
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [ dev, main ]
 
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
   check:
+    # Only run on: pushes to dev/main, PRs to/from branches with 'release' or to dev/main, or manual trigger
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && 
+       (github.base_ref == 'dev' || 
+        github.base_ref == 'main' || 
+        contains(github.head_ref, 'release') ||
+        contains(github.base_ref, 'release')))
+    
     strategy:
       fail-fast: true
 
@@ -20,7 +34,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Run Forge build
         run: |
@@ -32,3 +46,86 @@ jobs:
         run: |
           forge test -vvv
         id: test
+
+  upgrade-safety:
+    # Only run on: pushes to dev/main, PRs to/from branches with 'release' or to dev/main, or manual trigger
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && 
+       (github.base_ref == 'dev' || 
+        github.base_ref == 'main' || 
+        contains(github.head_ref, 'release') ||
+        contains(github.base_ref, 'release')))
+    
+    name: Upgrade Safety Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Run upgrade safety validation
+        run: |
+          forge clean && forge build
+          
+          # Check if previous flattened contracts exist
+          if [ -d "test/upgrades/previous" ] && ls test/upgrades/previous/*.sol 1> /dev/null 2>&1; then
+            echo "Previous contracts found, running upgrade validation..."
+            forge script script/upgrades/ValidateUpgrade.s.sol
+          else
+            echo "No previous contracts found, skipping upgrade validation (initial deployment)"
+          fi
+
+  flatten:
+    name: Flatten and Track Contracts
+    runs-on: ubuntu-latest
+    needs: [check, upgrade-safety]  # Only run after tests and validation pass
+    
+    # Only run on push to dev branch, not on PRs or main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Create flattened contracts directory
+        run: mkdir -p test/upgrades/current
+
+      - name: Flatten all top-level contracts
+        run: |
+          # Find all Solidity files directly under src/, not nested
+          for contract in $(find src -maxdepth 1 -type f -name "*.sol"); do
+            name=$(basename "$contract")
+            forge flatten "$contract" > "test/upgrades/current/$name"
+          done
+          
+          # Backup for future upgrade validations
+          rm -rf test/upgrades/previous
+          cp -r test/upgrades/current test/upgrades/previous
+          
+          echo "Flattened contracts saved to test/upgrades/current/"
+          echo "Previous version backed up to test/upgrades/previous/"
+
+
+      - name: Commit flattened contracts
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: test/upgrades/**/*.sol
+          commit_message: "chore: auto-flatten contracts after validation passes [skip ci]"
+          push_options: '--follow-tags'
