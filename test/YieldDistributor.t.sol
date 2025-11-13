@@ -4,11 +4,11 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import "forge-std/StdJson.sol";
 
-import {ERC20VotesUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {
+    ERC20VotesUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -31,9 +31,10 @@ abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
 
 contract YieldDistributorTest is Test {
     uint256 constant START = 32_323_232_323;
-    uint256 marginOfError = 3;
+    uint256 marginOfError = 3; // Optimized margin of error for rounding differences
     YieldDistributorTestWrapper public yieldDistributor;
     YieldDistributorTestWrapper public yieldDistributor2;
+    YieldDistributorTestWrapper public yieldDistributorGasKiller;
     address secondProject;
     uint256[] blockNumbers;
     uint256[] percentages;
@@ -83,6 +84,7 @@ contract YieldDistributorTest is Test {
         yieldDistributor = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
+
         secondProject = address(0x1234567890123456789012345678901234567890);
         address[] memory projects2 = new address[](2);
         projects2[0] = address(this);
@@ -102,6 +104,26 @@ contract YieldDistributorTest is Test {
         yieldDistributor2 = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
+
+        // Create a third instance for testing GasKiller distribution
+        address[] memory projects3 = new address[](1);
+        projects3[0] = address(this);
+        initData = abi.encodeWithSelector(
+            YieldDistributor.initialize.selector,
+            address(bread),
+            address(butteredBread),
+            _precision,
+            _minRequiredVotingPower,
+            _maxPoints,
+            _cycleLength,
+            _yieldFixedSplitDivisor,
+            _lastClaimedBlockNumber,
+            projects3
+        );
+        yieldDistributorGasKiller = YieldDistributorTestWrapper(
+            address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
+        );
+
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(yieldDistributor));
@@ -125,7 +147,7 @@ contract YieldDistributorTest is Test {
         }
     }
 
-    function test_simple_distribute() public {
+    function test_distributeYield_DistributesYieldToSingleProject() public {
         // Getting the balance of the project before the distribution
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
@@ -141,7 +163,7 @@ contract YieldDistributorTest is Test {
         // Setting up for a cycle
         setUpForCycle(yieldDistributor);
 
-        // Casting vote and distributing yield
+        // Casting vote and distributing yield using legacy method
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
@@ -153,7 +175,7 @@ contract YieldDistributorTest is Test {
         assertGt(bread_bal_after, yieldAccrued - marginOfError);
     }
 
-    function test_fixed_yield_split() public {
+    function test_distributeYield_SplitsFixedAndVotedYieldCorrectly() public {
         // Getting the balance of the project before the distribution
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
@@ -172,7 +194,7 @@ contract YieldDistributorTest is Test {
         vm.prank(owner);
         yieldDistributor2.setYieldFixedSplitDivisor(3);
 
-        // Casting vote and distributing yield
+        // Casting vote and distributing yield using legacy method
         uint256 vote = 50;
         uint256 vote2 = 50;
         percentages.push(vote);
@@ -188,7 +210,7 @@ contract YieldDistributorTest is Test {
         assertGt(bread_bal_after, ((fixedSplit + votedSplit) / projectsLength) - marginOfError);
     }
 
-    function test_simple_recast_vote() public {
+    function test_castVote_AllowsRevotingInSamePeriod() public {
         // Getting the balance of the project before the distribution
         uint256 bread_bal_before = bread.balanceOf(address(this));
         assertEq(bread_bal_before, 0);
@@ -204,7 +226,7 @@ contract YieldDistributorTest is Test {
         // Setting up for a cycle
         setUpForCycle(yieldDistributor);
 
-        // Casting vote and distributing yield
+        // Casting vote and distributing yield using legacy method
         uint256 vote = 100;
         percentages.push(vote);
         vm.prank(account);
@@ -220,7 +242,7 @@ contract YieldDistributorTest is Test {
         assertGt(bread_bal_after, yieldAccrued - marginOfError);
     }
 
-    function test_fuzzy_distribute(uint256 seed) public {
+    function test_distributeYield_HandlesMultipleVotersWithRandomDistributions(uint256 seed) public {
         // Getting the balance of the projects before the distribution
         uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
@@ -253,7 +275,8 @@ contract YieldDistributorTest is Test {
             votes.pop();
             votes.pop();
         }
-        // Distributing yield
+
+        // Distributing yield using legacy method
         yieldDistributor2.distributeYield();
 
         // Getting the balance of the projects after the distribution
@@ -263,7 +286,7 @@ contract YieldDistributorTest is Test {
         assertGt(second_bal_after, breadbalproject2start);
     }
 
-    function test_fuzzy_recast_vote(uint256 seed) public {
+    function test_castVote_HandlesMultipleRevotesWithFuzzing(uint256 seed) public {
         // Getting the balance of the projects before the distribution
         uint256 breadbalproject1start = bread.balanceOf(address(this));
         uint256 breadbalproject2start = bread.balanceOf(secondProject);
@@ -305,7 +328,8 @@ contract YieldDistributorTest is Test {
             votes.pop();
         }
         vm.roll(START);
-        // Distributing yield
+
+        // Distributing yield using legacy method
         yieldDistributor2.distributeYield();
 
         // Getting the balance of the projects after the distribution
@@ -315,13 +339,13 @@ contract YieldDistributorTest is Test {
         assertGt(second_bal_after, breadbalproject2start);
     }
 
-    function test_set_duration() public {
+    function test_setCycleLength_UpdatesCycleLength() public {
         yieldDistributor.setCycleLength(10);
         uint256 cycleLength = yieldDistributor.cycleLength();
         assertEq(10, cycleLength);
     }
 
-    function test_voting_power() public {
+    function test_getVotingPowerForPeriod_CalculatesVotingPowerCorrectly() public {
         vm.roll(32_323_232_323);
         uint256 votingPowerBefore;
         vm.expectRevert();
@@ -353,7 +377,7 @@ contract YieldDistributorTest is Test {
             yieldDistributor.getVotingPowerForPeriod(bread, 42_424_242_424, 42_424_242_431, address(this));
     }
 
-    function testFuzzy_voting_power(uint256 seed, uint256 mints) public {
+    function test_getVotingPowerForPeriod_MultipleMints(uint256 seed, uint256 mints) public {
         mints = uint256(bound(mints, 1, 100));
         vm.assume(seed < 100_000_000_000 / mints);
         vm.assume(seed > 0);
@@ -386,7 +410,7 @@ contract YieldDistributorTest is Test {
         assertEq(vote, expectedVotingPower);
     }
 
-    function test_adding_removing_projects() public {
+    function test_queueProjectAdditionAndRemoval_ManagesProjectList() public {
         // Checking to see if the project list length  is initialized correctly
         vm.expectRevert();
         address projects_before_len;
@@ -434,7 +458,7 @@ contract YieldDistributorTest is Test {
         assertEq(length, 1);
     }
 
-    function test_below_min_required_voting_power() public {
+    function test_castVote_RevertsWhenBelowMinimumVotingPower() public {
         // Setting up an account without the minimum required voting power
         address account = address(0x1234567890123356789012345672901234567890);
 
@@ -451,6 +475,160 @@ contract YieldDistributorTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
         yieldDistributor.castVote(percentages);
+    }
+
+    // GasKiller Voting System Tests (default voting system)
+
+    function test_distributeYieldGK_DistributesYieldToSingleProject() public {
+        // Getting the balance of the project before the distribution
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        // Getting the amount of yield to be distributed
+        uint256 yieldAccrued = bread.yieldAccrued();
+
+        // Setting up a voter
+        address account = address(0x1234567890123456789012345678901234567890);
+        address[] memory accounts = new address[](1);
+        accounts[0] = account;
+        setUpAccountsForVoting(accounts);
+
+        // Setting up for a cycle
+        setUpForCycle(yieldDistributorGasKiller);
+
+        // Casting vote and distributing yield using GasKiller method
+        uint256 vote = 100;
+        percentages.push(vote);
+        vm.prank(account);
+        yieldDistributorGasKiller.castVote(percentages);
+        yieldDistributorGasKiller.distributeYieldGK();
+
+        // Getting the balance of the project after the distribution and checking if it similar to the yield accrued (there may be rounding issues)
+        uint256 bread_bal_after = bread.balanceOf(address(this));
+        assertGt(bread_bal_after, yieldAccrued - marginOfError);
+    }
+
+    function test_distributeYieldGK_SplitsFixedAndVotedYieldCorrectly() public {
+        // Getting the balance of the project before the distribution
+        uint256 bread_bal_before = bread.balanceOf(address(this));
+        assertEq(bread_bal_before, 0);
+        // Getting the amount of yield to be distributed
+        uint256 yieldAccrued = bread.yieldAccrued();
+
+        // Setting up a voter
+        address account = address(0x1234567890123456789012345678901234567890);
+        address[] memory accounts = new address[](1);
+        accounts[0] = account;
+        setUpAccountsForVoting(accounts);
+
+        // Setting up for a cycle
+        setUpForCycle(yieldDistributorGasKiller);
+        address owner = yieldDistributorGasKiller.owner();
+        vm.prank(owner);
+        yieldDistributorGasKiller.setYieldFixedSplitDivisor(3);
+
+        // Casting vote and distributing yield using GasKiller method
+        // yieldDistributorGasKiller has 1 project, so we need 1 vote point
+        uint256 vote = 100;
+        percentages.push(vote);
+        vm.prank(account);
+        yieldDistributorGasKiller.castVote(percentages);
+        yieldDistributorGasKiller.distributeYieldGK();
+        uint256 fixedSplit = yieldAccrued / _yieldFixedSplitDivisor;
+        uint256 votedSplit = yieldAccrued - fixedSplit;
+        uint256 projectsLength = yieldDistributorGasKiller.getProjectsLength();
+        // Getting the balance of the project after the distribution and checking if it similar to the yield accrued (there may be rounding issues)
+        uint256 bread_bal_after = bread.balanceOf(address(this));
+        assertGt(bread_bal_after, ((fixedSplit + votedSplit) / projectsLength) - marginOfError);
+    }
+
+    function test_distributeYieldGK_HandlesMultipleVotersWithFuzzing(uint256 seed) public {
+        // Getting the balance of the project before the distribution
+        uint256 breadbalproject1start = bread.balanceOf(address(this));
+
+        // Generating random values for the test
+        vm.assume(seed > 10);
+        uint256 accounts = 3;
+        seed = uint256(bound(seed, 1, 100_000_000_000));
+
+        setUpForCycle(yieldDistributorGasKiller);
+
+        for (uint256 i = 0; i < accounts; i++) {
+            // Generating random values for the test
+            uint256 randomval = uint256(keccak256(abi.encodePacked(seed, i)));
+            uint256 vote = bound(randomval, 1, 100); // Ensure vote is at least 1 to avoid ZeroVotePoints error
+            address holder = address(uint160(randomval));
+            uint256 token_amount = bound(randomval, _minVotingAmount, 1000 * _minVotingAmount);
+
+            // Setting up the account for voting
+            vm.roll(START - (minHoldingDurationInBlocks));
+            vm.deal(holder, token_amount);
+            vm.prank(holder);
+            bread.mint{value: token_amount}(holder);
+
+            // Casting vote with random distribution
+            // yieldDistributorGasKiller has 1 project, so we need 1 vote point
+            vm.roll(START);
+            votes.push(vote);
+            vm.prank(holder);
+            yieldDistributorGasKiller.castVote(votes);
+            votes.pop();
+        }
+        // Distributing yield using GasKiller method
+        yieldDistributorGasKiller.distributeYieldGK();
+
+        // Getting the balance of the project after the distribution
+        uint256 this_bal_after = bread.balanceOf(address(this));
+        assertGt(this_bal_after, breadbalproject1start);
+    }
+
+    function test_distributeYieldGK_ClearsVoterDataAfterDistribution() public {
+        // Setting up multiple voters
+        address[] memory accounts = new address[](3);
+        accounts[0] = address(0x1);
+        accounts[1] = address(0x2);
+        accounts[2] = address(0x3);
+        setUpAccountsForVoting(accounts);
+
+        // Setting up for a cycle
+        setUpForCycle(yieldDistributorGasKiller);
+
+        // Each voter casts different votes
+        uint256[] memory votes1 = new uint256[](1);
+        votes1[0] = 100;
+        vm.prank(accounts[0]);
+        yieldDistributorGasKiller.castVote(votes1);
+
+        uint256[] memory votes2 = new uint256[](1);
+        votes2[0] = 50;
+        vm.prank(accounts[1]);
+        yieldDistributorGasKiller.castVote(votes2);
+
+        uint256[] memory votes3 = new uint256[](1);
+        votes3[0] = 25;
+        vm.prank(accounts[2]);
+        yieldDistributorGasKiller.castVote(votes3);
+
+        // Check that all voters are recorded
+        assertEq(yieldDistributorGasKiller.voters(0), accounts[0]);
+        assertEq(yieldDistributorGasKiller.voters(1), accounts[1]);
+        assertEq(yieldDistributorGasKiller.voters(2), accounts[2]);
+        // Check that vote data is recorded correctly
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[0]), 100);
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[1]), 50);
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[2]), 25);
+
+        // Distribute yield using GasKiller method
+        yieldDistributorGasKiller.distributeYieldGK();
+
+        // Check that voters array is cleared after distribution
+        vm.expectRevert();
+        yieldDistributorGasKiller.voters(0);
+
+        // Check that vote data is cleared after distribution
+        // After distribution, all totals should be reset to 0
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[0]), 0);
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[1]), 0);
+        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[2]), 0);
     }
 }
 
@@ -920,5 +1098,124 @@ contract VotingMultipliersTest is YieldDistributorTest {
         for (uint8 i = 0; i < numMultipliers; i++) {
             assertEq(address(yieldDistributor.allowlistedMultipliers(i)), address(multipliers[i]));
         }
+    }
+
+    /**
+     * @notice Test that revoting maintains correct total voting power
+     * @dev Ensures that when a user votes twice in the same period,
+     *      the currentVotes total remains equal to their voting power
+     */
+    function test_castVote_MaintainsCorrectTotalWhenRevoting() public {
+        // Setup voter with voting power
+        address voter = address(0xBEEF);
+        address[] memory accounts = new address[](1);
+        accounts[0] = voter;
+        setUpAccountsForVoting(accounts);
+        setUpForCycle(yieldDistributor2);
+
+        // Get voter's voting power
+        uint256 voterPower = yieldDistributor2.getCurrentVotingPower(voter);
+        assertGt(voterPower, 0, "Voter should have voting power");
+
+        // First vote: 70% to project1, 30% to project2
+        uint256[] memory votes1 = new uint256[](2);
+        votes1[0] = 7000;
+        votes1[1] = 3000;
+        vm.prank(voter);
+        yieldDistributor2.castVote(votes1);
+
+        // Check currentVotes after first vote
+        uint256 totalAfterFirst = yieldDistributor2.currentVotes();
+        assertEq(totalAfterFirst, voterPower, "Total should equal voter's power after first vote");
+
+        // Second vote (revote): 40% to project1, 60% to project2
+        uint256[] memory votes2 = new uint256[](2);
+        votes2[0] = 4000;
+        votes2[1] = 6000;
+        vm.roll(block.number + 1); // Move forward slightly but stay in same period
+        vm.prank(voter);
+        yieldDistributor2.castVote(votes2);
+
+        // Check currentVotes after revote - should still be the same
+        uint256 totalAfterRevote = yieldDistributor2.currentVotes();
+        assertEq(totalAfterRevote, voterPower, "Total should still equal voter's power after revote");
+
+        // Verify project distributions are correctly updated
+        (, uint256[] memory distributions) = yieldDistributor2.getCurrentVotingDistribution();
+        uint256 totalDistribution = distributions[0] + distributions[1];
+        assertApproxEqRel(totalDistribution, voterPower, 1e15, "Total distribution should match voting power");
+    }
+
+    /**
+     * @notice Test multiple voters with revotes to ensure correct accumulation
+     */
+    function test_castVote_AccumulatesMultipleVotersCorrectly() public {
+        address voter1 = address(0xBEEF);
+        address voter2 = address(0xCAFE);
+        address[] memory accounts = new address[](2);
+        accounts[0] = voter1;
+        accounts[1] = voter2;
+        setUpAccountsForVoting(accounts);
+        setUpForCycle(yieldDistributor2);
+
+        uint256 voter1Power = yieldDistributor2.getCurrentVotingPower(voter1);
+        uint256 voter2Power = yieldDistributor2.getCurrentVotingPower(voter2);
+
+        // Voter1 votes
+        uint256[] memory votes = new uint256[](2);
+        votes[0] = 5000;
+        votes[1] = 5000;
+        vm.prank(voter1);
+        yieldDistributor2.castVote(votes);
+
+        // Voter2 votes
+        votes[0] = 3000;
+        votes[1] = 7000;
+        vm.prank(voter2);
+        yieldDistributor2.castVote(votes);
+
+        // Check total is sum of both
+        uint256 totalAfterBoth = yieldDistributor2.currentVotes();
+        assertEq(totalAfterBoth, voter1Power + voter2Power, "Total should be sum of both voters");
+
+        // Voter1 revotes
+        votes[0] = 8000;
+        votes[1] = 2000;
+        vm.prank(voter1);
+        yieldDistributor2.castVote(votes);
+
+        // Total should still be the same
+        uint256 totalAfterRevote = yieldDistributor2.currentVotes();
+        assertEq(totalAfterRevote, voter1Power + voter2Power, "Total should remain sum of both voters after revote");
+    }
+
+    function test_stateTransitionCount_IncrementsOnStateMutatingFunctions() public {
+        // Get initial state transition count
+        uint256 initialCount = yieldDistributor.stateTransitionCount();
+
+        // Call a state-mutating function (setCycleLength)
+        yieldDistributor.setCycleLength(200);
+        uint256 countAfterFirst = yieldDistributor.stateTransitionCount();
+        assertEq(countAfterFirst, initialCount + 1, "State transition count should increment by 1");
+
+        // Call another state-mutating function (setMaxPoints)
+        yieldDistributor.setMaxPoints(10_000);
+        uint256 countAfterSecond = yieldDistributor.stateTransitionCount();
+        assertEq(countAfterSecond, initialCount + 2, "State transition count should increment by 2");
+
+        // Call castVote (another state-mutating function)
+        address voter = address(0x123);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+
+        vm.prank(voter);
+        yieldDistributor.castVote(points);
+        uint256 countAfterVote = yieldDistributor.stateTransitionCount();
+        assertEq(countAfterVote, initialCount + 3, "State transition count should increment by 3");
     }
 }
