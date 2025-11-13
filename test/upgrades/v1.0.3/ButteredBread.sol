@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity =0.8.25 ^0.8.20 ^0.8.25;
+pragma solidity ^0.8.20 ^0.8.25;
 
 // lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol
 

@@ -2,10 +2,11 @@
 pragma solidity ^0.8.22;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {Checkpoints} from
-    "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {ERC20VotesUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {
+    ERC20VotesUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {GasKillerSDK} from "gas-killer/flat/GasKillerSDK.flat.sol";
 import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
@@ -23,7 +24,7 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @custom:coauthor github.com/daopunk
  * @custom:coauthor github.com/secbajor
  */
-contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingMultipliers {
+contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingMultipliers, GasKillerSDK {
     /// @notice The address of the $BREAD token contract
     Bread public BREAD;
     /// @notice The precision to use for calculations
@@ -58,7 +59,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public previousCycleStartingBlock;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor() GasKillerSDK(address(0), address(0)) {
         _disableInitializers();
     }
 
@@ -74,6 +75,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         address[] memory _projects
     ) public initializer {
         VotingMultipliers.initialize();
+
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
@@ -96,6 +98,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         for (uint256 i; i < _projects.length; ++i) {
             projects[i] = _projects[i];
         }
+    }
+
+    /**
+     * @notice Initializes the GasKiller SDK
+     * @param _avsAddress The address of the AVS service manager
+     * @param _blsSignatureChecker The address of the BLS signature checker
+     */
+    function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(1) {
+        _setAvsAddress(_avsAddress);
+        _setBlsSignatureChecker(_blsSignatureChecker);
     }
 
     /**
@@ -405,5 +417,14 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function setButteredBread(address _butteredBread) public onlyOwner {
         BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
+    }
+
+    /**
+     * @notice Allows the owner to set the AVS address
+     * @param newAvsAddress The new AVS address
+     * @dev Also updates the namespace for the contract
+     */
+    function setAvsAddress(address newAvsAddress) external onlyOwner {
+        _setAvsAddress(newAvsAddress);
     }
 }

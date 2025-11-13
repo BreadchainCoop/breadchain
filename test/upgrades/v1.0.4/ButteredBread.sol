@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity =0.8.25 ^0.8.20 ^0.8.25;
+pragma solidity ^0.8.20 ^0.8.25;
 
 // lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol
 
@@ -775,10 +775,11 @@ library ECDSA {
      * - with https://web3js.readthedocs.io/en/v1.3.4/web3-eth-accounts.html#sign[Web3.js]
      * - with https://docs.ethers.io/v5/api/signer/#Signer-signMessage[ethers]
      */
-    function tryRecover(
-        bytes32 hash,
-        bytes memory signature
-    ) internal pure returns (address recovered, RecoverError err, bytes32 errArg) {
+    function tryRecover(bytes32 hash, bytes memory signature)
+        internal
+        pure
+        returns (address recovered, RecoverError err, bytes32 errArg)
+    {
         if (signature.length == 65) {
             bytes32 r;
             bytes32 s;
@@ -821,11 +822,11 @@ library ECDSA {
      *
      * See https://eips.ethereum.org/EIPS/eip-2098[ERC-2098 short signatures]
      */
-    function tryRecover(
-        bytes32 hash,
-        bytes32 r,
-        bytes32 vs
-    ) internal pure returns (address recovered, RecoverError err, bytes32 errArg) {
+    function tryRecover(bytes32 hash, bytes32 r, bytes32 vs)
+        internal
+        pure
+        returns (address recovered, RecoverError err, bytes32 errArg)
+    {
         unchecked {
             bytes32 s = vs & bytes32(0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
             // We do not check for an overflow here since the shift operation results in 0 or 1.
@@ -847,12 +848,11 @@ library ECDSA {
      * @dev Overload of {ECDSA-tryRecover} that receives the `v`,
      * `r` and `s` signature fields separately.
      */
-    function tryRecover(
-        bytes32 hash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) internal pure returns (address recovered, RecoverError err, bytes32 errArg) {
+    function tryRecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s)
+        internal
+        pure
+        returns (address recovered, RecoverError err, bytes32 errArg)
+    {
         // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
         // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
         // the valid range for s in (301): 0 < s < secp256k1n ÷ 2 + 1, and for v in (302): v ∈ {27, 28}. Most
@@ -2156,11 +2156,10 @@ interface IButteredBread {
  * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract ContextUpgradeable is Initializable {
-    function __Context_init() internal onlyInitializing {
-    }
+    function __Context_init() internal onlyInitializing {}
 
-    function __Context_init_unchained() internal onlyInitializing {
-    }
+    function __Context_init_unchained() internal onlyInitializing {}
+
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
     }
@@ -2201,11 +2200,10 @@ abstract contract NoncesUpgradeable is Initializable {
         }
     }
 
-    function __Nonces_init() internal onlyInitializing {
-    }
+    function __Nonces_init() internal onlyInitializing {}
 
-    function __Nonces_init_unchained() internal onlyInitializing {
-    }
+    function __Nonces_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Returns the next unused nonce for an address.
      */
@@ -2284,7 +2282,8 @@ abstract contract ReentrancyGuardUpgradeable is Initializable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ReentrancyGuard")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ReentrancyGuardStorageLocation = 0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
+    bytes32 private constant ReentrancyGuardStorageLocation =
+        0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
 
     function _getReentrancyGuardStorage() private pure returns (ReentrancyGuardStorage storage $) {
         assembly {
@@ -2502,7 +2501,8 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant OwnableStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+    bytes32 private constant OwnableStorageLocation =
+        0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
 
     function _getOwnableStorage() private pure returns (OwnableStorage storage $) {
         assembly {
@@ -3045,11 +3045,11 @@ library Math {
     /**
      * @dev Variant of {tryModExp} that supports inputs of arbitrary length.
      */
-    function tryModExp(
-        bytes memory b,
-        bytes memory e,
-        bytes memory m
-    ) internal view returns (bool success, bytes memory result) {
+    function tryModExp(bytes memory b, bytes memory e, bytes memory m)
+        internal
+        view
+        returns (bool success, bytes memory result)
+    {
         if (_zeroBytes(m)) return (false, new bytes(0));
 
         uint256 mLen = m.length;
@@ -3375,7 +3375,8 @@ abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable2Step")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant Ownable2StepStorageLocation = 0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
+    bytes32 private constant Ownable2StepStorageLocation =
+        0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
 
     function _getOwnable2StepStorage() private pure returns (Ownable2StepStorage storage $) {
         assembly {
@@ -3385,11 +3386,10 @@ abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
 
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
 
-    function __Ownable2Step_init() internal onlyInitializing {
-    }
+    function __Ownable2Step_init() internal onlyInitializing {}
 
-    function __Ownable2Step_init_unchained() internal onlyInitializing {
-    }
+    function __Ownable2Step_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Returns the address of the pending owner.
      */
@@ -3467,11 +3467,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint32).max` key set will disable the
      * library.
      */
-    function push(
-        Trace224 storage self,
-        uint32 key,
-        uint224 value
-    ) internal returns (uint224 oldValue, uint224 newValue) {
+    function push(Trace224 storage self, uint32 key, uint224 value)
+        internal
+        returns (uint224 oldValue, uint224 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -3562,11 +3561,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint224 value
-    ) private returns (uint224 oldValue, uint224 newValue) {
+    function _insert(Checkpoint224[] storage self, uint32 key, uint224 value)
+        private
+        returns (uint224 oldValue, uint224 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -3599,12 +3597,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint224[] storage self, uint32 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -3623,12 +3620,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint224[] storage self, uint32 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -3643,10 +3639,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint224[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint224 storage result) {
+    function _unsafeAccess(Checkpoint224[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint224 storage result)
+    {
         assembly {
             mstore(0, self.slot)
             result.slot := add(keccak256(0, 0x20), pos)
@@ -3670,11 +3667,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint48).max` key set will disable the
      * library.
      */
-    function push(
-        Trace208 storage self,
-        uint48 key,
-        uint208 value
-    ) internal returns (uint208 oldValue, uint208 newValue) {
+    function push(Trace208 storage self, uint48 key, uint208 value)
+        internal
+        returns (uint208 oldValue, uint208 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -3765,11 +3761,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint208 value
-    ) private returns (uint208 oldValue, uint208 newValue) {
+    function _insert(Checkpoint208[] storage self, uint48 key, uint208 value)
+        private
+        returns (uint208 oldValue, uint208 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -3802,12 +3797,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint208[] storage self, uint48 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -3826,12 +3820,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint208[] storage self, uint48 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -3846,10 +3839,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint208[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint208 storage result) {
+    function _unsafeAccess(Checkpoint208[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint208 storage result)
+    {
         assembly {
             mstore(0, self.slot)
             result.slot := add(keccak256(0, 0x20), pos)
@@ -3873,11 +3867,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint96).max` key set will disable the
      * library.
      */
-    function push(
-        Trace160 storage self,
-        uint96 key,
-        uint160 value
-    ) internal returns (uint160 oldValue, uint160 newValue) {
+    function push(Trace160 storage self, uint96 key, uint160 value)
+        internal
+        returns (uint160 oldValue, uint160 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -3968,11 +3961,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint160 value
-    ) private returns (uint160 oldValue, uint160 newValue) {
+    function _insert(Checkpoint160[] storage self, uint96 key, uint160 value)
+        private
+        returns (uint160 oldValue, uint160 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -4005,12 +3997,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint160[] storage self, uint96 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -4029,12 +4020,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint160[] storage self, uint96 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -4049,10 +4039,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint160[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint160 storage result) {
+    function _unsafeAccess(Checkpoint160[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint160 storage result)
+    {
         assembly {
             mstore(0, self.slot)
             result.slot := add(keccak256(0, 0x20), pos)
@@ -4129,10 +4120,11 @@ library Time {
      * @dev Get the value at a given timepoint plus the pending value and effect timepoint if there is a scheduled
      * change after this timepoint. If the effect timepoint is 0, then the pending value should not be considered.
      */
-    function _getFullAt(
-        Delay self,
-        uint48 timepoint
-    ) private pure returns (uint32 valueBefore, uint32 valueAfter, uint48 effect) {
+    function _getFullAt(Delay self, uint48 timepoint)
+        private
+        pure
+        returns (uint32 valueBefore, uint32 valueAfter, uint48 effect)
+    {
         (valueBefore, valueAfter, effect) = self.unpack();
         return effect <= timepoint ? (valueAfter, 0, 0) : (valueBefore, valueAfter, effect);
     }
@@ -4149,7 +4141,7 @@ library Time {
      * @dev Get the current value.
      */
     function get(Delay self) internal view returns (uint32) {
-        (uint32 delay, , ) = self.getFull();
+        (uint32 delay,,) = self.getFull();
         return delay;
     }
 
@@ -4158,11 +4150,11 @@ library Time {
      * enforce the old delay at the moment of the update. Returns the updated Delay object and the timestamp when the
      * new delay becomes effective.
      */
-    function withUpdate(
-        Delay self,
-        uint32 newValue,
-        uint32 minSetback
-    ) internal view returns (Delay updatedDelay, uint48 effect) {
+    function withUpdate(Delay self, uint32 newValue, uint32 minSetback)
+        internal
+        view
+        returns (Delay updatedDelay, uint48 effect)
+    {
         uint32 value = self.get();
         uint32 setback = uint32(Math.max(minSetback, value > newValue ? value - newValue : 0));
         effect = timestamp() + setback;
@@ -4202,14 +4194,13 @@ library Strings {
 
     bytes16 private constant HEX_DIGITS = "0123456789abcdef";
     uint8 private constant ADDRESS_LENGTH = 20;
-    uint256 private constant SPECIAL_CHARS_LOOKUP =
-        (1 << 0x08) | // backspace
-            (1 << 0x09) | // tab
-            (1 << 0x0a) | // newline
-            (1 << 0x0c) | // form feed
-            (1 << 0x0d) | // carriage return
-            (1 << 0x22) | // double quote
-            (1 << 0x5c); // backslash
+    uint256 private constant SPECIAL_CHARS_LOOKUP = (1 << 0x08) // backspace
+        | (1 << 0x09) // tab
+        | (1 << 0x0a) // newline
+        | (1 << 0x0c) // form feed
+        | (1 << 0x0d) // carriage return
+        | (1 << 0x22) // double quote
+        | (1 << 0x5c); // backslash
 
     /**
      * @dev The `value` string doesn't fit in the specified `length`.
@@ -4362,11 +4353,11 @@ library Strings {
      *
      * NOTE: This function will revert if the result does not fit in a `uint256`.
      */
-    function tryParseUint(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) internal pure returns (bool success, uint256 value) {
+    function tryParseUint(string memory input, uint256 begin, uint256 end)
+        internal
+        pure
+        returns (bool success, uint256 value)
+    {
         if (end > bytes(input).length || begin > end) return (false, 0);
         return _tryParseUintUncheckedBounds(input, begin, end);
     }
@@ -4375,11 +4366,11 @@ library Strings {
      * @dev Implementation of {tryParseUint-string-uint256-uint256} that does not check bounds. Caller should make sure that
      * `begin <= end <= input.length`. Other inputs would result in undefined behavior.
      */
-    function _tryParseUintUncheckedBounds(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) private pure returns (bool success, uint256 value) {
+    function _tryParseUintUncheckedBounds(string memory input, uint256 begin, uint256 end)
+        private
+        pure
+        returns (bool success, uint256 value)
+    {
         bytes memory buffer = bytes(input);
 
         uint256 result = 0;
@@ -4435,11 +4426,11 @@ library Strings {
      *
      * NOTE: This function will revert if the absolute value of the result does not fit in a `uint256`.
      */
-    function tryParseInt(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) internal pure returns (bool success, int256 value) {
+    function tryParseInt(string memory input, uint256 begin, uint256 end)
+        internal
+        pure
+        returns (bool success, int256 value)
+    {
         if (end > bytes(input).length || begin > end) return (false, 0);
         return _tryParseIntUncheckedBounds(input, begin, end);
     }
@@ -4448,11 +4439,11 @@ library Strings {
      * @dev Implementation of {tryParseInt-string-uint256-uint256} that does not check bounds. Caller should make sure that
      * `begin <= end <= input.length`. Other inputs would result in undefined behavior.
      */
-    function _tryParseIntUncheckedBounds(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) private pure returns (bool success, int256 value) {
+    function _tryParseIntUncheckedBounds(string memory input, uint256 begin, uint256 end)
+        private
+        pure
+        returns (bool success, int256 value)
+    {
         bytes memory buffer = bytes(input);
 
         // Check presence of a negative sign.
@@ -4467,7 +4458,9 @@ library Strings {
             return (true, negativeSign ? -int256(absValue) : int256(absValue));
         } else if (absSuccess && negativeSign && absValue == ABS_MIN_INT256) {
             return (true, type(int256).min);
-        } else return (false, 0);
+        } else {
+            return (false, 0);
+        }
     }
 
     /**
@@ -4510,11 +4503,11 @@ library Strings {
      *
      * NOTE: This function will revert if the result does not fit in a `uint256`.
      */
-    function tryParseHexUint(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) internal pure returns (bool success, uint256 value) {
+    function tryParseHexUint(string memory input, uint256 begin, uint256 end)
+        internal
+        pure
+        returns (bool success, uint256 value)
+    {
         if (end > bytes(input).length || begin > end) return (false, 0);
         return _tryParseHexUintUncheckedBounds(input, begin, end);
     }
@@ -4523,11 +4516,11 @@ library Strings {
      * @dev Implementation of {tryParseHexUint-string-uint256-uint256} that does not check bounds. Caller should make sure that
      * `begin <= end <= input.length`. Other inputs would result in undefined behavior.
      */
-    function _tryParseHexUintUncheckedBounds(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) private pure returns (bool success, uint256 value) {
+    function _tryParseHexUintUncheckedBounds(string memory input, uint256 begin, uint256 end)
+        private
+        pure
+        returns (bool success, uint256 value)
+    {
         bytes memory buffer = bytes(input);
 
         // skip 0x prefix if present
@@ -4583,11 +4576,11 @@ library Strings {
      * @dev Variant of {parseAddress-string-uint256-uint256} that returns false if the parsing fails because input is not a properly
      * formatted address. See {parseAddress-string-uint256-uint256} requirements.
      */
-    function tryParseAddress(
-        string memory input,
-        uint256 begin,
-        uint256 end
-    ) internal pure returns (bool success, address value) {
+    function tryParseAddress(string memory input, uint256 begin, uint256 end)
+        internal
+        pure
+        returns (bool success, address value)
+    {
         if (end > bytes(input).length || begin > end) return (false, address(0));
 
         bool hasPrefix = (end > begin + 1) && bytes2(_unsafeReadBytesOffset(bytes(input), begin)) == bytes2("0x"); // don't do out-of-bound (possibly unsafe) read if sub-string is empty
@@ -4635,13 +4628,19 @@ library Strings {
             bytes1 char = bytes1(_unsafeReadBytesOffset(buffer, i));
             if (((SPECIAL_CHARS_LOOKUP & (1 << uint8(char))) != 0)) {
                 output[outputLength++] = "\\";
-                if (char == 0x08) output[outputLength++] = "b";
-                else if (char == 0x09) output[outputLength++] = "t";
-                else if (char == 0x0a) output[outputLength++] = "n";
-                else if (char == 0x0c) output[outputLength++] = "f";
-                else if (char == 0x0d) output[outputLength++] = "r";
-                else if (char == 0x5c) output[outputLength++] = "\\";
-                else if (char == 0x22) {
+                if (char == 0x08) {
+                    output[outputLength++] = "b";
+                } else if (char == 0x09) {
+                    output[outputLength++] = "t";
+                } else if (char == 0x0a) {
+                    output[outputLength++] = "n";
+                } else if (char == 0x0c) {
+                    output[outputLength++] = "f";
+                } else if (char == 0x0d) {
+                    output[outputLength++] = "r";
+                } else if (char == 0x5c) {
+                    output[outputLength++] = "\\";
+                } else if (char == 0x22) {
                     // solhint-disable-next-line quotes
                     output[outputLength++] = '"';
                 }
@@ -5062,18 +5061,19 @@ library MessageHashUtils {
      * See {ECDSA-recover}.
      */
     function toDataWithIntendedValidatorHash(address validator, bytes memory data) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(hex"19_00", validator, data));
+        return keccak256(abi.encodePacked(hex"1900", validator, data));
     }
 
     /**
      * @dev Variant of {toDataWithIntendedValidatorHash-address-bytes} optimized for cases where `data` is a bytes32.
      */
-    function toDataWithIntendedValidatorHash(
-        address validator,
-        bytes32 messageHash
-    ) internal pure returns (bytes32 digest) {
+    function toDataWithIntendedValidatorHash(address validator, bytes32 messageHash)
+        internal
+        pure
+        returns (bytes32 digest)
+    {
         assembly ("memory-safe") {
-            mstore(0x00, hex"19_00")
+            mstore(0x00, hex"1900")
             mstore(0x02, shl(96, validator))
             mstore(0x16, messageHash)
             digest := keccak256(0x00, 0x36)
@@ -5092,7 +5092,7 @@ library MessageHashUtils {
     function toTypedDataHash(bytes32 domainSeparator, bytes32 structHash) internal pure returns (bytes32 digest) {
         assembly ("memory-safe") {
             let ptr := mload(0x40)
-            mstore(ptr, hex"19_01")
+            mstore(ptr, hex"1901")
             mstore(add(ptr, 0x02), domainSeparator)
             mstore(add(ptr, 0x22), structHash)
             digest := keccak256(ptr, 0x42)
@@ -5228,15 +5228,16 @@ abstract contract EIP712Upgradeable is Initializable, IERC5267 {
         // and the EIP712 domain is not reliable, as it will be missing name and version.
         require($._hashedName == 0 && $._hashedVersion == 0, "EIP712: Uninitialized");
 
-        return (
-            hex"0f", // 01111
-            _EIP712Name(),
-            _EIP712Version(),
-            block.chainid,
-            address(this),
-            bytes32(0),
-            new uint256[](0)
-        );
+        return
+            (
+                hex"0f", // 01111
+                _EIP712Name(),
+                _EIP712Version(),
+                block.chainid,
+                address(this),
+                bytes32(0),
+                new uint256[](0)
+            );
     }
 
     /**
@@ -5328,7 +5329,13 @@ abstract contract EIP712Upgradeable is Initializable, IERC5267 {
  * {ERC721-balanceOf}), and can use {_transferVotingUnits} to track a change in the distribution of those units (in the
  * previous example, it would be included in {ERC721-_update}).
  */
-abstract contract VotesUpgradeable is Initializable, ContextUpgradeable, EIP712Upgradeable, NoncesUpgradeable, IERC5805 {
+abstract contract VotesUpgradeable is
+    Initializable,
+    ContextUpgradeable,
+    EIP712Upgradeable,
+    NoncesUpgradeable,
+    IERC5805
+{
     using Checkpoints for Checkpoints.Trace208;
 
     bytes32 private constant DELEGATION_TYPEHASH =
@@ -5362,11 +5369,10 @@ abstract contract VotesUpgradeable is Initializable, ContextUpgradeable, EIP712U
      */
     error ERC5805FutureLookup(uint256 timepoint, uint48 clock);
 
-    function __Votes_init() internal onlyInitializing {
-    }
+    function __Votes_init() internal onlyInitializing {}
 
-    function __Votes_init_unchained() internal onlyInitializing {
-    }
+    function __Votes_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Clock used for flagging checkpoints. Can be overridden to implement timestamp based
      * checkpoints (and voting), in which case {CLOCK_MODE} should be overridden as well to match.
@@ -5461,22 +5467,15 @@ abstract contract VotesUpgradeable is Initializable, ContextUpgradeable, EIP712U
     /**
      * @dev Delegates votes from signer to `delegatee`.
      */
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public virtual {
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s)
+        public
+        virtual
+    {
         if (block.timestamp > expiry) {
             revert VotesExpiredSignature(expiry);
         }
         address signer = ECDSA.recover(
-            _hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))),
-            v,
-            r,
-            s
+            _hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))), v, r, s
         );
         _useCheckedNonce(signer, nonce);
         _delegate(signer, delegatee);
@@ -5518,19 +5517,13 @@ abstract contract VotesUpgradeable is Initializable, ContextUpgradeable, EIP712U
         VotesStorage storage $ = _getVotesStorage();
         if (from != to && amount > 0) {
             if (from != address(0)) {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    $._delegateCheckpoints[from],
-                    _subtract,
-                    SafeCast.toUint208(amount)
-                );
+                (uint256 oldValue, uint256 newValue) =
+                    _push($._delegateCheckpoints[from], _subtract, SafeCast.toUint208(amount));
                 emit DelegateVotesChanged(from, oldValue, newValue);
             }
             if (to != address(0)) {
-                (uint256 oldValue, uint256 newValue) = _push(
-                    $._delegateCheckpoints[to],
-                    _add,
-                    SafeCast.toUint208(amount)
-                );
+                (uint256 oldValue, uint256 newValue) =
+                    _push($._delegateCheckpoints[to], _add, SafeCast.toUint208(amount));
                 emit DelegateVotesChanged(to, oldValue, newValue);
             }
         }
@@ -5547,10 +5540,12 @@ abstract contract VotesUpgradeable is Initializable, ContextUpgradeable, EIP712U
     /**
      * @dev Get the `pos`-th checkpoint for `account`.
      */
-    function _checkpoints(
-        address account,
-        uint32 pos
-    ) internal view virtual returns (Checkpoints.Checkpoint208 memory) {
+    function _checkpoints(address account, uint32 pos)
+        internal
+        view
+        virtual
+        returns (Checkpoints.Checkpoint208 memory)
+    {
         VotesStorage storage $ = _getVotesStorage();
         return $._delegateCheckpoints[account].at(pos);
     }
@@ -5600,11 +5595,10 @@ abstract contract ERC20VotesUpgradeable is Initializable, ERC20Upgradeable, Vote
      */
     error ERC20ExceededSafeSupply(uint256 increasedSupply, uint256 cap);
 
-    function __ERC20Votes_init() internal onlyInitializing {
-    }
+    function __ERC20Votes_init() internal onlyInitializing {}
 
-    function __ERC20Votes_init_unchained() internal onlyInitializing {
-    }
+    function __ERC20Votes_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Maximum token supply. Defaults to `type(uint208).max` (2^208^ - 1).
      *

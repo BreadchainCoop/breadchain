@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 

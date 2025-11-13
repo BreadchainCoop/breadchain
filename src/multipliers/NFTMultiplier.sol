@@ -2,9 +2,10 @@
 pragma solidity ^0.8.22;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+import {INFTMultiplier} from "src/interfaces/multipliers/INFTMultiplier.sol";
 
 /// @title NFT Multiplier
 /// @notice Implementation of INFTMultiplier interface

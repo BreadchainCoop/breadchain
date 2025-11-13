@@ -1,0 +1,26 @@
+{
+  "lib/bread-token-v2": {
+    "rev": "77710c4f9809d0e5cda0c76764a8fd9f1fe65354"
+  },
+  "lib/forge-std": {
+    "rev": "1714bee72e286e73f76e320d110e0eaf5c4e649d"
+  },
+  "lib/gas-killer-solidity-sdk": {
+    "rev": "729ab010967afa8835b31704142e823e13680338"
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.5.0",
+      "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+    }
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "tag": {
+      "name": "v5.5.0",
+      "rev": "aa677e9d28ed78fc427ec47ba2baef2030c58e7c"
+    }
+  },
+  "lib/openzeppelin-foundry-upgrades": {
+    "rev": "4cd15fc50b141c77d8cc9ff8efb44d00e841a299"
+  }
+}
