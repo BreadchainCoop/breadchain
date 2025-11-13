@@ -68,7 +68,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     mapping(address => uint256) public holderToDistributionTotal;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() GasKillerSDK(address(0), address(0)) {
+    constructor() {
         _disableInitializers();
     }
 
@@ -83,8 +83,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _lastClaimedBlockNumber,
         address[] memory _projects
     ) public initializer {
-        VotingMultipliers.initialize();
-
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
                 || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
@@ -110,11 +108,20 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
+     * @notice Initializes the VotingMultipliers contract
+     * @custom:oz-upgrades-validate-as-initializer
+     */
+    function initializeVotingMultipliers() public reinitializer(1) {
+        __VotingMultipliers_init();
+    }
+
+    /**
      * @notice Initializes the GasKiller SDK
      * @param _avsAddress The address of the AVS service manager
      * @param _blsSignatureChecker The address of the BLS signature checker
+     * @custom:oz-upgrades-validate-as-initializer
      */
-    function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(1) {
+    function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(2) {
         _setAvsAddress(_avsAddress);
         _setBlsSignatureChecker(_blsSignatureChecker);
     }

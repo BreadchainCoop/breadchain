@@ -17,17 +17,12 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     }
 
     // keccak256(abi.encode(uint256(keccak256("breadchain.VotingMultipliers.storage")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 private constant VOTING_MULTIPLIERS_STORAGE_LOCATION = 0xf8ea84bd4d45550952f40e913fd59ad03bae30b4f3dc5a09695fefe1d0465d00;
+    bytes32 private constant VOTING_MULTIPLIERS_STORAGE_LOCATION =
+        0xf8ea84bd4d45550952f40e913fd59ad03bae30b4f3dc5a09695fefe1d0465d00;
 
     /// @notice Initializes the contract
-    function initialize() public initializer {
+    function __VotingMultipliers_init() public onlyInitializing {
         __Ownable_init(msg.sender);
-    }
-
-    function _getVotingMultipliersStorage() private pure returns (VotingMultipliersStorage storage $) {
-        assembly {
-            $.slot := VOTING_MULTIPLIERS_STORAGE_LOCATION
-        }
     }
 
     /// @notice Returns the multiplier at the given index
@@ -155,5 +150,16 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             }
         }
         return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
+    }
+
+    /**
+     * @notice Returns a storage pointer to the VotingMultipliers storage struct
+     * @dev Internal/private pure helper to retrieve the VotingMultipliersStorage storage location
+     * @return $ VotingMultipliersStorage storage pointer
+     */
+    function _getVotingMultipliersStorage() private pure returns (VotingMultipliersStorage storage $) {
+        assembly {
+            $.slot := VOTING_MULTIPLIERS_STORAGE_LOCATION
+        }
     }
 }
