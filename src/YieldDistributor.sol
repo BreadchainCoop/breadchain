@@ -109,10 +109,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Initializes the VotingMultipliers contract
+     * @param _initialOwner The address of the initial owner
      * @custom:oz-upgrades-validate-as-initializer
      */
-    function initializeVotingMultipliers() public reinitializer(1) {
-        __VotingMultipliers_init();
+    function initializeVotingMultipliers(address _initialOwner) public reinitializer(1) {
+        __VotingMultipliers_init(_initialOwner);
     }
 
     /**
