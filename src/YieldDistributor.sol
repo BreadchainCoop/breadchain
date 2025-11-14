@@ -3,13 +3,11 @@ pragma solidity ^0.8.22;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {
-    ERC20VotesUpgradeable
-} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import {GasKillerSDK} from "gas-killer/flat/GasKillerSDK.flat.sol";
-import {Bread} from "bread-token/src/Bread.sol";
 
 import {IYieldDistributor} from "src/interfaces/IYieldDistributor.sol";
+import {IBread} from "src/interfaces/IBread.sol";
+import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 import {VotingMultipliers} from "src/VotingMultipliers.sol";
 
 /**
@@ -29,7 +27,7 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  */
 contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingMultipliers, GasKillerSDK {
     /// @notice The address of the $BREAD token contract
-    Bread public BREAD;
+    IBread public BREAD;
     /// @notice The precision to use for calculations
     uint256 public PRECISION;
     /// @notice The minimum number of blocks between yield distributions
@@ -57,7 +55,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice How much of the yield is divided equally among projects
     uint256 public yieldFixedSplitDivisor;
     /// @notice The address of the `ButteredBread` token contract
-    ERC20VotesUpgradeable public BUTTERED_BREAD;
+    IERC20Votes public BUTTERED_BREAD;
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
     /// @notice Array of voters who have cast votes in the current cycle
@@ -91,8 +89,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             revert MustBeGreaterThanZero();
         }
 
-        BREAD = Bread(_bread);
-        BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
+        BREAD = IBread(_bread);
+        BUTTERED_BREAD = IERC20Votes(_butteredBread);
         PRECISION = _precision;
         minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
@@ -163,7 +161,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @return uint256 Voting power of the specified user at the specified period of time
      */
     function getVotingPowerForPeriod(
-        ERC20VotesUpgradeable _sourceContract,
+        IERC20Votes _sourceContract,
         uint256 _start,
         uint256 _end,
         address _account
@@ -526,7 +524,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @param _butteredBread Address of the ButteredBread token contract
      */
     function setButteredBread(address _butteredBread) public onlyOwner trackState {
-        BUTTERED_BREAD = ERC20VotesUpgradeable(_butteredBread);
+        BUTTERED_BREAD = IERC20Votes(_butteredBread);
     }
 
     /**

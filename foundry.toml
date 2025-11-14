@@ -14,6 +14,8 @@ ffi = true
 ast = true
 extra_output = ["storageLayout"]
 evm_version = "cancun" # Compile Curve LP interface
+optimizer = true
+optimizer_runs = 10000
 
 [rpc_endpoints]
 sepolia = "QUICKNODE_ENDPOINT_URL"

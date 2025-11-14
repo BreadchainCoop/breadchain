@@ -19,13 +19,11 @@ import {VotingMultipliers, IVotingMultipliers} from "src/VotingMultipliers.sol";
 import {VotingStreakMultiplier} from "src/multipliers/VotingStreakMultiplier.sol";
 import {MockMultiplier} from "src/test/MockMultiplier.sol";
 import {IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
+import {IBread} from "src/interfaces/IBread.sol";
 import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
 import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
 
-abstract contract Bread is ERC20VotesUpgradeable, Ownable2StepUpgradeable {
-    function claimYield(uint256 amount, address receiver) public virtual;
-    function yieldAccrued() external view virtual returns (uint256);
-    function setYieldClaimer(address _yieldClaimer) external virtual;
+abstract contract Bread is IBread, Ownable2StepUpgradeable {
     function mint(address receiver) external payable virtual;
 }
 
