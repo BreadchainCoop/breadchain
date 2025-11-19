@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {IMultiplier} from "src/interfaces/multipliers/IMultiplier.sol";
 import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
@@ -63,7 +64,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     function getMultiplyingFactor(address user) public view override returns (uint256) {
         if (
             yieldDistributor.accountLastVoted(user)
-                > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
+                    > yieldDistributor.lastClaimedBlockNumber() - yieldDistributor.cycleLength()
                 && block.number <= userToValidUntil[user]
         ) {
             return userToMultiplier[user];

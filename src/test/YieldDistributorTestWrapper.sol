@@ -15,8 +15,8 @@ contract YieldDistributorTestWrapper is YieldDistributor {
     }
 
     /**
-     * @notice Set the number of votes cast in the current cycle
-     * @param _currentVotes New number of votes cast in the current cycle
+     * @notice Set the total voting power in the current cycle
+     * @param _currentVotes New total voting power in the current cycle
      */
     function setCurrentVotes(uint256 _currentVotes) public onlyOwner {
         currentVotes = _currentVotes;

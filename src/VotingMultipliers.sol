@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {IVotingMultipliers, IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
 import {MultiplierConstants} from "src/libraries/MultiplierConstants.sol";
 
@@ -16,17 +17,13 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     }
 
     // keccak256(abi.encode(uint256(keccak256("breadchain.VotingMultipliers.storage")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 private constant VOTING_MULTIPLIERS_STORAGE_LOCATION = 0xf8ea84bd4d45550952f40e913fd59ad03bae30b4f3dc5a09695fefe1d0465d00;
+    bytes32 private constant VOTING_MULTIPLIERS_STORAGE_LOCATION =
+        0xf8ea84bd4d45550952f40e913fd59ad03bae30b4f3dc5a09695fefe1d0465d00;
 
     /// @notice Initializes the contract
-    function initialize() public initializer {
-        __Ownable_init(msg.sender);
-    }
-
-    function _getVotingMultipliersStorage() private pure returns (VotingMultipliersStorage storage $) {
-        assembly {
-            $.slot := VOTING_MULTIPLIERS_STORAGE_LOCATION
-        }
+    /// @param _initialOwner The address of the initial owner
+    function __VotingMultipliers_init(address _initialOwner) internal onlyInitializing {
+        __Ownable_init(_initialOwner);
     }
 
     /// @notice Returns the multiplier at the given index
@@ -154,5 +151,16 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             }
         }
         return Math.max(_totalMultiplier, MultiplierConstants.BASE_MULTIPLIER);
+    }
+
+    /**
+     * @notice Returns a storage pointer to the VotingMultipliers storage struct
+     * @dev Internal/private pure helper to retrieve the VotingMultipliersStorage storage location
+     * @return $ VotingMultipliersStorage storage pointer
+     */
+    function _getVotingMultipliersStorage() private pure returns (VotingMultipliersStorage storage $) {
+        assembly {
+            $.slot := VOTING_MULTIPLIERS_STORAGE_LOCATION
+        }
     }
 }

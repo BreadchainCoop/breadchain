@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 interface IERC20Votes is IERC20 {
     /**
@@ -41,4 +42,14 @@ interface IERC20Votes is IERC20 {
      * configured to use block numbers, this will return the value at the end of the corresponding block.
      */
     function getPastTotalSupply(uint256 timepoint) external returns (uint256);
+
+    /**
+     * @dev Get number of checkpoints for `account`.
+     */
+    function numCheckpoints(address account) external view returns (uint32);
+
+    /**
+     * @dev Get the `pos`-th checkpoint for `account`.
+     */
+    function checkpoints(address account, uint32 pos) external view returns (Checkpoints.Checkpoint208 memory);
 }
