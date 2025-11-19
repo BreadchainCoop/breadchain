@@ -535,4 +535,12 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     function setAvsAddress(address newAvsAddress) external onlyOwner trackState {
         _setAvsAddress(newAvsAddress);
     }
+
+    /**
+     * @notice Allows the owner to set the BLS signature checker address
+     * @param newBlsSignatureChecker The new BLS signature checker address
+     */
+    function setBlsSignatureChecker(address newBlsSignatureChecker) external onlyOwner trackState {
+        _setBlsSignatureChecker(newBlsSignatureChecker);
+    }
 }
