@@ -120,7 +120,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @param _blsSignatureChecker The address of the BLS signature checker
      * @custom:oz-upgrades-validate-as-initializer
      */
-    function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(2) {
+    function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(2) onlyOwner {
         _setAvsAddress(_avsAddress);
         _setBlsSignatureChecker(_blsSignatureChecker);
     }
@@ -160,12 +160,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @param _account Address of user to return the voting power for
      * @return uint256 Voting power of the specified user at the specified period of time
      */
-    function getVotingPowerForPeriod(
-        IERC20Votes _sourceContract,
-        uint256 _start,
-        uint256 _end,
-        address _account
-    ) public view returns (uint256) {
+    function getVotingPowerForPeriod(IERC20Votes _sourceContract, uint256 _start, uint256 _end, address _account)
+        public
+        view
+        returns (uint256)
+    {
         if (_start >= _end) revert StartMustBeBeforeEnd();
         if (_end > block.number) revert EndAfterCurrentBlock();
 

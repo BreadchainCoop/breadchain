@@ -23,7 +23,9 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
     /// @notice Initializes the contract
     /// @param _initialOwner The address of the initial owner
     function __VotingMultipliers_init(address _initialOwner) internal onlyInitializing {
-        __Ownable_init(_initialOwner);
+        if (owner() == address(0)) {
+            __Ownable_init(_initialOwner);
+        }
     }
 
     /// @notice Returns the multiplier at the given index
