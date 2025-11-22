@@ -19,7 +19,6 @@ import {VotingMultipliers} from "src/VotingMultipliers.sol";
  * @custom:coauthor prosalads.eth
  * @custom:coauthor kassandra.eth
  * @custom:coauthor theblockchainsocialist.eth
- * @custom:coauthor postcapitalistcrypto.eth
  * @custom:coauthor github.com/daopunk
  * @custom:coauthor github.com/secbajor
  * @custom:coauthor github.com/hudsonhrh
