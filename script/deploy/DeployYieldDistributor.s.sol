@@ -13,7 +13,6 @@ contract DeployYieldDistributor is Script {
     string config_data = vm.readFile(deployConfigPath);
     address _bread = stdJson.readAddress(config_data, "._bread");
     address _butteredBread = stdJson.readAddress(config_data, "._butteredBread");
-    uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
     uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
@@ -27,12 +26,12 @@ contract DeployYieldDistributor is Script {
         _bread,
         _butteredBread,
         _precision,
-        _minRequiredVotingPower,
         _maxPoints,
         _cycleLength,
         _yieldFixedSplitDivisor,
         _lastClaimedBlockNumber,
-        projects
+        projects,
+        _owner
     );
 
     function run() external {

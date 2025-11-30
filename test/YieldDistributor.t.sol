@@ -54,13 +54,6 @@ contract YieldDistributorTest is Test {
     ButteredBread public butteredBread = ButteredBread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 
-    // For testing purposes, these values were used in the following way to configure _minRequiredVotingPower
-    // uint256 minHoldingDuration = 10 days;
-    // uint256 blockTime = 5;
-    // uint256 minRequiredVotingPower = (minVotingAmount * minHoldingDuration) / blockTime; // We can assume that blockTime is small enough
-
-    uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
-
     function setUp() public virtual {
         vm.createSelectFork(vm.rpcUrl("gnosis"));
 
@@ -72,12 +65,12 @@ contract YieldDistributorTest is Test {
             address(bread),
             address(butteredBread),
             _precision,
-            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects1
+            projects1,
+            address(this)
         );
         yieldDistributor = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
@@ -92,12 +85,12 @@ contract YieldDistributorTest is Test {
             address(bread),
             address(butteredBread),
             _precision,
-            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects2
+            projects2,
+            address(this)
         );
         yieldDistributor2 = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
@@ -111,12 +104,12 @@ contract YieldDistributorTest is Test {
             address(bread),
             address(butteredBread),
             _precision,
-            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects3
+            projects3,
+            address(this)
         );
         yieldDistributorGasKiller = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
@@ -454,25 +447,6 @@ contract YieldDistributorTest is Test {
         // Making sure the project was removed
         uint256 length = yieldDistributor.getProjectsLength();
         assertEq(length, 1);
-    }
-
-    function test_castVote_RevertsWhenBelowMinimumVotingPower() public {
-        // Setting up an account without the minimum required voting power
-        address account = address(0x1234567890123356789012345672901234567890);
-
-        vm.roll(START - (minHoldingDurationInBlocks - 1));
-        vm.deal(account, _minVotingAmount);
-        vm.prank(account);
-        bread.mint{value: 5 * 1e4}(account);
-
-        // Setting up for a cycle and casting vote
-        setUpForCycle(yieldDistributor);
-        uint256 vote = 100;
-        percentages.push(vote);
-        vm.prank(account);
-
-        vm.expectRevert(abi.encodeWithSelector(IYieldDistributor.BelowMinRequiredVotingPower.selector));
-        yieldDistributor.castVote(percentages);
     }
 
     // GasKiller Voting System Tests (default voting system)

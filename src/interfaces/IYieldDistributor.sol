@@ -7,8 +7,6 @@ pragma solidity ^0.8.22;
 interface IYieldDistributor {
     /// @notice The error emitted when attempting to add a project that is already in the `projects` array
     error AlreadyMemberProject();
-    /// @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower();
     /// @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
     /// @notice The error emitted when attempting to vote with a point value greater than `pointsMax`

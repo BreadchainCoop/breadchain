@@ -33,8 +33,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public cycleLength;
     /// @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
-    /// @notice The minimum required voting power participants must have to cast a vote
-    uint256 public minRequiredVotingPower;
     /// @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
     /// @notice The total voting power accumulated in the current cycle
@@ -73,25 +71,26 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         address _bread,
         address _butteredBread,
         uint256 _precision,
-        uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects
+        address[] memory _projects,
+        address _initialOwner
     ) public initializer {
         if (
-            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
-                || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0
+            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _maxPoints == 0
+                || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
+                || _projects.length == 0 || _initialOwner == address(0)
         ) {
             revert MustBeGreaterThanZero();
         }
 
+        __VotingMultipliers_init(_initialOwner);
+
         BREAD = IBread(_bread);
         BUTTERED_BREAD = IERC20Votes(_butteredBread);
         PRECISION = _precision;
-        minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
@@ -291,8 +290,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     function castVote(uint256[] calldata _points) public trackState {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
-        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
-
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
@@ -308,7 +305,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
         uint256 _multiplier = calculateTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = _multiplier == 0 ? _currentVotingPower : (_currentVotingPower * _multiplier) / PRECISION;
-        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
 
         _castVote(msg.sender, _points, _currentVotingPower);
     }
@@ -475,16 +471,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
 
         queuedProjectsForRemoval.push(_project);
-    }
-
-    /**
-     * @notice Set a new minimum required voting power a user must have to vote
-     * @param _minRequiredVotingPower New minimum required voting power a user must have to vote
-     */
-    function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner trackState {
-        if (_minRequiredVotingPower == 0) revert MustBeGreaterThanZero();
-
-        minRequiredVotingPower = _minRequiredVotingPower;
     }
 
     /**

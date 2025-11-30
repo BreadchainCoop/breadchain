@@ -41,8 +41,6 @@ contract ButteredBreadTest is Test {
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
-    // See test/YieldDistributor.t.sol for explanation of these values
-    uint256 _minRequiredVotingPower = stdJson.readUint(config_data, "._minRequiredVotingPower");
 
     function setUp() public virtual {
         vm.createSelectFork(vm.rpcUrl("gnosis"));
@@ -83,12 +81,12 @@ contract ButteredBreadTest is Test {
             address(GNOSIS_BREAD),
             address(bb),
             _precision,
-            _minRequiredVotingPower,
             _maxPoints,
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects1
+            projects1,
+            address(this)
         );
         yieldDistributor = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), ydinitData))
