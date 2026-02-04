@@ -1,6 +1,15 @@
 name: test
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
 
 jobs:
   check:
@@ -29,3 +38,6 @@ jobs:
         run: |
           forge test -vvv
         id: test
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}

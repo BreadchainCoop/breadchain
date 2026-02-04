@@ -18,8 +18,8 @@ optimizer = true
 optimizer_runs = 10000
 
 [rpc_endpoints]
-sepolia = "QUICKNODE_ENDPOINT_URL"
-gnosis = "https://rpc.gnosis.gateway.fm"
+sepolia = "${SEPOLIA_RPC_URL}"
+gnosis = "${GNOSIS_RPC_URL}"
 
 [fuzz]
 runs = 256
