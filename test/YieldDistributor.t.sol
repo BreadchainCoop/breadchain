@@ -77,7 +77,8 @@ contract YieldDistributorTest is Test {
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects1
+            projects1,
+            address(this)
         );
         yieldDistributor = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
@@ -97,7 +98,8 @@ contract YieldDistributorTest is Test {
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects2
+            projects2,
+            address(this)
         );
         yieldDistributor2 = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
@@ -116,7 +118,8 @@ contract YieldDistributorTest is Test {
             _cycleLength,
             _yieldFixedSplitDivisor,
             _lastClaimedBlockNumber,
-            projects3
+            projects3,
+            address(this)
         );
         yieldDistributorGasKiller = YieldDistributorTestWrapper(
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))

@@ -78,7 +78,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects
+        address[] memory _projects,
+        address _initialOwner
     ) public initializer {
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
@@ -87,6 +88,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         ) {
             revert MustBeGreaterThanZero();
         }
+
+        __Ownable_init(_initialOwner);
 
         BREAD = IBread(_bread);
         BUTTERED_BREAD = IERC20Votes(_butteredBread);
