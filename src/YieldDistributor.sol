@@ -403,13 +403,17 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Internal function for updating the project list
+     * @dev Bypasses update if there are no additions or removals queued.
      */
     function _updateBreadchainProjects() internal {
+        if (queuedProjectsForAddition.length == 0 && queuedProjectsForRemoval.length == 0) {
+            // Bypass if nothing to update
+            return;
+        }
+
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
             address _project = queuedProjectsForAddition[i];
-
             projects.push(_project);
-
             emit ProjectAdded(_project);
         }
 
