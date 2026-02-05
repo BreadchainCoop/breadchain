@@ -58,11 +58,20 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
     /// @notice Array of voters who have cast votes in the current cycle
+    /// @dev DEPRECATED: Kept for storage layout compatibility. Use `voterAtIndex` and `votersCount` instead.
     address[] public voters;
     /// @notice The mapping of holders to their vote distributions
     mapping(address => uint256[]) public holderToDistribution;
     /// @notice The mapping of holders to their total vote distribution
     mapping(address => uint256) public holderToDistributionTotal;
+    /// @notice The current voting cycle number (incremented each distribution)
+    uint256 public votingCycle;
+    /// @notice The number of voters in the current cycle
+    uint256 public votersCount;
+    /// @notice Mapping from index to voter address for current cycle
+    mapping(uint256 => address) public voterAtIndex;
+    /// @notice Mapping from voter address to the cycle they last voted in
+    mapping(address => uint256) public voterVotedCycle;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -105,6 +114,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         for (uint256 i; i < _projects.length; ++i) {
             projects[i] = _projects[i];
         }
+
+        _initializeVotingCycle(1);
     }
 
     /**
@@ -128,12 +139,36 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
+     * @notice Initializes the voting cycle
+     * @dev This is required for proxy deployments since storage defaults don't apply
+     * @custom:oz-upgrades-validate-as-initializer
+     */
+    function initializeVotingCycle(uint256 _votingCycle) public reinitializer(3) onlyOwner {
+        if (votingCycle == 0) {
+            // Only initialize if voting cycle is not already initialized
+            _initializeVotingCycle(_votingCycle);
+        }
+    }
+
+    /**
      * @notice Returns the current distribution of voting power for projects
      * @return address[] The current eligible member projects
      * @return uint256[] The current distribution of voting power for projects
      */
     function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
         return (projects, projectDistributions);
+    }
+
+    /**
+     * @notice Returns the list of voters in the current cycle
+     * @return address[] Array of voter addresses who have voted in the current cycle
+     */
+    function getCurrentCycleVoters() public view returns (address[] memory) {
+        address[] memory _voters = new address[](votersCount);
+        for (uint256 i; i < votersCount; ++i) {
+            _voters[i] = voterAtIndex[i];
+        }
+        return _voters;
     }
 
     /**
@@ -263,8 +298,10 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _updateBreadchainProjects();
         emit YieldDistributed(balance, totalVotes, distributions);
 
-        delete voters;
-        delete currentVotes;
+        // Gas-efficient reset: increment cycle and reset counter instead of deleting arrays
+        votingCycle++;
+        votersCount = 0;
+        currentVotes = 0;
         projectDistributions = new uint256[](projects.length);
     }
 
@@ -326,11 +363,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _projectsLength = projects.length;
         if (_points.length != _projectsLength) revert IncorrectNumberOfProjects();
 
-        /// Add voter to list if they have not voted yet
-        if (holderToDistribution[_account].length > 0) {
-            delete holderToDistribution[_account];
-        } else {
-            voters.push(_account);
+        /// Check if voter has voted in current cycle using cycle counter
+        bool _hasVotedInCycle = voterVotedCycle[_account] == votingCycle;
+
+        /// Add voter to list if they have not voted this cycle
+        if (!_hasVotedInCycle) {
+            voterAtIndex[votersCount++] = _account;
+            voterVotedCycle[_account] = votingCycle;
         }
         holderToDistribution[_account] = _points;
 
@@ -342,8 +381,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
         if (_totalPoints == 0) revert ZeroVotePoints();
         holderToDistributionTotal[_account] = _totalPoints;
-
-        bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         if (!_hasVotedInCycle) {
             delete voterDistributions[_account];
@@ -385,8 +422,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     {
         _newProjectDistributions = new uint256[](projects.length);
 
-        for (uint256 i; i < voters.length; ++i) {
-            address _voter = voters[i];
+        for (uint256 i; i < votersCount; ++i) {
+            address _voter = voterAtIndex[i];
             uint256 _voterPower = getCurrentVotingPower(_voter);
             uint256[] memory _voterDistribution = holderToDistribution[_voter];
             uint256 _vote;
@@ -396,8 +433,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
                 _newProjectDistributions[j] += _vote;
                 _totalVotes += _vote;
             }
-            delete holderToDistribution[_voter];
-            delete holderToDistributionTotal[_voter];
         }
     }
 
@@ -439,6 +474,18 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
         delete queuedProjectsForAddition;
         delete queuedProjectsForRemoval;
+    }
+
+    /**
+     * @notice Internal function to initialize the voting cycle
+     * @dev Initialize voting cycle to 1 so that uninitialized voterVotedCycle mappings (default 0)
+     * @dev are correctly identified as "not voted in current cycle"
+     */
+    function _initializeVotingCycle(uint256 _votingCycle) internal {
+        votingCycle = _votingCycle;
+
+        // Reset deprecated `voters` array
+        delete voters;
     }
 
     /**
