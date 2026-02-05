@@ -140,10 +140,12 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Initializes the voting cycle
-     * @dev This is required for proxy deployments since storage defaults don't apply
+     * @param _votingCycle The voting cycle number to initialize
      * @custom:oz-upgrades-validate-as-initializer
      */
     function initializeVotingCycle(uint256 _votingCycle) public reinitializer(3) onlyOwner {
+        if (_votingCycle == 0) revert MustBeGreaterThanZero();
+
         if (votingCycle == 0) {
             // Only initialize if voting cycle is not already initialized
             _initializeVotingCycle(_votingCycle);
