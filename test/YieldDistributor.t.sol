@@ -625,9 +625,6 @@ contract YieldDistributorTest is Test {
         // Check that voter count is reset after distribution (gas-efficient approach)
         // The votersCount is reset to 0, effectively invalidating the voter list for this cycle
         assertEq(yieldDistributorGasKiller.votersCount(), 0);
-
-        // Note: holderToDistributionTotal values persist for gas efficiency but are not used
-        // once the cycle advances, as voters must cast new votes each cycle
     }
 }
 
