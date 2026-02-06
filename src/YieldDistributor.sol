@@ -61,9 +61,9 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @dev DEPRECATED: Kept for storage layout compatibility. Use `voterAtIndex` and `votersCount` instead.
     address[] public voters;
     /// @notice The mapping of holders to their vote distributions
-    mapping(address => uint256[]) public holderToDistribution;
+    mapping(address => uint256[]) internal _holderToDistribution;
     /// @notice The mapping of holders to their total vote distribution
-    mapping(address => uint256) public holderToDistributionTotal;
+    mapping(address => uint256) internal _holderToDistributionTotal;
     /// @notice The current voting cycle number (incremented each distribution)
     uint256 public votingCycle;
     /// @notice The number of voters in the current cycle
@@ -150,6 +150,28 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             // Only initialize if voting cycle is not already initialized
             _initializeVotingCycle(_votingCycle);
         }
+    }
+
+    /**
+     * @notice Returns the distribution of voting power for a specific account
+     * @param _account Address of the account to return the distribution for
+     * @return uint256[] The distribution of voting power for the account
+     */
+    function getHolderToDistribution(address _account) public view returns (uint256[] memory) {
+        if (voterVotedCycle[_account] != votingCycle) revert VoterHasNotVotedThisCycle();
+
+        return _holderToDistribution[_account];
+    }
+
+    /**
+     * @notice Returns the total distribution of voting power for a specific account
+     * @param _account Address of the account to return the total distribution for
+     * @return uint256 The total distribution of voting power for the account
+     */
+    function getHolderToDistributionTotal(address _account) public view returns (uint256) {
+        if (voterVotedCycle[_account] != votingCycle) revert VoterHasNotVotedThisCycle();
+
+        return _holderToDistributionTotal[_account];
     }
 
     /**
@@ -373,7 +395,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             voterAtIndex[votersCount++] = _account;
             voterVotedCycle[_account] = votingCycle;
         }
-        holderToDistribution[_account] = _points;
+        _holderToDistribution[_account] = _points;
 
         /// Calculate total points
         uint256 _totalPoints;
@@ -382,7 +404,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             _totalPoints += _points[i];
         }
         if (_totalPoints == 0) revert ZeroVotePoints();
-        holderToDistributionTotal[_account] = _totalPoints;
+        _holderToDistributionTotal[_account] = _totalPoints;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         if (!_hasVotedInCycle) {
             delete voterDistributions[_account];
@@ -427,11 +449,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         for (uint256 i; i < votersCount; ++i) {
             address _voter = voterAtIndex[i];
             uint256 _voterPower = getCurrentVotingPower(_voter);
-            uint256[] memory _voterDistribution = holderToDistribution[_voter];
+            uint256[] memory _voterDistribution = _holderToDistribution[_voter];
             uint256 _vote;
             for (uint256 j; j < projects.length; ++j) {
                 _vote =
-                    (_voterPower * _voterDistribution[j] * PRECISION / holderToDistributionTotal[_voter]) / PRECISION;
+                    (_voterPower * _voterDistribution[j] * PRECISION / _holderToDistributionTotal[_voter]) / PRECISION;
                 _newProjectDistributions[j] += _vote;
                 _totalVotes += _vote;
             }

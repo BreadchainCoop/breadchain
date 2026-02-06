@@ -615,9 +615,9 @@ contract YieldDistributorTest is Test {
         assertEq(yieldDistributorGasKiller.voterAtIndex(1), accounts[1]);
         assertEq(yieldDistributorGasKiller.voterAtIndex(2), accounts[2]);
         // Check that vote data is recorded correctly
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[0]), 100);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[1]), 50);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[2]), 25);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[0]), 100);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[1]), 50);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[2]), 25);
 
         // Distribute yield using GasKiller method
         yieldDistributorGasKiller.distributeYieldGK();
