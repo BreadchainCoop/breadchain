@@ -507,11 +507,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Internal function to initialize the voting cycle
-     * @dev Initialize voting cycle to 1 so that uninitialized voterVotedCycle mappings (default 0)
-     * @dev are correctly identified as "not voted in current cycle"
+     * @dev Initialize voting cycle so that uninitialized voterVotedCycle mappings (default 0)
+     * @dev are correctly identified as "not voted in current cycle".
+     * @dev Resets all in-progress vote state (currentVotes, projectDistributions, votersCount)
+     * @dev to prevent double-counting if called mid-cycle during an upgrade.
      */
     function _initializeVotingCycle(uint256 _votingCycle) internal {
         votingCycle = _votingCycle;
+        votersCount = 0;
+        currentVotes = 0;
+        projectDistributions = new uint256[](projects.length);
     }
 
     /**
