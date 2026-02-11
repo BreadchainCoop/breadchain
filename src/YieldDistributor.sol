@@ -59,7 +59,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public previousCycleStartingBlock;
     /// @notice Array of voters who have cast votes in the current cycle
     /// @dev DEPRECATED: Kept for storage layout compatibility. Use `voterAtIndex` and `votersCount` instead.
-    address[] public voters;
+    address[] internal _deprecated_voters;
     /// @notice The mapping of holders to their vote distributions
     mapping(address => uint256[]) internal _holderToDistribution;
     /// @notice The mapping of holders to their total vote distribution
@@ -78,6 +78,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _disableInitializers();
     }
 
+    /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
     function initialize(
         address _bread,
         address _butteredBread,
@@ -122,6 +123,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @notice Initializes the VotingMultipliers contract
      * @param _initialOwner The address of the initial owner
      * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
+     * @custom:oz-upgrades-unsafe-allow incorrect-initializer-order
      */
     function initializeVotingMultipliers(address _initialOwner) public reinitializer(1) {
         __VotingMultipliers_init(_initialOwner);
@@ -132,6 +135,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @param _avsAddress The address of the AVS service manager
      * @param _blsSignatureChecker The address of the BLS signature checker
      * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
      */
     function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(2) onlyOwner {
         _setAvsAddress(_avsAddress);
@@ -142,6 +146,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @notice Initializes the voting cycle
      * @param _votingCycle The voting cycle number to initialize
      * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
      */
     function initializeVotingCycle(uint256 _votingCycle) public reinitializer(3) onlyOwner {
         if (_votingCycle == 0) revert MustBeGreaterThanZero();
@@ -507,9 +512,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function _initializeVotingCycle(uint256 _votingCycle) internal {
         votingCycle = _votingCycle;
-
-        // Reset deprecated `voters` array
-        delete voters;
     }
 
     /**
