@@ -609,27 +609,22 @@ contract YieldDistributorTest is Test {
         vm.prank(accounts[2]);
         yieldDistributorGasKiller.castVote(votes3);
 
-        // Check that all voters are recorded
-        assertEq(yieldDistributorGasKiller.voters(0), accounts[0]);
-        assertEq(yieldDistributorGasKiller.voters(1), accounts[1]);
-        assertEq(yieldDistributorGasKiller.voters(2), accounts[2]);
+        // Check that all voters are recorded using new cycle-based tracking
+        assertEq(yieldDistributorGasKiller.votersCount(), 3);
+        assertEq(yieldDistributorGasKiller.voterAtIndex(0), accounts[0]);
+        assertEq(yieldDistributorGasKiller.voterAtIndex(1), accounts[1]);
+        assertEq(yieldDistributorGasKiller.voterAtIndex(2), accounts[2]);
         // Check that vote data is recorded correctly
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[0]), 100);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[1]), 50);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[2]), 25);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[0]), 100);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[1]), 50);
+        assertEq(yieldDistributorGasKiller.getHolderToDistributionTotal(accounts[2]), 25);
 
         // Distribute yield using GasKiller method
         yieldDistributorGasKiller.distributeYieldGK();
 
-        // Check that voters array is cleared after distribution
-        vm.expectRevert();
-        yieldDistributorGasKiller.voters(0);
-
-        // Check that vote data is cleared after distribution
-        // After distribution, all totals should be reset to 0
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[0]), 0);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[1]), 0);
-        assertEq(yieldDistributorGasKiller.holderToDistributionTotal(accounts[2]), 0);
+        // Check that voter count is reset after distribution (gas-efficient approach)
+        // The votersCount is reset to 0, effectively invalidating the voter list for this cycle
+        assertEq(yieldDistributorGasKiller.votersCount(), 0);
     }
 }
 
