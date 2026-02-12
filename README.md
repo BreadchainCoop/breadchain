@@ -16,6 +16,12 @@ Contributions to this repo are expected to adhere to the [Biconomy Solidity Styl
 
 ## Usage
 
+### Setup
+
+```shell
+$ cp .env.example .env
+```
+
 ### Build
 
 ```shell
