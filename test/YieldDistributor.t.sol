@@ -597,6 +597,54 @@ contract YieldDistributorTest is Test {
         // The votersCount is reset to 0, effectively invalidating the voter list for this cycle
         assertEq(yieldDistributorGasKiller.votersCount(), 0);
     }
+
+    function test_distributeYieldGK_CountsVoteFromUserWhoMintedDuringCycle() public {
+        // Setup: one established voter (has BREAD before cycle) + one new voter (no BREAD at cycle start)
+        address establishedVoter = address(0x1234567890123456789012345678901234567890);
+        address newVoter = address(0xabCDEF1234567890ABcDEF1234567890aBCDeF12);
+        address[] memory accounts = new address[](1);
+        accounts[0] = establishedVoter;
+        setUpAccountsForVoting(accounts);
+
+        // Start the cycle - newVoter has no BREAD or ButteredBread at this point
+        setUpForCycle(yieldDistributor2);
+
+        // Established voter votes 100% to first project
+        uint256[] memory votes1 = new uint256[](2);
+        votes1[0] = 100;
+        votes1[1] = 0;
+        vm.prank(establishedVoter);
+        yieldDistributor2.castVote(votes1);
+
+        // New voter mints BREAD during the current cycle, then votes 100% to second project
+        vm.deal(newVoter, _minVotingAmount);
+        vm.prank(newVoter);
+        bread.mint{value: _minVotingAmount}(newVoter);
+
+        uint256[] memory votes2 = new uint256[](2);
+        votes2[0] = 0;
+        votes2[1] = 100;
+        vm.prank(newVoter);
+        yieldDistributor2.castVote(votes2);
+
+        // Manually advance the block number to the next cycle just to be safe
+        vm.roll(START + 1);
+
+        // Both voters should be recorded
+        assertEq(yieldDistributor2.votersCount(), 2);
+        assertEq(yieldDistributor2.voterAtIndex(1), newVoter);
+
+        // Distribute yield - newVoter's vote should count (getCurrentVotingPower recalculated at distribution time)
+        uint256 yieldAccrued = bread.yieldAccrued();
+        uint256 fixedSplit = yieldAccrued / _yieldFixedSplitDivisor / 2; // half of yield is fixed, split between 2 projects
+
+        yieldDistributor2.distributeYieldGK();
+
+        // secondProject would only get fixed split if newVoter's vote didn't count.
+        // With newVoter's vote, secondProject gets fixed split + voted portion.
+        uint256 secondProjectBalance = bread.balanceOf(secondProject);
+        assertGt(secondProjectBalance, fixedSplit, "newVoter's vote should have counted toward second project");
+    }
 }
 
 contract VotingStreakMultiplierTest is YieldDistributorTest {

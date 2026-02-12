@@ -33,6 +33,9 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public cycleLength;
     /// @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
+    /// @notice The minimum required voting power participants must have to cast a vote
+    /// @dev DEPRECATED: Kept for storage layout compatibility.
+    uint256 internal _deprecated_minRequiredVotingPower;
     /// @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
     /// @notice The total voting power accumulated in the current cycle
