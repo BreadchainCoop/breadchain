@@ -35,6 +35,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public maxPoints;
     /// @notice The minimum required voting power participants must have to cast a vote
     /// @dev DEPRECATED: Kept for storage layout compatibility.
+    /// @custom:oz-renamed-from minRequiredVotingPower
     uint256 internal _deprecated_minRequiredVotingPower;
     /// @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
@@ -60,10 +61,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     uint256 public previousCycleStartingBlock;
     /// @notice Array of voters who have cast votes in the current cycle
     /// @dev DEPRECATED: Kept for storage layout compatibility. Use `voterAtIndex` and `votersCount` instead.
+    /// @custom:oz-renamed-from voters
     address[] internal _deprecated_voters;
     /// @notice The mapping of holders to their vote distributions
+    /// @custom:oz-renamed-from holderToDistribution
     mapping(address => uint256[]) internal _holderToDistribution;
     /// @notice The mapping of holders to their total vote distribution
+    /// @custom:oz-renamed-from holderToDistributionTotal
     mapping(address => uint256) internal _holderToDistributionTotal;
     /// @notice The current voting cycle number (incremented each distribution)
     uint256 public votingCycle;
@@ -338,7 +342,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function distributeYieldGK() public trackState {
         (uint256 _balance, uint256 _baseSplit, uint256 _votedYield) = _claimAndPrepareYield();
-        (uint256[] memory _currentProjectDistributions, uint256 _totalVotes) = _commitVotedDistribution();
+        (uint256[] memory _currentProjectDistributions, uint256 _totalVotes) = _computeVotedDistribution();
 
         _executeAndFinalizeDistribution(_currentProjectDistributions, _totalVotes, _balance, _baseSplit, _votedYield);
     }
@@ -437,12 +441,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
-     * @notice Internal function for committing the voted distributions for projects
+     * @notice Internal function for computing the voted distributions for projects
      * @return _newProjectDistributions Distribution of votes for projects
      * @return _totalVotes Total number of votes cast
      */
-    function _commitVotedDistribution()
+    function _computeVotedDistribution()
         internal
+        view
         returns (uint256[] memory _newProjectDistributions, uint256 _totalVotes)
     {
         _newProjectDistributions = new uint256[](projects.length);
