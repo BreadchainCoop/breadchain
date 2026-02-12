@@ -19,7 +19,6 @@
     "_blocktime": 5,
     "_maxPoints": 10000,
     "_cycleLength": 518400,
-    "_minRequiredVotingPower": 1728000000000000000000000,
     "_lastClaimedBlockNumber": 1,
     "_precision": 1000000000000000000,
     "_yieldFixedSplitDivisor": 2
