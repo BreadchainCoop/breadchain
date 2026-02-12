@@ -627,6 +627,9 @@ contract YieldDistributorTest is Test {
         vm.prank(newVoter);
         yieldDistributor2.castVote(votes2);
 
+        // Manually advance the block number to the next cycle just to be safe
+        vm.roll(START + 1);
+
         // Both voters should be recorded
         assertEq(yieldDistributor2.votersCount(), 2);
         assertEq(yieldDistributor2.voterAtIndex(1), newVoter);
