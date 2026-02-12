@@ -76,7 +76,7 @@ contract YieldDistributorTest is Test {
             address(new TransparentUpgradeableProxy(address(yieldDistributorImplementation), address(this), initData))
         );
 
-        secondProject = address(0x1234567890123456789012345678901234567890);
+        secondProject = address(0xCAFE);
         address[] memory projects2 = new address[](2);
         projects2[0] = address(this);
         projects2[1] = secondProject;
@@ -146,7 +146,7 @@ contract YieldDistributorTest is Test {
         uint256 yieldAccrued = bread.yieldAccrued();
 
         // Setting up a voter
-        address account = address(0x1234567890123456789012345678901234567890);
+        address account = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
@@ -174,7 +174,7 @@ contract YieldDistributorTest is Test {
         uint256 yieldAccrued = bread.yieldAccrued();
 
         // Setting up a voter
-        address account = address(0x1234567890123456789012345678901234567890);
+        address account = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
@@ -209,7 +209,7 @@ contract YieldDistributorTest is Test {
         uint256 yieldAccrued = bread.yieldAccrued();
 
         // Setting up a voter
-        address account = address(0x1234567890123456789012345678901234567890);
+        address account = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
@@ -375,7 +375,7 @@ contract YieldDistributorTest is Test {
         vm.assume(mints > 2);
         uint256 start = 32_323_232_323;
         vm.roll(start);
-        address holder = address(0x1234567840123456789012345678701234567890);
+        address holder = address(0xBA6E1);
         vm.deal(holder, 1_000_000_000_000_000_000);
         uint256 prevblocknum = vm.getBlockNumber();
         uint256 mintblocknum = prevblocknum;
@@ -440,7 +440,7 @@ contract YieldDistributorTest is Test {
         yieldDistributor.queuedProjectsForRemoval(0);
 
         // Checking to see if project which is not in the list can be removed
-        address random_project = address(0x1244567830123456789012345478901234567890);
+        address random_project = address(0xCAFE);
         vm.expectRevert();
         yieldDistributor.queueProjectRemoval(random_project);
 
@@ -459,7 +459,7 @@ contract YieldDistributorTest is Test {
         uint256 yieldAccrued = bread.yieldAccrued();
 
         // Setting up a voter
-        address account = address(0x1234567890123456789012345678901234567890);
+        address account = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
@@ -487,7 +487,7 @@ contract YieldDistributorTest is Test {
         uint256 yieldAccrued = bread.yieldAccrued();
 
         // Setting up a voter
-        address account = address(0x1234567890123456789012345678901234567890);
+        address account = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = account;
         setUpAccountsForVoting(accounts);
@@ -600,8 +600,8 @@ contract YieldDistributorTest is Test {
 
     function test_distributeYieldGK_CountsVoteFromUserWhoMintedDuringCycle() public {
         // Setup: one established voter (has BREAD before cycle) + one new voter (no BREAD at cycle start)
-        address establishedVoter = address(0x1234567890123456789012345678901234567890);
-        address newVoter = address(0xabCDEF1234567890ABcDEF1234567890aBCDeF12);
+        address establishedVoter = address(0xA11CE);
+        address newVoter = address(0xB0B);
         address[] memory accounts = new address[](1);
         accounts[0] = establishedVoter;
         setUpAccountsForVoting(accounts);
@@ -695,7 +695,7 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
     }
 
     function setUpTestAccount() public returns (address) {
-        address testAccount = address(0x1234);
+        address testAccount = address(0x7E57);
         address[] memory accounts = new address[](1);
         accounts[0] = testAccount;
         setUpAccountsForVoting(accounts);
@@ -905,7 +905,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         mockMultiplier1.setMultiplier(1.5e18, type(uint256).max);
         mockMultiplier2.setMultiplier(2e18, type(uint256).max);
 
-        address voter = address(0x1);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
 
@@ -940,7 +940,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
     function testCastVoteWithMultipliersIndicesInvalidIndex() public {
         mockMultiplier1.setMultiplier(1.5e18, type(uint256).max);
 
-        address voter = address(0x1);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
 
@@ -965,7 +965,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         mockMultiplier1.setMultiplier(1.5e18, block.number - 1); // Expired
         mockMultiplier2.setMultiplier(2e18, type(uint256).max); // Valid
 
-        address voter = address(0x1);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
 
@@ -1005,7 +1005,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         mockMultiplier1.setMultiplier(multiplier1Factor, type(uint256).max);
         mockMultiplier2.setMultiplier(multiplier2Factor, type(uint256).max);
 
-        address voter = address(0x1);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
 
@@ -1074,7 +1074,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         }
 
         // Set up voter
-        address voter = address(0x1);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
 
@@ -1122,7 +1122,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
      */
     function test_castVote_MaintainsCorrectTotalWhenRevoting() public {
         // Setup voter with voting power
-        address voter = address(0xBEEF);
+        address voter = address(0xBA6E1);
         address[] memory accounts = new address[](1);
         accounts[0] = voter;
         setUpAccountsForVoting(accounts);
@@ -1165,8 +1165,8 @@ contract VotingMultipliersTest is YieldDistributorTest {
      * @notice Test multiple voters with revotes to ensure correct accumulation
      */
     function test_castVote_AccumulatesMultipleVotersCorrectly() public {
-        address voter1 = address(0xBEEF);
-        address voter2 = address(0xCAFE);
+        address voter1 = address(0xA11CE);
+        address voter2 = address(0xB0B);
         address[] memory accounts = new address[](2);
         accounts[0] = voter1;
         accounts[1] = voter2;
@@ -1219,7 +1219,7 @@ contract VotingMultipliersTest is YieldDistributorTest {
         assertEq(countAfterSecond, initialCount + 2, "State transition count should increment by 2");
 
         // Call castVote (another state-mutating function)
-        address voter = address(0x123);
+        address voter = address(0xBA6E1);
         address[] memory voters = new address[](1);
         voters[0] = voter;
         setUpAccountsForVoting(voters);
