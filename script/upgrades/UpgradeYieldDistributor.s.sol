@@ -9,7 +9,7 @@ contract DeployYieldDistributor is Script {
         vm.startBroadcast();
         bytes memory data;
         Options memory opts;
-        opts.referenceContract = "v1.0.0/YieldDistributor.sol:YieldDistributor";
+        opts.referenceContract = "latest/YieldDistributor.sol:YieldDistributor";
         Upgrades.upgradeProxy(proxyAddress, "YieldDistributor.sol:YieldDistributor", data, opts);
         vm.stopBroadcast();
     }
