@@ -1,14 +1,14 @@
-# Breadchain
+# Solidarity Fund
 
-Breadchain smart contracts power [Breadchain's governance application](https://app.breadchain.xyz/governance).
+These smart contracts power Bread Coop's [solidarity fund](https://fund.bread.coop/) and [governance application](https://fund.bread.coop/governance).
 
-To learn more check out the [Breadchain wiki](https://breadchain.notion.site/4d496b311b984bd9841ef9c192b9c1c7).
+To learn more check out the [Bread Coop wiki](https://docs.bread.coop).
 
 ## Contributing
 
-Join in on the conversation in our [Discord](https://discord.com/invite/zmNqsHRHDa).
+Join in on the conversation in our [Discord](https://discord.gg/XJKCQagdXb).
 
-If you have skills (both technical and non-technical) that you believe would benefit our mission, you can fill out [this Google Form](https://forms.gle/UU4FmHq4CZbiEKPc6). Expect to hear from a member of our team shortly regarding any potential opportunities for collaboration.
+If you have skills (either technical or non-technical) that you believe would benefit our mission, you can fill out [this Google Form](https://docs.google.com/forms/d/e/1FAIpQLSfOWubPChHH14LpV4GwgXrrot0Smqd1rmypN4MEULdw7n1o4g/viewform). Expect to hear from a member of our team within a week regarding any potential opportunities for collaboration.
 
 ### Style Guide
 
