@@ -57,12 +57,24 @@ contract NFTMultiplier is INFTMultiplier, Initializable, Ownable2StepUpgradeable
 
     /// @notice Get the block number until which the multiplier is valid
     /// @return The block number until which the multiplier is valid
-    function validUntil(address /* _user */ ) external view override returns (uint256) {
+    function validUntil(
+        address /* _user */
+    )
+        external
+        view
+        override
+        returns (uint256)
+    {
         return validUntilBlock;
     }
 
     /// @notice Updates the multiplying factor for a specific user
-    function updateMultiplyingFactor(address /* _user */ ) external pure {
+    function updateMultiplyingFactor(
+        address /* _user */
+    )
+        external
+        pure
+    {
         return;
     }
 

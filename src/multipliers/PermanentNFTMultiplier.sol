@@ -31,7 +31,14 @@ contract PermanentNFTMultiplier is INFTMultiplier {
 
     /// @notice Get the validity period for a _user's factor
     /// @return Always returns type(uint256).max as the factor is permanent
-    function validUntil(address /* _user */ ) external pure override returns (uint256) {
+    function validUntil(
+        address /* _user */
+    )
+        external
+        pure
+        override
+        returns (uint256)
+    {
         return type(uint256).max;
     }
 
@@ -43,7 +50,13 @@ contract PermanentNFTMultiplier is INFTMultiplier {
     }
 
     /// @notice Updates the multiplying factor for a specific user
-    function updateMultiplyingFactor(address /* _user */ ) external pure override {
+    function updateMultiplyingFactor(
+        address /* _user */
+    )
+        external
+        pure
+        override
+    {
         return;
     }
 }

@@ -34,10 +34,10 @@ pragma solidity >=0.4.16 >=0.5.0 >=0.6.2 ^0.8.0 ^0.8.20 ^0.8.22 ^0.8.25 ^0.8.27;
 library BN254 {
     // modulus for the underlying field F_p of the elliptic curve
     uint256 internal constant FP_MODULUS =
-        21888242871839275222246405745257275088696311157297823662689037894645226208583;
+        21_888_242_871_839_275_222_246_405_745_257_275_088_696_311_157_297_823_662_689_037_894_645_226_208_583;
     // modulus for the underlying field F_r of the elliptic curve
     uint256 internal constant FR_MODULUS =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+        21_888_242_871_839_275_222_246_405_745_257_275_088_548_364_400_416_034_343_698_204_186_575_808_495_617;
 
     struct G1Point {
         uint256 X;
@@ -68,13 +68,13 @@ library BN254 {
     // generator of group G2
     /// @dev Generator point in F_q2 is of the form: (x0 + ix1, y0 + iy1).
     uint256 internal constant G2x1 =
-        11559732032986387107991004021392285783925812861821192530917403151452391805634;
+        11_559_732_032_986_387_107_991_004_021_392_285_783_925_812_861_821_192_530_917_403_151_452_391_805_634;
     uint256 internal constant G2x0 =
-        10857046999023057135944570762232829481370756359578518086990519993285655852781;
+        10_857_046_999_023_057_135_944_570_762_232_829_481_370_756_359_578_518_086_990_519_993_285_655_852_781;
     uint256 internal constant G2y1 =
-        4082367875863433681332203403145435568316851327593401208105741076214120093531;
+        4_082_367_875_863_433_681_332_203_403_145_435_568_316_851_327_593_401_208_105_741_076_214_120_093_531;
     uint256 internal constant G2y0 =
-        8495653923123431417604973247489272438418190587263600148770280649306958101930;
+        8_495_653_923_123_431_417_604_973_247_489_272_438_418_190_587_263_600_148_770_280_649_306_958_101_930;
 
     /// @notice returns the G2 generator
     /// @dev mind the ordering of the 1s and 0s!
@@ -88,13 +88,13 @@ library BN254 {
     // negation of the generator of group G2
     /// @dev Generator point in F_q2 is of the form: (x0 + ix1, y0 + iy1).
     uint256 internal constant nG2x1 =
-        11559732032986387107991004021392285783925812861821192530917403151452391805634;
+        11_559_732_032_986_387_107_991_004_021_392_285_783_925_812_861_821_192_530_917_403_151_452_391_805_634;
     uint256 internal constant nG2x0 =
-        10857046999023057135944570762232829481370756359578518086990519993285655852781;
+        10_857_046_999_023_057_135_944_570_762_232_829_481_370_756_359_578_518_086_990_519_993_285_655_852_781;
     uint256 internal constant nG2y1 =
-        17805874995975841540914202342111839520379459829704422454583296818431106115052;
+        17_805_874_995_975_841_540_914_202_342_111_839_520_379_459_829_704_422_454_583_296_818_431_106_115_052;
     uint256 internal constant nG2y0 =
-        13392588948715843804641432497768002650278120570034223513918757245338268106653;
+        13_392_588_948_715_843_804_641_432_497_768_002_650_278_120_570_034_223_513_918_757_245_338_268_106_653;
 
     function negGeneratorG2() internal pure returns (G2Point memory) {
         return G2Point([nG2x1, nG2x0], [nG2y1, nG2y0]);
@@ -107,9 +107,7 @@ library BN254 {
      * @param p Some point in G1.
      * @return The negation of `p`, i.e. p.plus(p.negate()) should be zero.
      */
-    function negate(
-        G1Point memory p
-    ) internal pure returns (G1Point memory) {
+    function negate(G1Point memory p) internal pure returns (G1Point memory) {
         // The prime q in the base field F_q for G1
         if (p.X == 0 && p.Y == 0) {
             return G1Point(0, 0);
@@ -146,10 +144,7 @@ library BN254 {
      * @param s the scalar to multiply by
      * @dev this function is only safe to use if the scalar is 9 bits or less
      */
-    function scalar_mul_tiny(
-        BN254.G1Point memory p,
-        uint16 s
-    ) internal view returns (BN254.G1Point memory) {
+    function scalar_mul_tiny(BN254.G1Point memory p, uint16 s) internal view returns (BN254.G1Point memory) {
         require(s < 2 ** 9, ScalarTooLarge());
 
         // if s is 1 return p
@@ -213,12 +208,11 @@ library BN254 {
      *         For example,
      *         pairing([P1(), P1().negate()], [P2(), P2()]) should return true.
      */
-    function pairing(
-        G1Point memory a1,
-        G2Point memory a2,
-        G1Point memory b1,
-        G2Point memory b2
-    ) internal view returns (bool) {
+    function pairing(G1Point memory a1, G2Point memory a2, G1Point memory b1, G2Point memory b2)
+        internal
+        view
+        returns (bool)
+    {
         G1Point[2] memory p1 = [a1, b1];
         G2Point[2] memory p2 = [a2, b2];
 
@@ -254,13 +248,11 @@ library BN254 {
      * @notice This function is functionally the same as pairing(), however it specifies a gas limit
      *         the user can set, as a precompile may use the entire gas budget if it reverts.
      */
-    function safePairing(
-        G1Point memory a1,
-        G2Point memory a2,
-        G1Point memory b1,
-        G2Point memory b2,
-        uint256 pairingGas
-    ) internal view returns (bool, bool) {
+    function safePairing(G1Point memory a1, G2Point memory a2, G1Point memory b1, G2Point memory b2, uint256 pairingGas)
+        internal
+        view
+        returns (bool, bool)
+    {
         G1Point[2] memory p1 = [a1, b1];
         G2Point[2] memory p2 = [a2, b2];
 
@@ -292,9 +284,7 @@ library BN254 {
 
     /// @return hashedG1 the keccak256 hash of the G1 Point
     /// @dev used for BLS signatures
-    function hashG1Point(
-        BN254.G1Point memory pk
-    ) internal pure returns (bytes32 hashedG1) {
+    function hashG1Point(BN254.G1Point memory pk) internal pure returns (bytes32 hashedG1) {
         assembly {
             mstore(0, mload(pk))
             mstore(0x20, mload(add(0x20, pk)))
@@ -304,18 +294,14 @@ library BN254 {
 
     /// @return the keccak256 hash of the G2 Point
     /// @dev used for BLS signatures
-    function hashG2Point(
-        BN254.G2Point memory pk
-    ) internal pure returns (bytes32) {
+    function hashG2Point(BN254.G2Point memory pk) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(pk.X[0], pk.X[1], pk.Y[0], pk.Y[1]));
     }
 
     /**
      * @notice adapted from https://github.com/HarryR/solcrypto/blob/master/contracts/altbn128.sol
      */
-    function hashToG1(
-        bytes32 _x
-    ) internal view returns (G1Point memory) {
+    function hashToG1(bytes32 _x) internal view returns (G1Point memory) {
         uint256 beta = 0;
         uint256 y = 0;
 
@@ -341,26 +327,18 @@ library BN254 {
      *
      * Returns: (x^3 + b), y
      */
-    function findYFromX(
-        uint256 x
-    ) internal view returns (uint256, uint256) {
+    function findYFromX(uint256 x) internal view returns (uint256, uint256) {
         // beta = (x^3 + b) % p
         uint256 beta = addmod(mulmod(mulmod(x, x, FP_MODULUS), x, FP_MODULUS), 3, FP_MODULUS);
 
         // y^2 = x^3 + b
         // this acts like: y = sqrt(beta) = beta^((p+1) / 4)
-        uint256 y = expMod(
-            beta, 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52, FP_MODULUS
-        );
+        uint256 y = expMod(beta, 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52, FP_MODULUS);
 
         return (beta, y);
     }
 
-    function expMod(
-        uint256 _base,
-        uint256 _exponent,
-        uint256 _modulus
-    ) internal view returns (uint256 retval) {
+    function expMod(uint256 _base, uint256 _exponent, uint256 _modulus) internal view returns (uint256 retval) {
         bool success;
         uint256[1] memory output;
         uint256[6] memory input;
@@ -393,12 +371,8 @@ interface IAVSRegistrar {
      * @param operatorSetIds the list of operator set ids being registered for
      * @param data arbitrary data the operator can provide as part of registration
      */
-    function registerOperator(
-        address operator,
-        address avs,
-        uint32[] calldata operatorSetIds,
-        bytes calldata data
-    ) external;
+    function registerOperator(address operator, address avs, uint32[] calldata operatorSetIds, bytes calldata data)
+        external;
 
     /**
      * @notice Called by the AllocationManager when an operator is deregistered from
@@ -414,9 +388,7 @@ interface IAVSRegistrar {
      * @param avs the AVS to check
      * @return true if the AVS is supported, false otherwise
      */
-    function supportsAVS(
-        address avs
-    ) external view returns (bool);
+    function supportsAVS(address avs) external view returns (bool);
 }
 
 // lib/forge-std/src/interfaces/IERC165.sol
@@ -545,9 +517,7 @@ interface IIndexRegistryEvents is IIndexRegistryTypes {
      * @param quorumNumber The identifier of the quorum.
      * @param newOperatorIndex The new index assigned to the operator.
      */
-    event QuorumIndexUpdate(
-        bytes32 indexed operatorId, uint8 quorumNumber, uint32 newOperatorIndex
-    );
+    event QuorumIndexUpdate(bytes32 indexed operatorId, uint8 quorumNumber, uint32 newOperatorIndex);
 }
 
 interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
@@ -573,10 +543,7 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param operatorId The unique identifier of the operator.
      * @return The current index of the operator.
      */
-    function currentOperatorIndex(
-        uint8 quorumNumber,
-        bytes32 operatorId
-    ) external view returns (uint32);
+    function currentOperatorIndex(uint8 quorumNumber, bytes32 operatorId) external view returns (uint32);
 
     // ACTIONS
 
@@ -593,10 +560,7 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      *         3) `quorumNumbers` is ordered in ascending order
      *         4) the operator is not already registered
      */
-    function registerOperator(
-        bytes32 operatorId,
-        bytes calldata quorumNumbers
-    ) external returns (uint32[] memory);
+    function registerOperator(bytes32 operatorId, bytes calldata quorumNumbers) external returns (uint32[] memory);
 
     /*
      * @notice Deregisters the operator with the specified `operatorId` for the quorums specified by `quorumNumbers`.
@@ -616,9 +580,7 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @notice Initializes a new quorum `quorumNumber`.
      * @param quorumNumber The identifier of the quorum to initialize.
      */
-    function initializeQuorum(
-        uint8 quorumNumber
-    ) external;
+    function initializeQuorum(uint8 quorumNumber) external;
 
     // VIEW
 
@@ -629,11 +591,10 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param arrayIndex The index in the update history.
      * @return The operator update entry.
      */
-    function getOperatorUpdateAtIndex(
-        uint8 quorumNumber,
-        uint32 operatorIndex,
-        uint32 arrayIndex
-    ) external view returns (OperatorUpdate memory);
+    function getOperatorUpdateAtIndex(uint8 quorumNumber, uint32 operatorIndex, uint32 arrayIndex)
+        external
+        view
+        returns (OperatorUpdate memory);
 
     /*
      * @notice Returns the quorum update at index `quorumIndex` for quorum `quorumNumber`.
@@ -641,19 +602,14 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param quorumIndex The index in the quorum's update history.
      * @return The quorum update entry.
      */
-    function getQuorumUpdateAtIndex(
-        uint8 quorumNumber,
-        uint32 quorumIndex
-    ) external view returns (QuorumUpdate memory);
+    function getQuorumUpdateAtIndex(uint8 quorumNumber, uint32 quorumIndex) external view returns (QuorumUpdate memory);
 
     /*
      * @notice Returns the latest quorum update for quorum `quorumNumber`.
      * @param quorumNumber The identifier of the quorum.
      * @return The most recent quorum update.
      */
-    function getLatestQuorumUpdate(
-        uint8 quorumNumber
-    ) external view returns (QuorumUpdate memory);
+    function getLatestQuorumUpdate(uint8 quorumNumber) external view returns (QuorumUpdate memory);
 
     /*
      * @notice Returns the latest operator update for operator at index `operatorIndex` in quorum `quorumNumber`.
@@ -661,10 +617,10 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param operatorIndex The index of the operator.
      * @return The most recent operator update.
      */
-    function getLatestOperatorUpdate(
-        uint8 quorumNumber,
-        uint32 operatorIndex
-    ) external view returns (OperatorUpdate memory);
+    function getLatestOperatorUpdate(uint8 quorumNumber, uint32 operatorIndex)
+        external
+        view
+        returns (OperatorUpdate memory);
 
     /*
      * @notice Returns the list of operators in quorum `quorumNumber` at block `blockNumber`.
@@ -672,19 +628,17 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param blockNumber The block number to query.
      * @return An array of operator IDs.
      */
-    function getOperatorListAtBlockNumber(
-        uint8 quorumNumber,
-        uint32 blockNumber
-    ) external view returns (bytes32[] memory);
+    function getOperatorListAtBlockNumber(uint8 quorumNumber, uint32 blockNumber)
+        external
+        view
+        returns (bytes32[] memory);
 
     /*
      * @notice Returns the total number of operators in quorum `quorumNumber`.
      * @param quorumNumber The identifier of the quorum.
      * @return The total number of operators.
      */
-    function totalOperatorsForQuorum(
-        uint8 quorumNumber
-    ) external view returns (uint32);
+    function totalOperatorsForQuorum(uint8 quorumNumber) external view returns (uint32);
 
     /*
      * @notice Returns the total number of operators in quorum `quorumNumber` at block `blockNumber`.
@@ -692,10 +646,7 @@ interface IIndexRegistry is IIndexRegistryErrors, IIndexRegistryEvents {
      * @param blockNumber The block number to query.
      * @return The total number of operators at the specified block.
      */
-    function totalOperatorsForQuorumAtBlockNumber(
-        uint8 quorumNumber,
-        uint32 blockNumber
-    ) external view returns (uint32);
+    function totalOperatorsForQuorumAtBlockNumber(uint8 quorumNumber, uint32 blockNumber) external view returns (uint32);
 }
 
 // lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/contracts/interfaces/IPauserRegistry.sol
@@ -714,9 +665,7 @@ interface IPauserRegistry {
     event UnpauserChanged(address previousUnpauser, address newUnpauser);
 
     /// @notice Mapping of addresses to whether they hold the pauser role.
-    function isPauser(
-        address pauser
-    ) external view returns (bool);
+    function isPauser(address pauser) external view returns (bool);
 
     /// @notice Unique address that holds the unpauser role. Capable of changing *both* the pauser and unpauser addresses.
     function unpauser() external view returns (address);
@@ -754,9 +703,7 @@ interface ISocketRegistry is ISocketRegistryErrors {
      * @param _operatorId The id of the operator to query.
      * @return The stored socket associated with the operator.
      */
-    function getOperatorSocket(
-        bytes32 _operatorId
-    ) external view returns (string memory);
+    function getOperatorSocket(bytes32 _operatorId) external view returns (string memory);
 }
 
 // lib/openzeppelin-contracts/contracts/utils/math/Math.sol
@@ -1113,15 +1060,11 @@ struct OperatorSet {
 }
 
 library OperatorSetLib {
-    function key(
-        OperatorSet memory os
-    ) internal pure returns (bytes32) {
+    function key(OperatorSet memory os) internal pure returns (bytes32) {
         return bytes32(abi.encodePacked(os.avs, uint96(os.id)));
     }
 
-    function decode(
-        bytes32 _key
-    ) internal pure returns (OperatorSet memory) {
+    function decode(bytes32 _key) internal pure returns (OperatorSet memory) {
         /// forgefmt: disable-next-item
         return OperatorSet({
             avs: address(uint160(uint256(_key) >> 96)),
@@ -2471,9 +2414,7 @@ interface IBLSApkRegistryEvents is IBLSApkRegistryTypes {
      * @param pubkeyG1 The operator's G1 public key.
      * @param pubkeyG2 The operator's G2 public key.
      */
-    event NewPubkeyRegistration(
-        address indexed operator, BN254.G1Point pubkeyG1, BN254.G2Point pubkeyG2
-    );
+    event NewPubkeyRegistration(address indexed operator, BN254.G1Point pubkeyG1, BN254.G2Point pubkeyG2);
 
     /*
      * @notice Emitted when `operator`'s pubkey is registered for `quorumNumbers`.
@@ -2510,18 +2451,14 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @param operator The address of the operator.
      * @return operatorId The hash of the operator's BLS public key.
      */
-    function operatorToPubkeyHash(
-        address operator
-    ) external view returns (bytes32 operatorId);
+    function operatorToPubkeyHash(address operator) external view returns (bytes32 operatorId);
 
     /*
      * @notice Maps `pubkeyHash` to their corresponding `operator` address.
      * @param pubkeyHash The hash of a BLS public key.
      * @return operator The address of the operator who registered this public key.
      */
-    function pubkeyHashToOperator(
-        bytes32 pubkeyHash
-    ) external view returns (address operator);
+    function pubkeyHashToOperator(bytes32 pubkeyHash) external view returns (address operator);
 
     /*
      * @notice Maps `operator` to their BLS public key in G1.
@@ -2529,18 +2466,14 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @param operator The address of the operator.
      * @return The operator's BLS public key in G1.
      */
-    function operatorToPubkey(
-        address operator
-    ) external view returns (uint256, uint256);
+    function operatorToPubkey(address operator) external view returns (uint256, uint256);
 
     /*
      * @notice Maps `operator` to their BLS public key in G2.
      * @param operator The address of the operator.
      * @return The operator's BLS public key in G2.
      */
-    function getOperatorPubkeyG2(
-        address operator
-    ) external view returns (BN254.G2Point memory);
+    function getOperatorPubkeyG2(address operator) external view returns (BN254.G2Point memory);
 
     /*
      * @notice Stores the history of aggregate public key updates for `quorumNumber` at `index`.
@@ -2550,10 +2483,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @return The APK update entry at the specified index for the given quorum.
      * @dev Each entry contains the APK hash, update block number, and next update block number.
      */
-    function apkHistory(
-        uint8 quorumNumber,
-        uint256 index
-    ) external view returns (bytes24, uint32, uint32);
+    function apkHistory(uint8 quorumNumber, uint256 index) external view returns (bytes24, uint32, uint32);
 
     /*
      * @notice Maps `quorumNumber` to their current aggregate public key.
@@ -2561,9 +2491,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @param quorumNumber The identifier of the quorum.
      * @return The current APK as a G1 point.
      */
-    function currentApk(
-        uint8 quorumNumber
-    ) external view returns (uint256, uint256);
+    function currentApk(uint8 quorumNumber) external view returns (uint256, uint256);
 
     /* ACTIONS */
 
@@ -2598,9 +2526,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @notice Initializes `quorumNumber` by pushing its first APK update.
      * @param quorumNumber The number of the new quorum.
      */
-    function initializeQuorum(
-        uint8 quorumNumber
-    ) external;
+    function initializeQuorum(uint8 quorumNumber) external;
 
     /*
      * @notice Registers `operator` as the owner of a BLS public key using `params` and `pubkeyRegistrationMessageHash`.
@@ -2624,9 +2550,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @return The operator's G1 public key and its hash.
      * @dev Reverts if the operator has not registered a valid pubkey.
      */
-    function getRegisteredPubkey(
-        address operator
-    ) external view returns (BN254.G1Point memory, bytes32);
+    function getRegisteredPubkey(address operator) external view returns (BN254.G1Point memory, bytes32);
 
     /*
      * @notice Returns the APK indices at `blockNumber` for `quorumNumbers`.
@@ -2634,19 +2558,17 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @param blockNumber The block number to query at.
      * @return Array of indices corresponding to each quorum number.
      */
-    function getApkIndicesAtBlockNumber(
-        bytes calldata quorumNumbers,
-        uint256 blockNumber
-    ) external view returns (uint32[] memory);
+    function getApkIndicesAtBlockNumber(bytes calldata quorumNumbers, uint256 blockNumber)
+        external
+        view
+        returns (uint32[] memory);
 
     /*
      * @notice Returns the current aggregate public key for `quorumNumber`.
      * @param quorumNumber The quorum to query.
      * @return The current APK as a G1 point.
      */
-    function getApk(
-        uint8 quorumNumber
-    ) external view returns (BN254.G1Point memory);
+    function getApk(uint8 quorumNumber) external view returns (BN254.G1Point memory);
 
     /*
      * @notice Returns an APK update entry for `quorumNumber` at `index`.
@@ -2654,10 +2576,10 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @param index The index in the APK history.
      * @return The APK update entry.
      */
-    function getApkUpdateAtIndex(
-        uint8 quorumNumber,
-        uint256 index
-    ) external view returns (IBLSApkRegistryTypes.ApkUpdate memory);
+    function getApkUpdateAtIndex(uint8 quorumNumber, uint256 index)
+        external
+        view
+        returns (IBLSApkRegistryTypes.ApkUpdate memory);
 
     /*
      * @notice Gets the 24-byte hash of `quorumNumber`'s APK at `blockNumber` and `index`.
@@ -2667,20 +2589,17 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @return The 24-byte APK hash.
      * @dev Called by checkSignatures in BLSSignatureChecker.sol.
      */
-    function getApkHashAtBlockNumberAndIndex(
-        uint8 quorumNumber,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (bytes24);
+    function getApkHashAtBlockNumberAndIndex(uint8 quorumNumber, uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (bytes24);
 
     /*
      * @notice Returns the number of APK updates for `quorumNumber`.
      * @param quorumNumber The quorum to query.
      * @return The length of the APK history.
      */
-    function getApkHistoryLength(
-        uint8 quorumNumber
-    ) external view returns (uint32);
+    function getApkHistoryLength(uint8 quorumNumber) external view returns (uint32);
 
     /*
      * @notice Maps `operator` to their corresponding public key hash.
@@ -2688,9 +2607,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @return operatorId The hash of the operator's BLS public key.
      * @dev Returns bytes32(0) if the operator hasn't registered a key.
      */
-    function getOperatorId(
-        address operator
-    ) external view returns (bytes32 operatorId);
+    function getOperatorId(address operator) external view returns (bytes32 operatorId);
 
     /*
      * @notice Maps `pubkeyHash` to their corresponding operator address.
@@ -2698,9 +2615,7 @@ interface IBLSApkRegistry is IBLSApkRegistryErrors, IBLSApkRegistryEvents {
      * @return operator The address of the operator who registered this public key.
      * @dev Returns address(0) if the public key hash hasn't been registered.
      */
-    function getOperatorFromPubkeyHash(
-        bytes32 pubkeyHash
-    ) external view returns (address operator);
+    function getOperatorFromPubkeyHash(bytes32 pubkeyHash) external view returns (address operator);
 
     /**
      * @notice Gets an operator's ID if it exists, or registers a new BLS public key and returns the new ID
@@ -2777,9 +2692,9 @@ uint64 constant WAD = 1e18;
  * There are 2 types of shares:
  *      1. deposit shares
  *          - These can be converted to an amount of tokens given a strategy
- *              - by calling `sharesToUnderlying` on the strategy address (they're already tokens 
+ *              - by calling `sharesToUnderlying` on the strategy address (they're already tokens
  *              in the case of EigenPods)
- *          - These live in the storage of the EigenPodManager and individual StrategyManager strategies 
+ *          - These live in the storage of the EigenPodManager and individual StrategyManager strategies
  *      2. withdrawable shares
  *          - For a staker, this is the amount of shares that they can withdraw
  *          - For an operator, the shares delegated to them are equal to the sum of their stakers'
@@ -2819,16 +2734,15 @@ library SlashingLib {
 
     // GETTERS
 
-    function scalingFactor(
-        DepositScalingFactor memory dsf
-    ) internal pure returns (uint256) {
+    function scalingFactor(DepositScalingFactor memory dsf) internal pure returns (uint256) {
         return dsf._scalingFactor == 0 ? WAD : dsf._scalingFactor;
     }
 
-    function scaleForQueueWithdrawal(
-        DepositScalingFactor memory dsf,
-        uint256 depositSharesToWithdraw
-    ) internal pure returns (uint256) {
+    function scaleForQueueWithdrawal(DepositScalingFactor memory dsf, uint256 depositSharesToWithdraw)
+        internal
+        pure
+        returns (uint256)
+    {
         return depositSharesToWithdraw.mulWad(dsf.scalingFactor());
     }
 
@@ -2842,11 +2756,11 @@ library SlashingLib {
      * withdrawal queue.
      * NOTE: max magnitude is guaranteed to only ever decrease.
      */
-    function scaleForBurning(
-        uint256 scaledShares,
-        uint64 prevMaxMagnitude,
-        uint64 newMaxMagnitude
-    ) internal pure returns (uint256) {
+    function scaleForBurning(uint256 scaledShares, uint64 prevMaxMagnitude, uint64 newMaxMagnitude)
+        internal
+        pure
+        returns (uint256)
+    {
         return scaledShares.mulWad(prevMaxMagnitude - newMaxMagnitude);
     }
 
@@ -2905,41 +2819,39 @@ library SlashingLib {
     /// A DSF is reset when a staker reduces their deposit shares to 0, either by queueing
     /// a withdrawal, or undelegating from their operator. This ensures that subsequent
     /// delegations/deposits do not use a stale DSF (e.g. from a prior operator).
-    function reset(
-        DepositScalingFactor storage dsf
-    ) internal {
+    function reset(DepositScalingFactor storage dsf) internal {
         dsf._scalingFactor = 0;
     }
 
     // CONVERSION
 
-    function calcWithdrawable(
-        DepositScalingFactor memory dsf,
-        uint256 depositShares,
-        uint256 slashingFactor
-    ) internal pure returns (uint256) {
+    function calcWithdrawable(DepositScalingFactor memory dsf, uint256 depositShares, uint256 slashingFactor)
+        internal
+        pure
+        returns (uint256)
+    {
         /// forgefmt: disable-next-item
         return depositShares
             .mulWad(dsf.scalingFactor())
             .mulWad(slashingFactor);
     }
 
-    function calcDepositShares(
-        DepositScalingFactor memory dsf,
-        uint256 withdrawableShares,
-        uint256 slashingFactor
-    ) internal pure returns (uint256) {
+    function calcDepositShares(DepositScalingFactor memory dsf, uint256 withdrawableShares, uint256 slashingFactor)
+        internal
+        pure
+        returns (uint256)
+    {
         /// forgefmt: disable-next-item
         return withdrawableShares
             .divWad(dsf.scalingFactor())
             .divWad(slashingFactor);
     }
 
-    function calcSlashedAmount(
-        uint256 operatorShares,
-        uint256 prevMaxMagnitude,
-        uint256 newMaxMagnitude
-    ) internal pure returns (uint256) {
+    function calcSlashedAmount(uint256 operatorShares, uint256 prevMaxMagnitude, uint256 newMaxMagnitude)
+        internal
+        pure
+        returns (uint256)
+    {
         // round up mulDiv so we don't overslash
         return operatorShares - operatorShares.mulDiv(newMaxMagnitude, prevMaxMagnitude, Math_0.Rounding.Up);
     }
@@ -3020,9 +2932,7 @@ interface IStrategy is IStrategyErrors, IStrategyEvents, ISemVerMixin {
      * @return The amount of underlying tokens corresponding to the input `amountShares`
      * @dev Implementation for these functions in particular may vary significantly for different strategies
      */
-    function sharesToUnderlying(
-        uint256 amountShares
-    ) external returns (uint256);
+    function sharesToUnderlying(uint256 amountShares) external returns (uint256);
 
     /**
      * @notice Used to convert an amount of underlying tokens to the equivalent amount of shares in this strategy.
@@ -3032,25 +2942,19 @@ interface IStrategy is IStrategyErrors, IStrategyEvents, ISemVerMixin {
      * in the `StrategyManager` contract.
      * @dev Implementation for these functions in particular may vary significantly for different strategies
      */
-    function underlyingToShares(
-        uint256 amountUnderlying
-    ) external returns (uint256);
+    function underlyingToShares(uint256 amountUnderlying) external returns (uint256);
 
     /**
      * @notice convenience function for fetching the current underlying value of all of the `user`'s shares in
      * this strategy. In contrast to `userUnderlyingView`, this function **may** make state modifications
      */
-    function userUnderlying(
-        address user
-    ) external returns (uint256);
+    function userUnderlying(address user) external returns (uint256);
 
     /**
      * @notice convenience function for fetching the current total shares of `user` in this strategy, by
      * querying the `strategyManager` contract
      */
-    function shares(
-        address user
-    ) external view returns (uint256);
+    function shares(address user) external view returns (uint256);
 
     /**
      * @notice Used to convert a number of shares to the equivalent amount of underlying tokens for this strategy.
@@ -3061,9 +2965,7 @@ interface IStrategy is IStrategyErrors, IStrategyEvents, ISemVerMixin {
      * @return The amount of underlying tokens corresponding to the input `amountShares`
      * @dev Implementation for these functions in particular may vary significantly for different strategies
      */
-    function sharesToUnderlyingView(
-        uint256 amountShares
-    ) external view returns (uint256);
+    function sharesToUnderlyingView(uint256 amountShares) external view returns (uint256);
 
     /**
      * @notice Used to convert an amount of underlying tokens to the equivalent amount of shares in this strategy.
@@ -3073,17 +2975,13 @@ interface IStrategy is IStrategyErrors, IStrategyEvents, ISemVerMixin {
      * in the `StrategyManager` contract.
      * @dev Implementation for these functions in particular may vary significantly for different strategies
      */
-    function underlyingToSharesView(
-        uint256 amountUnderlying
-    ) external view returns (uint256);
+    function underlyingToSharesView(uint256 amountUnderlying) external view returns (uint256);
 
     /**
      * @notice convenience function for fetching the current underlying value of all of the `user`'s shares in
      * this strategy. In contrast to `userUnderlying`, this function guarantees no state modifications
      */
-    function userUnderlyingView(
-        address user
-    ) external view returns (uint256);
+    function userUnderlyingView(address user) external view returns (uint256);
 
     /// @notice The underlying token for shares in this Strategy
     function underlyingToken() external view returns (IERC20_0);
@@ -3293,11 +3191,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev This function will revert if the caller is already delegated to an operator.
      * @dev Note that the `metadataURI` is *never stored * and is only emitted in the `OperatorMetadataURIUpdated` event
      */
-    function registerAsOperator(
-        address initDelegationApprover,
-        uint32 allocationDelay,
-        string calldata metadataURI
-    ) external;
+    function registerAsOperator(address initDelegationApprover, uint32 allocationDelay, string calldata metadataURI)
+        external;
 
     /**
      * @notice Updates an operator's stored `delegationApprover`.
@@ -3324,11 +3219,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev The signature/salt are used ONLY if the operator has configured a delegationApprover.
      * If they have not, these params can be left empty.
      */
-    function delegateTo(
-        address operator,
-        SignatureWithExpiry memory approverSignatureAndExpiry,
-        bytes32 approverSalt
-    ) external;
+    function delegateTo(address operator, SignatureWithExpiry memory approverSignatureAndExpiry, bytes32 approverSalt)
+        external;
 
     /**
      * @notice Undelegates the staker from their operator and queues a withdrawal for all of their shares
@@ -3340,9 +3232,7 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev Reverts if the caller is not the staker, nor the operator who the staker is delegated to, nor the operator's specified "delegationApprover"
      * @dev Reverts if the `staker` is not delegated to an operator
      */
-    function undelegate(
-        address staker
-    ) external returns (bytes32[] memory withdrawalRoots);
+    function undelegate(address staker) external returns (bytes32[] memory withdrawalRoots);
 
     /**
      * @notice Undelegates the staker from their current operator, and redelegates to `newOperator`
@@ -3355,11 +3245,9 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @param newOperatorApproverSig A signature from the operator's `delegationApprover`
      * @param approverSalt A unique single use value tied to the approver's signature
      */
-    function redelegate(
-        address newOperator,
-        SignatureWithExpiry memory newOperatorApproverSig,
-        bytes32 approverSalt
-    ) external returns (bytes32[] memory withdrawalRoots);
+    function redelegate(address newOperator, SignatureWithExpiry memory newOperatorApproverSig, bytes32 approverSalt)
+        external
+        returns (bytes32[] memory withdrawalRoots);
 
     /**
      * @notice Allows a staker to queue a withdrawal of their deposit shares. The withdrawal can be
@@ -3372,9 +3260,7 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev To view all the staker's strategies/deposit shares that can be queued for withdrawal, see `getDepositedShares`
      * @dev To view the current conversion between a staker's deposit shares and withdrawable shares, see `getWithdrawableShares`
      */
-    function queueWithdrawals(
-        QueuedWithdrawalParams[] calldata params
-    ) external returns (bytes32[] memory);
+    function queueWithdrawals(QueuedWithdrawalParams[] calldata params) external returns (bytes32[] memory);
 
     /**
      * @notice Used to complete a queued withdrawal
@@ -3387,11 +3273,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * NOTE: if the caller receives shares and is currently delegated to an operator, the received shares are
      * automatically delegated to the caller's current operator.
      */
-    function completeQueuedWithdrawal(
-        Withdrawal calldata withdrawal,
-        IERC20_0[] calldata tokens,
-        bool receiveAsTokens
-    ) external;
+    function completeQueuedWithdrawal(Withdrawal calldata withdrawal, IERC20_0[] calldata tokens, bool receiveAsTokens)
+        external;
 
     /**
      * @notice Used to complete multiple queued withdrawals
@@ -3419,12 +3302,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * staker has been slashed 100% on the beacon chain such that the calculated slashing factor is 0, this
      * method WILL REVERT.
      */
-    function increaseDelegatedShares(
-        address staker,
-        IStrategy strategy,
-        uint256 prevDepositShares,
-        uint256 addedShares
-    ) external;
+    function increaseDelegatedShares(address staker, IStrategy strategy, uint256 prevDepositShares, uint256 addedShares)
+        external;
 
     /**
      * @notice If the staker is delegated, decreases its operator's shares in response to
@@ -3435,11 +3314,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev Note: `beaconChainSlashingFactorDecrease` are assumed to ALWAYS be < 1 WAD.
      * These invariants are maintained in the EigenPodManager.
      */
-    function decreaseDelegatedShares(
-        address staker,
-        uint256 curDepositShares,
-        uint64 beaconChainSlashingFactorDecrease
-    ) external;
+    function decreaseDelegatedShares(address staker, uint256 curDepositShares, uint64 beaconChainSlashingFactorDecrease)
+        external;
 
     /**
      * @notice Decreases the operators shares in storage after a slash and increases the burnable shares by calling
@@ -3452,12 +3328,8 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev Note: Assumes `prevMaxMagnitude <= newMaxMagnitude`. This invariant is maintained in
      * the AllocationManager.
      */
-    function slashOperatorShares(
-        address operator,
-        IStrategy strategy,
-        uint64 prevMaxMagnitude,
-        uint64 newMaxMagnitude
-    ) external;
+    function slashOperatorShares(address operator, IStrategy strategy, uint64 prevMaxMagnitude, uint64 newMaxMagnitude)
+        external;
 
     /**
      *
@@ -3470,9 +3342,7 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @notice Mapping: staker => operator whom the staker is currently delegated to.
      * @dev Note that returning address(0) indicates that the staker is not actively delegated to any operator.
      */
-    function delegatedTo(
-        address staker
-    ) external view returns (address);
+    function delegatedTo(address staker) external view returns (address);
 
     /**
      * @notice Mapping: delegationApprover => 32-byte salt => whether or not the salt has already been used by the delegationApprover.
@@ -3483,50 +3353,39 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
 
     /// @notice Mapping: staker => cumulative number of queued withdrawals they have ever initiated.
     /// @dev This only increments (doesn't decrement), and is used to help ensure that otherwise identical withdrawals have unique hashes.
-    function cumulativeWithdrawalsQueued(
-        address staker
-    ) external view returns (uint256);
+    function cumulativeWithdrawalsQueued(address staker) external view returns (uint256);
 
     /**
      * @notice Returns 'true' if `staker` *is* actively delegated, and 'false' otherwise.
      */
-    function isDelegated(
-        address staker
-    ) external view returns (bool);
+    function isDelegated(address staker) external view returns (bool);
 
     /**
      * @notice Returns true is an operator has previously registered for delegation.
      */
-    function isOperator(
-        address operator
-    ) external view returns (bool);
+    function isOperator(address operator) external view returns (bool);
 
     /**
      * @notice Returns the delegationApprover account for an operator
      */
-    function delegationApprover(
-        address operator
-    ) external view returns (address);
+    function delegationApprover(address operator) external view returns (address);
 
     /**
      * @notice Returns the shares that an operator has delegated to them in a set of strategies
      * @param operator the operator to get shares for
      * @param strategies the strategies to get shares for
      */
-    function getOperatorShares(
-        address operator,
-        IStrategy[] memory strategies
-    ) external view returns (uint256[] memory);
+    function getOperatorShares(address operator, IStrategy[] memory strategies) external view returns (uint256[] memory);
 
     /**
      * @notice Returns the shares that a set of operators have delegated to them in a set of strategies
      * @param operators the operators to get shares for
      * @param strategies the strategies to get shares for
      */
-    function getOperatorsShares(
-        address[] memory operators,
-        IStrategy[] memory strategies
-    ) external view returns (uint256[][] memory);
+    function getOperatorsShares(address[] memory operators, IStrategy[] memory strategies)
+        external
+        view
+        returns (uint256[][] memory);
 
     /**
      * @notice Returns amount of withdrawable shares from an operator for a strategy that is still in the queue
@@ -3545,17 +3404,15 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * The shares amount returned is the actual amount of Strategy shares the staker would receive (subject
      * to each strategy's underlying shares to token ratio).
      */
-    function getWithdrawableShares(
-        address staker,
-        IStrategy[] memory strategies
-    ) external view returns (uint256[] memory withdrawableShares, uint256[] memory depositShares);
+    function getWithdrawableShares(address staker, IStrategy[] memory strategies)
+        external
+        view
+        returns (uint256[] memory withdrawableShares, uint256[] memory depositShares);
 
     /**
      * @notice Returns the number of shares in storage for a staker and all their strategies
      */
-    function getDepositedShares(
-        address staker
-    ) external view returns (IStrategy[] memory, uint256[] memory);
+    function getDepositedShares(address staker) external view returns (IStrategy[] memory, uint256[] memory);
 
     /**
      * @notice Returns the scaling factor applied to a staker's deposits for a given strategy
@@ -3567,9 +3424,7 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @param withdrawalRoot The hash identifying the queued withdrawal.
      * @return withdrawal The withdrawal details.
      */
-    function queuedWithdrawals(
-        bytes32 withdrawalRoot
-    ) external view returns (Withdrawal memory withdrawal);
+    function queuedWithdrawals(bytes32 withdrawalRoot) external view returns (Withdrawal memory withdrawal);
 
     /**
      * @notice Returns the Withdrawal and corresponding shares associated with a `withdrawalRoot`
@@ -3579,9 +3434,10 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @dev The shares are what a user would receive from completing a queued withdrawal, assuming all slashings are applied
      * @dev Withdrawals queued before the slashing release cannot be queried with this method
      */
-    function getQueuedWithdrawal(
-        bytes32 withdrawalRoot
-    ) external view returns (Withdrawal memory withdrawal, uint256[] memory shares);
+    function getQueuedWithdrawal(bytes32 withdrawalRoot)
+        external
+        view
+        returns (Withdrawal memory withdrawal, uint256[] memory shares);
 
     /**
      * @notice Returns all queued withdrawals and their corresponding shares for a staker.
@@ -3590,15 +3446,14 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @return shares 2D array of shares, where each inner array corresponds to the strategies in the withdrawal.
      * @dev The shares are what a user would receive from completing a queued withdrawal, assuming all slashings are applied.
      */
-    function getQueuedWithdrawals(
-        address staker
-    ) external view returns (Withdrawal[] memory withdrawals, uint256[][] memory shares);
+    function getQueuedWithdrawals(address staker)
+        external
+        view
+        returns (Withdrawal[] memory withdrawals, uint256[][] memory shares);
 
     /// @notice Returns a list of queued withdrawal roots for the `staker`.
     /// NOTE that this only returns withdrawals queued AFTER the slashing release.
-    function getQueuedWithdrawalRoots(
-        address staker
-    ) external view returns (bytes32[] memory);
+    function getQueuedWithdrawalRoots(address staker) external view returns (bytes32[] memory);
 
     /**
      * @notice Converts shares for a set of strategies to deposit shares, likely in order to input into `queueWithdrawals`.
@@ -3609,16 +3464,13 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
      * @return the deposit shares
      * @dev will be a few wei off due to rounding errors
      */
-    function convertToDepositShares(
-        address staker,
-        IStrategy[] memory strategies,
-        uint256[] memory withdrawableShares
-    ) external view returns (uint256[] memory);
+    function convertToDepositShares(address staker, IStrategy[] memory strategies, uint256[] memory withdrawableShares)
+        external
+        view
+        returns (uint256[] memory);
 
     /// @notice Returns the keccak256 hash of `withdrawal`.
-    function calculateWithdrawalRoot(
-        Withdrawal memory withdrawal
-    ) external pure returns (bytes32);
+    function calculateWithdrawalRoot(Withdrawal memory withdrawal) external pure returns (bytes32);
 
     /**
      * @notice Calculates the digest hash to be signed by the operator's delegationApprove and used in the `delegateTo` function.
@@ -3656,7 +3508,6 @@ interface IDelegationManager is ISignatureUtilsMixin, IDelegationManagerErrors, 
 
 interface IAllocationManagerErrors {
     /// Input Validation
-
     /// @dev Thrown when `wadToSlash` is zero or greater than 1e18
     error InvalidWadToSlash();
     /// @dev Thrown when two array parameters have mismatching lengths.
@@ -3914,11 +3765,8 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      *
      * @dev can be called permissionlessly by anyone
      */
-    function clearDeallocationQueue(
-        address operator,
-        IStrategy[] calldata strategies,
-        uint16[] calldata numToClear
-    ) external;
+    function clearDeallocationQueue(address operator, IStrategy[] calldata strategies, uint16[] calldata numToClear)
+        external;
 
     /**
      * @notice Allows an operator to register for one or more operator sets for an AVS. If the operator
@@ -3937,9 +3785,7 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * deregisterOperator` method to complete deregistration. This call MUST succeed in order for
      * deregistration to be successful.
      */
-    function deregisterFromOperatorSets(
-        DeregisterParams calldata params
-    ) external;
+    function deregisterFromOperatorSets(DeregisterParams calldata params) external;
 
     /**
      * @notice Called by the delegation manager OR an operator to set an operator's allocation delay.
@@ -3988,11 +3834,8 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param operatorSetId the operator set to remove strategies from
      * @param strategies the strategies to remove
      */
-    function removeStrategiesFromOperatorSet(
-        address avs,
-        uint32 operatorSetId,
-        IStrategy[] calldata strategies
-    ) external;
+    function removeStrategiesFromOperatorSet(address avs, uint32 operatorSetId, IStrategy[] calldata strategies)
+        external;
 
     /**
      *
@@ -4004,18 +3847,14 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @notice Returns the number of operator sets for the AVS
      * @param avs the AVS to query
      */
-    function getOperatorSetCount(
-        address avs
-    ) external view returns (uint256);
+    function getOperatorSetCount(address avs) external view returns (uint256);
 
     /**
      * @notice Returns the list of operator sets the operator has current or pending allocations/deallocations in
      * @param operator the operator to query
      * @return the list of operator sets the operator has current or pending allocations/deallocations in
      */
-    function getAllocatedSets(
-        address operator
-    ) external view returns (OperatorSet[] memory);
+    function getAllocatedSets(address operator) external view returns (OperatorSet[] memory);
 
     /**
      * @notice Returns the list of strategies an operator has current or pending allocations/deallocations from
@@ -4024,10 +3863,10 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param operatorSet the operator set to query
      * @return the list of strategies
      */
-    function getAllocatedStrategies(
-        address operator,
-        OperatorSet memory operatorSet
-    ) external view returns (IStrategy[] memory);
+    function getAllocatedStrategies(address operator, OperatorSet memory operatorSet)
+        external
+        view
+        returns (IStrategy[] memory);
 
     /**
      * @notice Returns the current/pending stake allocation an operator has from a strategy to an operator set
@@ -4036,11 +3875,10 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param strategy the strategy to query
      * @return the current/pending stake allocation
      */
-    function getAllocation(
-        address operator,
-        OperatorSet memory operatorSet,
-        IStrategy strategy
-    ) external view returns (Allocation memory);
+    function getAllocation(address operator, OperatorSet memory operatorSet, IStrategy strategy)
+        external
+        view
+        returns (Allocation memory);
 
     /**
      * @notice Returns the current/pending stake allocations for multiple operators from a strategy to an operator set
@@ -4049,11 +3887,10 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param strategy the strategy to query
      * @return each operator's allocation
      */
-    function getAllocations(
-        address[] memory operators,
-        OperatorSet memory operatorSet,
-        IStrategy strategy
-    ) external view returns (Allocation[] memory);
+    function getAllocations(address[] memory operators, OperatorSet memory operatorSet, IStrategy strategy)
+        external
+        view
+        returns (Allocation[] memory);
 
     /**
      * @notice Given a strategy, returns a list of operator sets and corresponding stake allocations.
@@ -4064,10 +3901,10 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @return the list of all operator sets the operator has allocations for
      * @return the corresponding list of allocations from the specific `strategy`
      */
-    function getStrategyAllocations(
-        address operator,
-        IStrategy strategy
-    ) external view returns (OperatorSet[] memory, Allocation[] memory);
+    function getStrategyAllocations(address operator, IStrategy strategy)
+        external
+        view
+        returns (OperatorSet[] memory, Allocation[] memory);
 
     /**
      * @notice For a strategy, get the amount of magnitude that is allocated across one or more operator sets
@@ -4103,10 +3940,7 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param strategies the strategies to get the max magnitudes for
      * @return the max magnitudes for each strategy
      */
-    function getMaxMagnitudes(
-        address operator,
-        IStrategy[] calldata strategies
-    ) external view returns (uint64[] memory);
+    function getMaxMagnitudes(address operator, IStrategy[] calldata strategies) external view returns (uint64[] memory);
 
     /**
      * @notice Returns the maximum magnitudes each operator can allocate for the given strategy
@@ -4116,10 +3950,7 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param strategy the strategy to get the max magnitudes for
      * @return the max magnitudes for each operator
      */
-    function getMaxMagnitudes(
-        address[] calldata operators,
-        IStrategy strategy
-    ) external view returns (uint64[] memory);
+    function getMaxMagnitudes(address[] calldata operators, IStrategy strategy) external view returns (uint64[] memory);
 
     /**
      * @notice Returns the maximum magnitude an operator can allocate for the given strategies
@@ -4131,11 +3962,10 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @param blockNumber the blockNumber at which to check the max magnitudes
      * @return the max magnitudes for each strategy
      */
-    function getMaxMagnitudesAtBlock(
-        address operator,
-        IStrategy[] calldata strategies,
-        uint32 blockNumber
-    ) external view returns (uint64[] memory);
+    function getMaxMagnitudesAtBlock(address operator, IStrategy[] calldata strategies, uint32 blockNumber)
+        external
+        view
+        returns (uint64[] memory);
 
     /**
      * @notice Returns the time in blocks between an operator allocating slashable magnitude
@@ -4145,17 +3975,13 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
      * @return isSet Whether the operator has configured a delay
      * @return delay The time in blocks between allocating magnitude and magnitude becoming slashable
      */
-    function getAllocationDelay(
-        address operator
-    ) external view returns (bool isSet, uint32 delay);
+    function getAllocationDelay(address operator) external view returns (bool isSet, uint32 delay);
 
     /**
      * @notice Returns a list of all operator sets the operator is registered for
      * @param operator The operator address to query.
      */
-    function getRegisteredSets(
-        address operator
-    ) external view returns (OperatorSet[] memory operatorSets);
+    function getRegisteredSets(address operator) external view returns (OperatorSet[] memory operatorSets);
 
     /**
      * @notice Returns whether the operator is registered for the operator set
@@ -4167,41 +3993,34 @@ interface IAllocationManager is IAllocationManagerErrors, IAllocationManagerEven
     /**
      * @notice Returns whether the operator set exists
      */
-    function isOperatorSet(
-        OperatorSet memory operatorSet
-    ) external view returns (bool);
+    function isOperatorSet(OperatorSet memory operatorSet) external view returns (bool);
 
     /**
      * @notice Returns all the operators registered to an operator set
      * @param operatorSet The operatorSet to query.
      */
-    function getMembers(
-        OperatorSet memory operatorSet
-    ) external view returns (address[] memory operators);
+    function getMembers(OperatorSet memory operatorSet) external view returns (address[] memory operators);
 
     /**
      * @notice Returns the number of operators registered to an operatorSet.
      * @param operatorSet The operatorSet to get the member count for
      */
-    function getMemberCount(
-        OperatorSet memory operatorSet
-    ) external view returns (uint256);
+    function getMemberCount(OperatorSet memory operatorSet) external view returns (uint256);
 
     /**
      * @notice Returns the address that handles registration/deregistration for the AVS
      * If not set, defaults to the input address (`avs`)
      */
-    function getAVSRegistrar(
-        address avs
-    ) external view returns (IAVSRegistrar);
+    function getAVSRegistrar(address avs) external view returns (IAVSRegistrar);
 
     /**
      * @notice Returns an array of strategies in the operatorSet.
      * @param operatorSet The operatorSet to query.
      */
-    function getStrategiesInOperatorSet(
-        OperatorSet memory operatorSet
-    ) external view returns (IStrategy[] memory strategies);
+    function getStrategiesInOperatorSet(OperatorSet memory operatorSet)
+        external
+        view
+        returns (IStrategy[] memory strategies);
 
     /**
      * @notice Returns the minimum amount of stake that will be slashable as of some future block,
@@ -4365,14 +4184,11 @@ interface IStakeRegistryEvents is IStakeRegistryTypes {
      * @param strategy The strategy contract being updated.
      * @param multiplier The new multiplier value.
      */
-    event StrategyMultiplierUpdated(
-        uint8 indexed quorumNumber, IStrategy strategy, uint256 multiplier
-    );
+    event StrategyMultiplierUpdated(uint8 indexed quorumNumber, IStrategy strategy, uint256 multiplier);
 }
 
 interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
     /// STATE
-
     /**
      * @notice Returns the EigenLayer delegation manager contract.
      */
@@ -4394,11 +4210,9 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      *     3) `quorumNumbers` is ordered in ascending order.
      *     4) The operator is not already registered.
      */
-    function registerOperator(
-        address operator,
-        bytes32 operatorId,
-        bytes memory quorumNumbers
-    ) external returns (uint96[] memory operatorStakes, uint96[] memory totalStakes);
+    function registerOperator(address operator, bytes32 operatorId, bytes memory quorumNumbers)
+        external
+        returns (uint96[] memory operatorStakes, uint96[] memory totalStakes);
 
     /**
      * @notice Deregisters the operator with `operatorId` for the specified `quorumNumbers`.
@@ -4421,11 +4235,9 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param quorumNumber The quorum number to update the stake for.
      * @return A list of bools, true if the corresponding operator should be deregistered since they no longer meet the minimum stake requirement.
      */
-    function updateOperatorsStake(
-        address[] memory operators,
-        bytes32[] memory operatorIds,
-        uint8 quorumNumber
-    ) external returns (bool[] memory);
+    function updateOperatorsStake(address[] memory operators, bytes32[] memory operatorIds, uint8 quorumNumber)
+        external
+        returns (bool[] memory);
 
     /**
      * @notice Initialize a new quorum created by the registry coordinator by setting strategies, weights, and minimum stake.
@@ -4506,18 +4318,14 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param quorumNumber The quorum number to query.
      * @return The minimum stake requirement.
      */
-    function minimumStakeForQuorum(
-        uint8 quorumNumber
-    ) external view returns (uint96);
+    function minimumStakeForQuorum(uint8 quorumNumber) external view returns (uint96);
 
     /**
      * @notice Returns the length of the dynamic array stored in `strategyParams[quorumNumber]`.
      * @param quorumNumber The quorum number to query.
      * @return The number of strategies for the quorum.
      */
-    function strategyParamsLength(
-        uint8 quorumNumber
-    ) external view returns (uint256);
+    function strategyParamsLength(uint8 quorumNumber) external view returns (uint256);
 
     /**
      * @notice Returns the strategy and weight multiplier for the `index`'th strategy in the quorum.
@@ -4525,10 +4333,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param index The index of the strategy to query.
      * @return The strategy parameters.
      */
-    function strategyParamsByIndex(
-        uint8 quorumNumber,
-        uint256 index
-    ) external view returns (StrategyParams memory);
+    function strategyParamsByIndex(uint8 quorumNumber, uint256 index) external view returns (StrategyParams memory);
 
     /**
      * @notice Returns the length of the stake history for an operator in a quorum.
@@ -4536,10 +4341,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param quorumNumber The quorum number to query.
      * @return The length of the stake history array.
      */
-    function getStakeHistoryLength(
-        bytes32 operatorId,
-        uint8 quorumNumber
-    ) external view returns (uint256);
+    function getStakeHistoryLength(bytes32 operatorId, uint8 quorumNumber) external view returns (uint256);
 
     /**
      * @notice Computes the total weight of the operator in the specified quorum.
@@ -4548,10 +4350,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @return The total weight of the operator.
      * @dev Reverts if `quorumNumber` is greater than or equal to `quorumCount`.
      */
-    function weightOfOperatorForQuorum(
-        uint8 quorumNumber,
-        address operator
-    ) external view returns (uint96);
+    function weightOfOperatorForQuorum(uint8 quorumNumber, address operator) external view returns (uint96);
 
     /**
      * @notice Returns the entire stake history array for an operator in a quorum.
@@ -4559,19 +4358,14 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param quorumNumber The quorum number to get the stake for.
      * @return The array of stake updates.
      */
-    function getStakeHistory(
-        bytes32 operatorId,
-        uint8 quorumNumber
-    ) external view returns (StakeUpdate[] memory);
+    function getStakeHistory(bytes32 operatorId, uint8 quorumNumber) external view returns (StakeUpdate[] memory);
 
     /**
      * @notice Returns the length of the total stake history for a quorum.
      * @param quorumNumber The quorum number to query.
      * @return The length of the total stake history array.
      */
-    function getTotalStakeHistoryLength(
-        uint8 quorumNumber
-    ) external view returns (uint256);
+    function getTotalStakeHistoryLength(uint8 quorumNumber) external view returns (uint256);
 
     /**
      * @notice Returns the stake update at the specified index in the total stake history.
@@ -4579,10 +4373,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param index The index to query.
      * @return The stake update at the specified index.
      */
-    function getTotalStakeUpdateAtIndex(
-        uint8 quorumNumber,
-        uint256 index
-    ) external view returns (StakeUpdate memory);
+    function getTotalStakeUpdateAtIndex(uint8 quorumNumber, uint256 index) external view returns (StakeUpdate memory);
 
     /**
      * @notice Returns the index of the operator's stake update at the specified block number.
@@ -4591,11 +4382,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param blockNumber The block number to query.
      * @return The index of the stake update.
      */
-    function getStakeUpdateIndexAtBlockNumber(
-        bytes32 operatorId,
-        uint8 quorumNumber,
-        uint32 blockNumber
-    ) external view returns (uint32);
+    function getStakeUpdateIndexAtBlockNumber(bytes32 operatorId, uint8 quorumNumber, uint32 blockNumber)
+        external
+        view
+        returns (uint32);
 
     /**
      * @notice Returns the indices of total stakes for the provided quorums at the given block number.
@@ -4603,10 +4393,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param quorumNumbers The quorum numbers to query.
      * @return The array of stake update indices.
      */
-    function getTotalStakeIndicesAtBlockNumber(
-        uint32 blockNumber,
-        bytes calldata quorumNumbers
-    ) external view returns (uint32[] memory);
+    function getTotalStakeIndicesAtBlockNumber(uint32 blockNumber, bytes calldata quorumNumbers)
+        external
+        view
+        returns (uint32[] memory);
 
     /**
      * @notice Returns the stake update at the specified index for an operator in a quorum.
@@ -4616,11 +4406,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @return The stake update at the specified index.
      * @dev Function will revert if `index` is out-of-bounds.
      */
-    function getStakeUpdateAtIndex(
-        uint8 quorumNumber,
-        bytes32 operatorId,
-        uint256 index
-    ) external view returns (StakeUpdate memory);
+    function getStakeUpdateAtIndex(uint8 quorumNumber, bytes32 operatorId, uint256 index)
+        external
+        view
+        returns (StakeUpdate memory);
 
     /**
      * @notice Returns the most recent stake update for an operator in a quorum.
@@ -4629,10 +4418,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @return The most recent stake update.
      * @dev Returns a StakeUpdate struct with all entries equal to 0 if the operator has no stake history.
      */
-    function getLatestStakeUpdate(
-        bytes32 operatorId,
-        uint8 quorumNumber
-    ) external view returns (StakeUpdate memory);
+    function getLatestStakeUpdate(bytes32 operatorId, uint8 quorumNumber) external view returns (StakeUpdate memory);
 
     /**
      * @notice Returns the stake at the specified block number and index for an operator in a quorum.
@@ -4644,12 +4430,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @dev Function will revert if `index` is out-of-bounds.
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
-    function getStakeAtBlockNumberAndIndex(
-        uint8 quorumNumber,
-        uint32 blockNumber,
-        bytes32 operatorId,
-        uint256 index
-    ) external view returns (uint96);
+    function getStakeAtBlockNumberAndIndex(uint8 quorumNumber, uint32 blockNumber, bytes32 operatorId, uint256 index)
+        external
+        view
+        returns (uint96);
 
     /**
      * @notice Returns the total stake at the specified block number and index for a quorum.
@@ -4660,11 +4444,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @dev Function will revert if `index` is out-of-bounds.
      * @dev Used by the BLSSignatureChecker to get past stakes of signing operators.
      */
-    function getTotalStakeAtBlockNumberFromIndex(
-        uint8 quorumNumber,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (uint96);
+    function getTotalStakeAtBlockNumberFromIndex(uint8 quorumNumber, uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (uint96);
 
     /**
      * @notice Returns the current stake for an operator in a quorum.
@@ -4673,10 +4456,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @return The current stake amount.
      * @dev Returns 0 if the operator has no stake history.
      */
-    function getCurrentStake(
-        bytes32 operatorId,
-        uint8 quorumNumber
-    ) external view returns (uint96);
+    function getCurrentStake(bytes32 operatorId, uint8 quorumNumber) external view returns (uint96);
 
     /**
      * @notice Returns the stake of an operator at a specific block number.
@@ -4685,11 +4465,10 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @param blockNumber The block number to query.
      * @return The stake amount at the specified block.
      */
-    function getStakeAtBlockNumber(
-        bytes32 operatorId,
-        uint8 quorumNumber,
-        uint32 blockNumber
-    ) external view returns (uint96);
+    function getStakeAtBlockNumber(bytes32 operatorId, uint8 quorumNumber, uint32 blockNumber)
+        external
+        view
+        returns (uint96);
 
     /**
      * @notice Returns the current total stake for a quorum.
@@ -4697,9 +4476,7 @@ interface IStakeRegistry is IStakeRegistryErrors, IStakeRegistryEvents {
      * @return The current total stake amount.
      * @dev Will revert if `_totalStakeHistory[quorumNumber]` is empty.
      */
-    function getCurrentTotalStake(
-        uint8 quorumNumber
-    ) external view returns (uint96);
+    function getCurrentTotalStake(uint8 quorumNumber) external view returns (uint96);
 }
 
 // lib/eigenlayer-middleware/src/interfaces/ISlashingRegistryCoordinator.sol
@@ -4928,7 +4705,6 @@ interface ISlashingRegistryCoordinator is
     ISlashingRegistryCoordinatorEvents
 {
     /// IMMUTABLES & CONSTANTS
-
     /**
      * @notice EIP-712 typehash for operator churn approval signatures.
      * @return The typehash constant.
@@ -4985,18 +4761,14 @@ interface ISlashingRegistryCoordinator is
      * @param salt The salt to check.
      * @return True if the salt has been used, false otherwise.
      */
-    function isChurnApproverSaltUsed(
-        bytes32 salt
-    ) external view returns (bool);
+    function isChurnApproverSaltUsed(bytes32 salt) external view returns (bool);
 
     /**
      * @notice Gets the last block number when all operators in a quorum were updated.
      * @param quorumNumber The quorum identifier.
      * @return The block number of the last update.
      */
-    function quorumUpdateBlockNumber(
-        uint8 quorumNumber
-    ) external view returns (uint256);
+    function quorumUpdateBlockNumber(uint8 quorumNumber) external view returns (uint256);
 
     /**
      * @notice The address authorized to approve operator churn operations.
@@ -5015,9 +4787,7 @@ interface ISlashingRegistryCoordinator is
      * @param operator The operator address.
      * @return The timestamp of the last ejection.
      */
-    function lastEjectionTimestamp(
-        address operator
-    ) external view returns (uint256);
+    function lastEjectionTimestamp(address operator) external view returns (uint256);
 
     /**
      * @notice The cooldown period after ejection before an operator can re-register.
@@ -5034,9 +4804,7 @@ interface ISlashingRegistryCoordinator is
      * @dev Stakes are queried from the Eigenlayer core DelegationManager contract.
      * @dev WILL BE DEPRECATED IN FAVOR OF updateOperatorsForQuorum
      */
-    function updateOperators(
-        address[] memory operators
-    ) external;
+    function updateOperators(address[] memory operators) external;
 
     /**
      * @notice For each quorum in `quorumNumbers`, updates the StakeRegistry's view of ALL its registered operators' stakes.
@@ -5052,19 +4820,14 @@ interface ISlashingRegistryCoordinator is
      * @dev note on race condition: if an operator registers/deregisters for any quorum in `quorumNumbers` after a txn to
      * this method is broadcast (but before it is executed), the method will fail
      */
-    function updateOperatorsForQuorum(
-        address[][] memory operatorsPerQuorum,
-        bytes calldata quorumNumbers
-    ) external;
+    function updateOperatorsForQuorum(address[][] memory operatorsPerQuorum, bytes calldata quorumNumbers) external;
 
     /**
      * @notice Updates the socket of the msg.sender given they are a registered operator.
      * @param socket The new socket address for the operator (typically an IP address).
      * @dev Will revert if msg.sender is not a registered operator.
      */
-    function updateSocket(
-        string memory socket
-    ) external;
+    function updateSocket(string memory socket) external;
 
     /**
      * @notice Forcibly removes an operator from specified quorums and sets their ejection timestamp.
@@ -5112,10 +4875,7 @@ interface ISlashingRegistryCoordinator is
      * @param operatorSetParams The new operator set parameters to apply.
      * @dev Can only be called by the contract owner.
      */
-    function setOperatorSetParams(
-        uint8 quorumNumber,
-        OperatorSetParam memory operatorSetParams
-    ) external;
+    function setOperatorSetParams(uint8 quorumNumber, OperatorSetParam memory operatorSetParams) external;
 
     /**
      * @notice Updates the address authorized to approve operator churn operations.
@@ -5123,9 +4883,7 @@ interface ISlashingRegistryCoordinator is
      * @dev Can only be called by the contract owner.
      * @dev The churn approver is responsible for signing off on operator replacements in full quorums.
      */
-    function setChurnApprover(
-        address _churnApprover
-    ) external;
+    function setChurnApprover(address _churnApprover) external;
 
     /**
      * @notice Updates the address authorized to forcibly eject operators.
@@ -5133,18 +4891,14 @@ interface ISlashingRegistryCoordinator is
      * @dev Can only be called by the contract owner.
      * @dev The ejector can force-remove operators from quorums regardless of their stake.
      */
-    function setEjector(
-        address _ejector
-    ) external;
+    function setEjector(address _ejector) external;
 
     /**
      * @notice Updates the duration operators must wait after ejection before re-registering.
      * @param _ejectionCooldown The new cooldown duration in seconds.
      * @dev Can only be called by the contract owner.
      */
-    function setEjectionCooldown(
-        uint256 _ejectionCooldown
-    ) external;
+    function setEjectionCooldown(uint256 _ejectionCooldown) external;
 
     /**
      * @notice Updates the avs address for this AVS (used for UAM integration in EigenLayer)
@@ -5152,9 +4906,7 @@ interface ISlashingRegistryCoordinator is
      * @dev Can only be called by the contract owner
      * @dev NOTE: Updating this value will break existing OperatorSets and UAM integration. This value should only be set once.
      */
-    function setAVS(
-        address _avs
-    ) external;
+    function setAVS(address _avs) external;
 
     /// VIEW
 
@@ -5162,36 +4914,28 @@ interface ISlashingRegistryCoordinator is
      * @notice Returns the hash of the message that operators must sign with their BLS key to register
      * @param operator The operator's Ethereum address
      */
-    function calculatePubkeyRegistrationMessageHash(
-        address operator
-    ) external view returns (bytes32);
+    function calculatePubkeyRegistrationMessageHash(address operator) external view returns (bytes32);
 
     /**
      * @notice Returns the operator set parameters for a given quorum.
      * @param quorumNumber The identifier of the quorum to query.
      * @return The OperatorSetParam struct containing max operator count and churn thresholds.
      */
-    function getOperatorSetParams(
-        uint8 quorumNumber
-    ) external view returns (OperatorSetParam memory);
+    function getOperatorSetParams(uint8 quorumNumber) external view returns (OperatorSetParam memory);
 
     /**
      * @notice Returns the complete operator information for a given address.
      * @param operator The operator address to query.
      * @return An OperatorInfo struct containing the operator's ID and registration status.
      */
-    function getOperator(
-        address operator
-    ) external view returns (OperatorInfo memory);
+    function getOperator(address operator) external view returns (OperatorInfo memory);
 
     /**
      * @notice Returns the unique identifier for a given operator address.
      * @param operator The operator address to query.
      * @return The operator's ID (derived from their BLS public key hash).
      */
-    function getOperatorId(
-        address operator
-    ) external view returns (bytes32);
+    function getOperatorId(address operator) external view returns (bytes32);
 
     /**
      * @notice Returns the operator address associated with a given operator ID.
@@ -5199,18 +4943,14 @@ interface ISlashingRegistryCoordinator is
      * @return The operator's address.
      * @dev Returns address(0) if the ID is not registered.
      */
-    function getOperatorFromId(
-        bytes32 operatorId
-    ) external view returns (address);
+    function getOperatorFromId(bytes32 operatorId) external view returns (address);
 
     /**
      * @notice Returns the current registration status for a given operator.
      * @param operator The operator address to query.
      * @return The operator's status (NEVER_REGISTERED, REGISTERED, or DEREGISTERED).
      */
-    function getOperatorStatus(
-        address operator
-    ) external view returns (OperatorStatus);
+    function getOperatorStatus(address operator) external view returns (OperatorStatus);
 
     /**
      * @notice Returns the indices needed to look up quorum bitmaps for operators at a specific block.
@@ -5220,10 +4960,10 @@ interface ISlashingRegistryCoordinator is
      * @dev Reverts if any operator had not yet registered at the specified block.
      * @dev This function is designed to find proper inputs for getQuorumBitmapAtBlockNumberByIndex.
      */
-    function getQuorumBitmapIndicesAtBlockNumber(
-        uint32 blockNumber,
-        bytes32[] memory operatorIds
-    ) external view returns (uint32[] memory);
+    function getQuorumBitmapIndicesAtBlockNumber(uint32 blockNumber, bytes32[] memory operatorIds)
+        external
+        view
+        returns (uint32[] memory);
 
     /**
      * @notice Returns the quorum bitmap for an operator at a specific historical block.
@@ -5233,11 +4973,10 @@ interface ISlashingRegistryCoordinator is
      * @return The quorum bitmap showing which quorums the operator was registered for.
      * @dev Reverts if the index is incorrect for the specified block number.
      */
-    function getQuorumBitmapAtBlockNumberByIndex(
-        bytes32 operatorId,
-        uint32 blockNumber,
-        uint256 index
-    ) external view returns (uint192);
+    function getQuorumBitmapAtBlockNumberByIndex(bytes32 operatorId, uint32 blockNumber, uint256 index)
+        external
+        view
+        returns (uint192);
 
     /**
      * @notice Returns a specific update from an operator's quorum bitmap history.
@@ -5245,10 +4984,10 @@ interface ISlashingRegistryCoordinator is
      * @param index The index in the bitmap history to query.
      * @return The QuorumBitmapUpdate struct at that index.
      */
-    function getQuorumBitmapUpdateByIndex(
-        bytes32 operatorId,
-        uint256 index
-    ) external view returns (QuorumBitmapUpdate memory);
+    function getQuorumBitmapUpdateByIndex(bytes32 operatorId, uint256 index)
+        external
+        view
+        returns (QuorumBitmapUpdate memory);
 
     /**
      * @notice Returns the current quorum bitmap for an operator.
@@ -5256,18 +4995,14 @@ interface ISlashingRegistryCoordinator is
      * @return A bitmap where each bit represents registration in a specific quorum.
      * @dev Returns 0 if the operator is not registered for any quorums.
      */
-    function getCurrentQuorumBitmap(
-        bytes32 operatorId
-    ) external view returns (uint192);
+    function getCurrentQuorumBitmap(bytes32 operatorId) external view returns (uint192);
 
     /**
      * @notice Returns the number of updates in an operator's bitmap history.
      * @param operatorId The operator's unique identifier.
      * @return The length of the bitmap history array.
      */
-    function getQuorumBitmapHistoryLength(
-        bytes32 operatorId
-    ) external view returns (uint256);
+    function getQuorumBitmapHistoryLength(bytes32 operatorId) external view returns (uint256);
 
     /**
      * @notice Calculates the digest hash that must be signed by the churn approver.
@@ -5291,9 +5026,7 @@ interface ISlashingRegistryCoordinator is
      * @param operator The address of the operator registering their key.
      * @return A point on the G1 curve representing the message hash.
      */
-    function pubkeyRegistrationMessageHash(
-        address operator
-    ) external view returns (BN254.G1Point memory);
+    function pubkeyRegistrationMessageHash(address operator) external view returns (BN254.G1Point memory);
 
     /**
      * @notice Returns the avs address for this AVS (used for UAM integration in EigenLayer)
@@ -5647,11 +5380,10 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
 
 // lib/bread-token-v2/src/interfaces/IBread.sol
 
-interface IBread_0{
-    function claimYield(uint256 amount, address receiver) external ;
-    function yieldAccrued() external view  returns (uint256);
-    function setYieldClaimer(address _yieldClaimer) external ;
-
+interface IBread_0 {
+    function claimYield(uint256 amount, address receiver) external;
+    function yieldAccrued() external view returns (uint256);
+    function setYieldClaimer(address _yieldClaimer) external;
 }
 
 // lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol
@@ -7267,11 +6999,10 @@ library SafeCast {
  * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract ContextUpgradeable is Initializable {
-    function __Context_init() internal onlyInitializing {
-    }
+    function __Context_init() internal onlyInitializing {}
 
-    function __Context_init_unchained() internal onlyInitializing {
-    }
+    function __Context_init_unchained() internal onlyInitializing {}
+
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
     }
@@ -7658,7 +7389,8 @@ library Math_1 {
             while (remainder != 0) {
                 uint256 quotient = gcd / remainder;
 
-                (gcd, remainder) = (
+                (gcd, remainder) =
+                (
                     // The old remainder is the next gcd to try.
                     remainder,
                     // Compute the next remainder.
@@ -7667,7 +7399,8 @@ library Math_1 {
                     gcd - remainder * quotient
                 );
 
-                (x, y) = (
+                (x, y) =
+                (
                     // Increment the coefficient of a.
                     y,
                     // Decrement the coefficient of n.
@@ -7768,11 +7501,11 @@ library Math_1 {
     /**
      * @dev Variant of {tryModExp} that supports inputs of arbitrary length.
      */
-    function tryModExp(
-        bytes memory b,
-        bytes memory e,
-        bytes memory m
-    ) internal view returns (bool success, bytes memory result) {
+    function tryModExp(bytes memory b, bytes memory e, bytes memory m)
+        internal
+        view
+        returns (bool success, bytes memory result)
+    {
         if (_zeroBytes(m)) return (false, new bytes(0));
 
         uint256 mLen = m.length;
@@ -8100,7 +7833,8 @@ abstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant OwnableStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+    bytes32 private constant OwnableStorageLocation =
+        0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
 
     function _getOwnableStorage() private pure returns (OwnableStorage storage $) {
         assembly {
@@ -8228,11 +7962,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint256).max` key set will disable the
      * library.
      */
-    function push(
-        Trace256 storage self,
-        uint256 key,
-        uint256 value
-    ) internal returns (uint256 oldValue, uint256 newValue) {
+    function push(Trace256 storage self, uint256 key, uint256 value)
+        internal
+        returns (uint256 oldValue, uint256 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -8323,11 +8056,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint256[] storage self,
-        uint256 key,
-        uint256 value
-    ) private returns (uint256 oldValue, uint256 newValue) {
+    function _insert(Checkpoint256[] storage self, uint256 key, uint256 value)
+        private
+        returns (uint256 oldValue, uint256 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -8360,12 +8092,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint256[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint256[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -8384,12 +8115,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint256[] storage self,
-        uint256 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint256[] storage self, uint256 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -8404,10 +8134,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint256[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint256 storage result) {
+    function _unsafeAccess(Checkpoint256[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint256 storage result)
+    {
         assembly {
             mstore(0x00, self.slot)
             result.slot := add(keccak256(0x00, 0x20), mul(pos, 2))
@@ -8431,11 +8162,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint32).max` key set will disable the
      * library.
      */
-    function push(
-        Trace224 storage self,
-        uint32 key,
-        uint224 value
-    ) internal returns (uint224 oldValue, uint224 newValue) {
+    function push(Trace224 storage self, uint32 key, uint224 value)
+        internal
+        returns (uint224 oldValue, uint224 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -8526,11 +8256,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint224 value
-    ) private returns (uint224 oldValue, uint224 newValue) {
+    function _insert(Checkpoint224[] storage self, uint32 key, uint224 value)
+        private
+        returns (uint224 oldValue, uint224 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -8563,12 +8292,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint224[] storage self, uint32 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -8587,12 +8315,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint224[] storage self,
-        uint32 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint224[] storage self, uint32 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -8607,10 +8334,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint224[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint224 storage result) {
+    function _unsafeAccess(Checkpoint224[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint224 storage result)
+    {
         assembly {
             mstore(0x00, self.slot)
             result.slot := add(keccak256(0x00, 0x20), pos)
@@ -8634,11 +8362,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint48).max` key set will disable the
      * library.
      */
-    function push(
-        Trace208 storage self,
-        uint48 key,
-        uint208 value
-    ) internal returns (uint208 oldValue, uint208 newValue) {
+    function push(Trace208 storage self, uint48 key, uint208 value)
+        internal
+        returns (uint208 oldValue, uint208 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -8729,11 +8456,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint208 value
-    ) private returns (uint208 oldValue, uint208 newValue) {
+    function _insert(Checkpoint208[] storage self, uint48 key, uint208 value)
+        private
+        returns (uint208 oldValue, uint208 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -8766,12 +8492,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint208[] storage self, uint48 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -8790,12 +8515,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint208[] storage self,
-        uint48 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint208[] storage self, uint48 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -8810,10 +8534,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint208[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint208 storage result) {
+    function _unsafeAccess(Checkpoint208[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint208 storage result)
+    {
         assembly {
             mstore(0x00, self.slot)
             result.slot := add(keccak256(0x00, 0x20), pos)
@@ -8837,11 +8562,10 @@ library Checkpoints {
      * IMPORTANT: Never accept `key` as a user input, since an arbitrary `type(uint96).max` key set will disable the
      * library.
      */
-    function push(
-        Trace160 storage self,
-        uint96 key,
-        uint160 value
-    ) internal returns (uint160 oldValue, uint160 newValue) {
+    function push(Trace160 storage self, uint96 key, uint160 value)
+        internal
+        returns (uint160 oldValue, uint160 newValue)
+    {
         return _insert(self._checkpoints, key, value);
     }
 
@@ -8932,11 +8656,10 @@ library Checkpoints {
      * @dev Pushes a (`key`, `value`) pair into an ordered list of checkpoints, either by inserting a new checkpoint,
      * or by updating the last one.
      */
-    function _insert(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint160 value
-    ) private returns (uint160 oldValue, uint160 newValue) {
+    function _insert(Checkpoint160[] storage self, uint96 key, uint160 value)
+        private
+        returns (uint160 oldValue, uint160 newValue)
+    {
         uint256 pos = self.length;
 
         if (pos > 0) {
@@ -8969,12 +8692,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _upperBinaryLookup(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _upperBinaryLookup(Checkpoint160[] storage self, uint96 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key > key) {
@@ -8993,12 +8715,11 @@ library Checkpoints {
      *
      * WARNING: `high` should not be greater than the array's length.
      */
-    function _lowerBinaryLookup(
-        Checkpoint160[] storage self,
-        uint96 key,
-        uint256 low,
-        uint256 high
-    ) private view returns (uint256) {
+    function _lowerBinaryLookup(Checkpoint160[] storage self, uint96 key, uint256 low, uint256 high)
+        private
+        view
+        returns (uint256)
+    {
         while (low < high) {
             uint256 mid = Math_1.average(low, high);
             if (_unsafeAccess(self, mid)._key < key) {
@@ -9013,10 +8734,11 @@ library Checkpoints {
     /**
      * @dev Access an element of the array without performing bounds check. The position is assumed to be within bounds.
      */
-    function _unsafeAccess(
-        Checkpoint160[] storage self,
-        uint256 pos
-    ) private pure returns (Checkpoint160 storage result) {
+    function _unsafeAccess(Checkpoint160[] storage self, uint256 pos)
+        private
+        pure
+        returns (Checkpoint160 storage result)
+    {
         assembly {
             mstore(0x00, self.slot)
             result.slot := add(keccak256(0x00, 0x20), pos)
@@ -9052,7 +8774,8 @@ abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
     }
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Ownable2Step")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant Ownable2StepStorageLocation = 0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
+    bytes32 private constant Ownable2StepStorageLocation =
+        0x237e158222e3e6968b72b9db0d8043aacf074ad9f650f0d1606b4d82ee432c00;
 
     function _getOwnable2StepStorage() private pure returns (Ownable2StepStorage storage $) {
         assembly {
@@ -9062,11 +8785,10 @@ abstract contract Ownable2StepUpgradeable is Initializable, OwnableUpgradeable {
 
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
 
-    function __Ownable2Step_init() internal onlyInitializing {
-    }
+    function __Ownable2Step_init() internal onlyInitializing {}
 
-    function __Ownable2Step_init_unchained() internal onlyInitializing {
-    }
+    function __Ownable2Step_init_unchained() internal onlyInitializing {}
+
     /**
      * @dev Returns the address of the pending owner.
      */
