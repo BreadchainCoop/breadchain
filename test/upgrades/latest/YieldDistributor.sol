@@ -5498,6 +5498,7 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
         bytes namespace; // Namespace for the contract
         address avsAddress; // The AVS service manager address
         IBLSSignatureChecker blsSignatureChecker; // The BLS signature checker contract
+        uint256 blockStaleMeasure; // Max block age for reference block validity
     }
 
     // keccak256(abi.encode(uint256(keccak256("gaskiller.GasKillerSDK.storage")) - 1)) & ~bytes32(uint256(0xff));
@@ -5507,7 +5508,9 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
     // Constants for stake threshold checking
     uint8 public constant THRESHOLD_DENOMINATOR = 100;
     uint8 public constant QUORUM_THRESHOLD = 66; // 66% quorum threshold
-    uint32 public constant BLOCK_STALE_MEASURE = 300;
+
+    // Default values for the storage
+    uint256 private constant DEFAULT_BLOCK_STALE_MEASURE = 300;
 
     /**
      * @notice Function to verify if a signature is valid and contains correct storage updates
@@ -5532,7 +5535,7 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
 
         // Check block number validity
         require(referenceBlockNumber < block.number, FutureBlockNumber());
-        require((referenceBlockNumber + BLOCK_STALE_MEASURE) >= uint32(block.number), StaleBlockNumber());
+        require((uint256(referenceBlockNumber) + _getBlockStaleMeasure()) >= block.number, StaleBlockNumber());
 
         // Verify transition index and message hash
         require(transitionIndex + 1 == stateTransitionCount(), InvalidTransitionIndex());
@@ -5606,6 +5609,14 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
     }
 
     /**
+     * @notice Function to get the block stale measure
+     * @return uint256 The block stale measure
+     */
+    function blockStaleMeasure() external view returns (uint256) {
+        return _getBlockStaleMeasure();
+    }
+
+    /**
      * @notice Function to apply storage updates
      * @param storageUpdates The storage updates to apply
      */
@@ -5632,6 +5643,23 @@ abstract contract GasKillerSDK is StateTracker, IGasKillerSDK {
     function _setBlsSignatureChecker(address _blsSignatureChecker) internal {
         GasKillerSDKStorage storage $ = _getGasKillerSDKStorage();
         $.blsSignatureChecker = IBLSSignatureChecker(_blsSignatureChecker);
+    }
+
+    /**
+     * @notice Internal function to set the block stale measure
+     * @param _blockStaleMeasure The new block stale measure value
+     */
+    function _setBlockStaleMeasure(uint256 _blockStaleMeasure) internal {
+        _getGasKillerSDKStorage().blockStaleMeasure = _blockStaleMeasure;
+    }
+
+    /**
+     * @notice Internal function to get the block stale measure
+     * @return uint256 The block stale measure
+     */
+    function _getBlockStaleMeasure() internal view returns (uint256) {
+        uint256 value = _getGasKillerSDKStorage().blockStaleMeasure;
+        return value == 0 ? DEFAULT_BLOCK_STALE_MEASURE : value;
     }
 
     /**
@@ -5755,8 +5783,6 @@ interface IMultiplier {
 interface IYieldDistributor {
     /// @notice The error emitted when attempting to add a project that is already in the `projects` array
     error AlreadyMemberProject();
-    /// @notice The error emitted when a user attempts to vote without the minimum required voting power
-    error BelowMinRequiredVotingPower();
     /// @notice The error emitted when attempting to calculate voting power for a period that has not yet ended
     error EndAfterCurrentBlock();
     /// @notice The error emitted when attempting to vote with a point value greater than `pointsMax`
@@ -5771,12 +5797,14 @@ interface IYieldDistributor {
     error ProjectNotFound();
     /// @notice The error emitted when attempting to calculate voting power for a period with a start block greater than the end block
     error StartMustBeBeforeEnd();
+    /// @notice The error emitted when a transfer fails
+    error TransferFailed();
+    /// @notice The error emitted when a voter has not voted this cycle
+    error VoterHasNotVotedThisCycle();
     /// @notice The error emitted when attempting to distribute yield when access conditions are not met
     error YieldNotResolved();
     /// @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
-    /// @notice The error emitted when a transfer fails
-    error TransferFailed();
 
     /// @notice The event emitted when an account casts a vote
     event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);
@@ -9182,6 +9210,7 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
 
     /// @notice Initializes the contract
     /// @param _initialOwner The address of the initial owner
+    /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
     function __VotingMultipliers_init(address _initialOwner) internal onlyInitializing {
         if (owner() == address(0)) {
             __Ownable_init(_initialOwner);
@@ -9353,7 +9382,9 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice The maximum number of points a voter can allocate to a project
     uint256 public maxPoints;
     /// @notice The minimum required voting power participants must have to cast a vote
-    uint256 public minRequiredVotingPower;
+    /// @dev DEPRECATED: Kept for storage layout compatibility.
+    /// @custom:oz-renamed-from minRequiredVotingPower
+    uint256 internal _deprecated_minRequiredVotingPower;
     /// @notice The block number of the last yield distribution
     uint256 public lastClaimedBlockNumber;
     /// @notice The total voting power accumulated in the current cycle
@@ -9377,40 +9408,54 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice The block number before the last yield distribution
     uint256 public previousCycleStartingBlock;
     /// @notice Array of voters who have cast votes in the current cycle
-    address[] public voters;
+    /// @dev DEPRECATED: Kept for storage layout compatibility. Use `voterAtIndex` and `votersCount` instead.
+    /// @custom:oz-renamed-from voters
+    address[] internal _deprecated_voters;
     /// @notice The mapping of holders to their vote distributions
-    mapping(address => uint256[]) public holderToDistribution;
+    /// @custom:oz-renamed-from holderToDistribution
+    mapping(address => uint256[]) internal _holderToDistribution;
     /// @notice The mapping of holders to their total vote distribution
-    mapping(address => uint256) public holderToDistributionTotal;
+    /// @custom:oz-renamed-from holderToDistributionTotal
+    mapping(address => uint256) internal _holderToDistributionTotal;
+    /// @notice The current voting cycle number (incremented each distribution)
+    uint256 public votingCycle;
+    /// @notice The number of voters in the current cycle
+    uint256 public votersCount;
+    /// @notice Mapping from index to voter address for current cycle
+    mapping(uint256 => address) public voterAtIndex;
+    /// @notice Mapping from voter address to the cycle they last voted in
+    mapping(address => uint256) public voterVotedCycle;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
+    /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
     function initialize(
         address _bread,
         address _butteredBread,
         uint256 _precision,
-        uint256 _minRequiredVotingPower,
         uint256 _maxPoints,
         uint256 _cycleLength,
         uint256 _yieldFixedSplitDivisor,
         uint256 _lastClaimedBlockNumber,
-        address[] memory _projects
+        address[] memory _projects,
+        address _initialOwner
     ) public initializer {
         if (
-            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _minRequiredVotingPower == 0
-                || _maxPoints == 0 || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0
+            _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _maxPoints == 0
+                || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
+                || _projects.length == 0 || _initialOwner == address(0)
         ) {
             revert MustBeGreaterThanZero();
         }
 
+        __Ownable_init(_initialOwner);
+
         BREAD = IBread_1(_bread);
         BUTTERED_BREAD = IERC20Votes(_butteredBread);
         PRECISION = _precision;
-        minRequiredVotingPower = _minRequiredVotingPower;
         maxPoints = _maxPoints;
         cycleLength = _cycleLength;
         yieldFixedSplitDivisor = _yieldFixedSplitDivisor;
@@ -9421,12 +9466,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         for (uint256 i; i < _projects.length; ++i) {
             projects[i] = _projects[i];
         }
+
+        _initializeVotingCycle(1);
     }
 
     /**
      * @notice Initializes the VotingMultipliers contract
      * @param _initialOwner The address of the initial owner
      * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
+     * @custom:oz-upgrades-unsafe-allow incorrect-initializer-order
      */
     function initializeVotingMultipliers(address _initialOwner) public reinitializer(1) {
         __VotingMultipliers_init(_initialOwner);
@@ -9437,10 +9486,48 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      * @param _avsAddress The address of the AVS service manager
      * @param _blsSignatureChecker The address of the BLS signature checker
      * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
      */
     function initializeGasKiller(address _avsAddress, address _blsSignatureChecker) public reinitializer(2) onlyOwner {
         _setAvsAddress(_avsAddress);
         _setBlsSignatureChecker(_blsSignatureChecker);
+    }
+
+    /**
+     * @notice Initializes the voting cycle
+     * @param _votingCycle The voting cycle number to initialize
+     * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
+     */
+    function initializeVotingCycle(uint256 _votingCycle) public reinitializer(3) onlyOwner {
+        if (_votingCycle == 0) revert MustBeGreaterThanZero();
+
+        if (votingCycle == 0) {
+            // Only initialize if voting cycle is not already initialized
+            _initializeVotingCycle(_votingCycle);
+        }
+    }
+
+    /**
+     * @notice Returns the distribution of voting power for a specific account
+     * @param _account Address of the account to return the distribution for
+     * @return uint256[] The distribution of voting power for the account
+     */
+    function getHolderToDistribution(address _account) public view returns (uint256[] memory) {
+        if (voterVotedCycle[_account] != votingCycle) revert VoterHasNotVotedThisCycle();
+
+        return _holderToDistribution[_account];
+    }
+
+    /**
+     * @notice Returns the total distribution of voting power for a specific account
+     * @param _account Address of the account to return the total distribution for
+     * @return uint256 The total distribution of voting power for the account
+     */
+    function getHolderToDistributionTotal(address _account) public view returns (uint256) {
+        if (voterVotedCycle[_account] != votingCycle) revert VoterHasNotVotedThisCycle();
+
+        return _holderToDistributionTotal[_account];
     }
 
     /**
@@ -9450,6 +9537,18 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function getCurrentVotingDistribution() public view returns (address[] memory, uint256[] memory) {
         return (projects, projectDistributions);
+    }
+
+    /**
+     * @notice Returns the list of voters in the current cycle
+     * @return address[] Array of voter addresses who have voted in the current cycle
+     */
+    function getCurrentCycleVoters() public view returns (address[] memory) {
+        address[] memory _voters = new address[](votersCount);
+        for (uint256 i; i < votersCount; ++i) {
+            _voters[i] = voterAtIndex[i];
+        }
+        return _voters;
     }
 
     /**
@@ -9579,8 +9678,10 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         _updateBreadchainProjects();
         emit YieldDistributed(balance, totalVotes, distributions);
 
-        delete voters;
-        delete currentVotes;
+        // Gas-efficient reset: increment cycle and reset counter instead of deleting arrays
+        votingCycle++;
+        votersCount = 0;
+        currentVotes = 0;
         projectDistributions = new uint256[](projects.length);
     }
 
@@ -9589,7 +9690,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function distributeYieldGK() public trackState {
         (uint256 _balance, uint256 _baseSplit, uint256 _votedYield) = _claimAndPrepareYield();
-        (uint256[] memory _currentProjectDistributions, uint256 _totalVotes) = _commitVotedDistribution();
+        (uint256[] memory _currentProjectDistributions, uint256 _totalVotes) = _computeVotedDistribution();
 
         _executeAndFinalizeDistribution(_currentProjectDistributions, _totalVotes, _balance, _baseSplit, _votedYield);
     }
@@ -9610,8 +9711,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     function castVote(uint256[] calldata _points) public trackState {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
 
-        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
-
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
@@ -9627,7 +9726,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
         uint256 _multiplier = calculateTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = _multiplier == 0 ? _currentVotingPower : (_currentVotingPower * _multiplier) / PRECISION;
-        if (_currentVotingPower < minRequiredVotingPower) revert BelowMinRequiredVotingPower();
 
         _castVote(msg.sender, _points, _currentVotingPower);
     }
@@ -9642,13 +9740,15 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _projectsLength = projects.length;
         if (_points.length != _projectsLength) revert IncorrectNumberOfProjects();
 
-        /// Add voter to list if they have not voted yet
-        if (holderToDistribution[_account].length > 0) {
-            delete holderToDistribution[_account];
-        } else {
-            voters.push(_account);
+        /// Check if voter has voted in current cycle using cycle counter
+        bool _hasVotedInCycle = voterVotedCycle[_account] == votingCycle;
+
+        /// Add voter to list if they have not voted this cycle
+        if (!_hasVotedInCycle) {
+            voterAtIndex[votersCount++] = _account;
+            voterVotedCycle[_account] = votingCycle;
         }
-        holderToDistribution[_account] = _points;
+        _holderToDistribution[_account] = _points;
 
         /// Calculate total points
         uint256 _totalPoints;
@@ -9657,9 +9757,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
             _totalPoints += _points[i];
         }
         if (_totalPoints == 0) revert ZeroVotePoints();
-        holderToDistributionTotal[_account] = _totalPoints;
-
-        bool _hasVotedInCycle = accountLastVoted[_account] > lastClaimedBlockNumber;
+        _holderToDistributionTotal[_account] = _totalPoints;
         uint256[] storage _voterDistributions = voterDistributions[_account];
         if (!_hasVotedInCycle) {
             delete voterDistributions[_account];
@@ -9691,41 +9789,44 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
-     * @notice Internal function for committing the voted distributions for projects
+     * @notice Internal function for computing the voted distributions for projects
      * @return _newProjectDistributions Distribution of votes for projects
      * @return _totalVotes Total number of votes cast
      */
-    function _commitVotedDistribution()
+    function _computeVotedDistribution()
         internal
+        view
         returns (uint256[] memory _newProjectDistributions, uint256 _totalVotes)
     {
         _newProjectDistributions = new uint256[](projects.length);
 
-        for (uint256 i; i < voters.length; ++i) {
-            address _voter = voters[i];
+        for (uint256 i; i < votersCount; ++i) {
+            address _voter = voterAtIndex[i];
             uint256 _voterPower = getCurrentVotingPower(_voter);
-            uint256[] memory _voterDistribution = holderToDistribution[_voter];
+            uint256[] memory _voterDistribution = _holderToDistribution[_voter];
             uint256 _vote;
             for (uint256 j; j < projects.length; ++j) {
                 _vote =
-                    (_voterPower * _voterDistribution[j] * PRECISION / holderToDistributionTotal[_voter]) / PRECISION;
+                    (_voterPower * _voterDistribution[j] * PRECISION / _holderToDistributionTotal[_voter]) / PRECISION;
                 _newProjectDistributions[j] += _vote;
                 _totalVotes += _vote;
             }
-            delete holderToDistribution[_voter];
-            delete holderToDistributionTotal[_voter];
         }
     }
 
     /**
      * @notice Internal function for updating the project list
+     * @dev Bypasses update if there are no additions or removals queued.
      */
     function _updateBreadchainProjects() internal {
+        if (queuedProjectsForAddition.length == 0 && queuedProjectsForRemoval.length == 0) {
+            // Bypass if nothing to update
+            return;
+        }
+
         for (uint256 i; i < queuedProjectsForAddition.length; ++i) {
             address _project = queuedProjectsForAddition[i];
-
             projects.push(_project);
-
             emit ProjectAdded(_project);
         }
 
@@ -9751,6 +9852,20 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
         delete queuedProjectsForAddition;
         delete queuedProjectsForRemoval;
+    }
+
+    /**
+     * @notice Internal function to initialize the voting cycle
+     * @dev Initialize voting cycle so that uninitialized voterVotedCycle mappings (default 0)
+     * @dev are correctly identified as "not voted in current cycle".
+     * @dev Resets all in-progress vote state (currentVotes, projectDistributions, votersCount)
+     * @dev to prevent double-counting if called mid-cycle during an upgrade.
+     */
+    function _initializeVotingCycle(uint256 _votingCycle) internal {
+        votingCycle = _votingCycle;
+        votersCount = 0;
+        currentVotes = 0;
+        projectDistributions = new uint256[](projects.length);
     }
 
     /**
@@ -9794,16 +9909,6 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
 
         queuedProjectsForRemoval.push(_project);
-    }
-
-    /**
-     * @notice Set a new minimum required voting power a user must have to vote
-     * @param _minRequiredVotingPower New minimum required voting power a user must have to vote
-     */
-    function setMinRequiredVotingPower(uint256 _minRequiredVotingPower) public onlyOwner trackState {
-        if (_minRequiredVotingPower == 0) revert MustBeGreaterThanZero();
-
-        minRequiredVotingPower = _minRequiredVotingPower;
     }
 
     /**
@@ -9859,6 +9964,14 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
      */
     function setBlsSignatureChecker(address newBlsSignatureChecker) external onlyOwner trackState {
         _setBlsSignatureChecker(newBlsSignatureChecker);
+    }
+
+    /**
+     * @notice Allows the owner to set the block stale measure
+     * @param _blockStaleMeasure The new block stale measure
+     */
+    function setBlockStaleMeasure(uint256 _blockStaleMeasure) external onlyOwner trackState {
+        _setBlockStaleMeasure(_blockStaleMeasure);
     }
 }
 
