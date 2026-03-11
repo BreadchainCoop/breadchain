@@ -617,4 +617,12 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     function setBlsSignatureChecker(address newBlsSignatureChecker) external onlyOwner trackState {
         _setBlsSignatureChecker(newBlsSignatureChecker);
     }
+
+    /**
+     * @notice Allows the owner to set the block stale measure
+     * @param _blockStaleMeasure The new block stale measure
+     */
+    function setBlockStaleMeasure(uint256 _blockStaleMeasure) external onlyOwner trackState {
+        _setBlockStaleMeasure(_blockStaleMeasure);
+    }
 }
