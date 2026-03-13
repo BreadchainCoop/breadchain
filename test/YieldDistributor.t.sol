@@ -7,25 +7,20 @@ import "forge-std/StdJson.sol";
 import {
     ERC20VotesUpgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
-import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {ButteredBread} from "src/ButteredBread.sol";
 import {VotingMultipliers, IVotingMultipliers} from "src/VotingMultipliers.sol";
-import {VotingStreakMultiplier} from "src/multipliers/VotingStreakMultiplier.sol";
-import {MockMultiplier} from "src/test/MockMultiplier.sol";
 import {IMultiplier} from "src/interfaces/IVotingMultipliers.sol";
-import {IBread} from "src/interfaces/IBread.sol";
+import {VotingStreakMultiplier} from "src/multipliers/VotingStreakMultiplier.sol";
 import {NFTMultiplier} from "src/multipliers/NFTMultiplier.sol";
+import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
+import {MockBread} from "src/test/MockBread.sol";
+import {MockMultiplier} from "src/test/MockMultiplier.sol";
 import {DeployNFTMultiplier} from "script/deploy/DeployNFTMultiplier.s.sol";
-
-abstract contract Bread is IBread, Ownable2StepUpgradeable {
-    function mint(address receiver) external payable virtual;
-}
 
 contract YieldDistributorTest is Test {
     uint256 constant START = 32_323_232_323;
@@ -50,7 +45,7 @@ contract YieldDistributorTest is Test {
     uint256 _minHoldingDuration = stdJson.readUint(config_data, "._minHoldingDuration");
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
-    Bread public bread = Bread(address(_bread));
+    MockBread public bread = MockBread(address(_bread));
     ButteredBread public butteredBread = ButteredBread(address(_bread));
     uint256 minHoldingDurationInBlocks = _minHoldingDuration / _blocktime;
 

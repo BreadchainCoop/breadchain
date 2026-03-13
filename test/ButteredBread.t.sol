@@ -5,8 +5,7 @@ import "script/Constants.s.sol";
 import "forge-std/StdJson.sol";
 import "forge-std/StdUtils.sol";
 import {Test} from "forge-std/Test.sol";
-import {TransparentUpgradeableProxy} from
-    "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -63,8 +62,9 @@ contract ButteredBreadTest is Test {
         bytes memory implementationData = abi.encodeWithSelector(ButteredBread.initialize.selector, initData);
 
         address bbImplementation = address(new ButteredBread());
-        bb =
-            ButteredBread(address(new TransparentUpgradeableProxy(bbImplementation, address(this), implementationData)));
+        bb = ButteredBread(
+            address(new TransparentUpgradeableProxy(bbImplementation, address(this), implementationData))
+        );
 
         fixedPointPercent = bb.FIXED_POINT_PERCENT();
 
@@ -293,7 +293,7 @@ contract ButteredBreadTest_Unit is ButteredBreadTest {
     function testModifyScalingFactorEmitsEvent() public {
         address lp = GNOSIS_CURVE_POOL_XDAI_BREAD;
         uint256 oldFactor = bb.scalingFactors(lp);
-        uint256 newFactor = oldFactor + 50;   
+        uint256 newFactor = oldFactor + 50;
 
         vm.expectEmit(true, false, false, true);
         emit IButteredBread.ScalingFactorModified(lp, oldFactor, newFactor);
@@ -403,7 +403,8 @@ contract ButteredBreadTest_Fuzz is ButteredBreadTest {
         /// @dev accuracy within 1 wei
         assertApproxEqAbs(
             bb.balanceOf(ALICE),
-            (_s.deposit * _s.updatedFactor / fixedPointPercent) - (_s.withdrawal * _s.updatedFactor / fixedPointPercent),
+            (_s.deposit * _s.updatedFactor / fixedPointPercent)
+                - (_s.withdrawal * _s.updatedFactor / fixedPointPercent),
             maxDelta
         );
 
