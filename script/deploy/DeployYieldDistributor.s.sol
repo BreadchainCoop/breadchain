@@ -19,22 +19,27 @@ contract DeployYieldDistributor is Script {
     uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
     address _owner = stdJson.readAddress(config_data, "._owner");
-    bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
-    address[] projects = abi.decode(projectsRaw, (address[]));
-    bytes initData = abi.encodeWithSelector(
-        YieldDistributor.initialize.selector,
-        _bread,
-        _butteredBread,
-        _precision,
-        _maxPoints,
-        _cycleLength,
-        _yieldFixedSplitDivisor,
-        _lastClaimedBlockNumber,
-        projects,
-        _owner
-    );
+    address[] _projects = abi.decode(stdJson.parseRaw(config_data, "._projects"), (address[]));
 
     function run() external {
+        uint256 lastClaimedBlockNumber = _lastClaimedBlockNumber == 0 ? block.number : _lastClaimedBlockNumber;
+        if (_lastClaimedBlockNumber == 0) {
+            console2.log("Using current block as lastClaimedBlockNumber:", lastClaimedBlockNumber);
+        }
+
+        bytes memory initData = abi.encodeWithSelector(
+            YieldDistributor.initialize.selector,
+            _bread,
+            _butteredBread,
+            _precision,
+            _maxPoints,
+            _cycleLength,
+            _yieldFixedSplitDivisor,
+            lastClaimedBlockNumber,
+            _projects,
+            _owner
+        );
+
         vm.startBroadcast();
         YieldDistributor yieldDistributorImplementation = new YieldDistributor();
         YieldDistributor yieldDistributor = YieldDistributor(
