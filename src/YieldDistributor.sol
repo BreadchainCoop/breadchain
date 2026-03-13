@@ -97,10 +97,15 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     ) public initializer {
         if (
             _bread == address(0) || _butteredBread == address(0) || _precision == 0 || _maxPoints == 0
-                || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _lastClaimedBlockNumber == 0
-                || _projects.length == 0 || _initialOwner == address(0)
+                || _cycleLength == 0 || _yieldFixedSplitDivisor == 0 || _projects.length == 0
+                || _initialOwner == address(0)
         ) {
             revert MustBeGreaterThanZero();
+        }
+
+        // If the last claimed block number is not set, use the current block number
+        if (_lastClaimedBlockNumber == 0) {
+            _lastClaimedBlockNumber = block.number;
         }
 
         __Ownable_init(_initialOwner);
