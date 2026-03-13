@@ -9,6 +9,10 @@ import {MockBread} from "src/test/MockBread.sol";
 import {ButteredBread, IButteredBread} from "src/ButteredBread.sol";
 import {YieldDistributor} from "src/YieldDistributor.sol";
 
+interface IVmWallets {
+    function getWallets() external returns (address[] memory);
+}
+
 contract DeployMockYieldDistributor is Script {
     // ─── MockBread ─────────────────────────────────────────────────────────
     string constant BREAD_NAME = "Bread";
@@ -24,15 +28,30 @@ contract DeployMockYieldDistributor is Script {
     address constant PROJECT_3 = address(0xF00D);
     uint256 constant PRECISION = 1e18;
     uint256 constant MAX_POINTS = 10_000;
-    uint256 constant CYCLE_LENGTH = 518_400; // ~6 days at 5s/block
+    uint256 constant CYCLE_LENGTH = 60; // ~5 mins at 5s/block
     uint256 constant YIELD_FIXED_SPLIT_DIVISOR = 2;
-    uint256 constant LAST_CLAIMED_BLOCK_NUMBER = 1;
+    uint256 constant LAST_CLAIMED_BLOCK_NUMBER = 0;
 
     function run() external {
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
-        require(privateKey != 0, "PRIVATE_KEY not set");
-        address owner = vm.addr(privateKey);
-        vm.startBroadcast();
+        address owner = vm.envOr("OWNER", address(0));
+        uint256 privateKey = vm.envOr("PRIVATE_KEY", uint256(0));
+
+        if (owner == address(0)) {
+            if (privateKey != 0) {
+                owner = vm.addr(privateKey);
+            } else {
+                try IVmWallets(address(vm)).getWallets() returns (address[] memory wallets) {
+                    if (wallets.length > 0) owner = wallets[0];
+                } catch {}
+            }
+        }
+        require(owner != address(0), "Set OWNER or PRIVATE_KEY / --private-key");
+
+        if (privateKey != 0) {
+            vm.startBroadcast(privateKey);
+        } else {
+            vm.startBroadcast(owner);
+        }
 
         // 1. Deploy MockBread
         MockBread bread = new MockBread(BREAD_NAME, BREAD_SYMBOL);
