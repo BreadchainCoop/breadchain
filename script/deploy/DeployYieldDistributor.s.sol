@@ -13,28 +13,28 @@ contract DeployYieldDistributor is Script {
     string config_data = vm.readFile(deployConfigPath);
     address _bread = stdJson.readAddress(config_data, "._bread");
     address _butteredBread = stdJson.readAddress(config_data, "._butteredBread");
-    uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
-    uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
     uint256 _precision = stdJson.readUint(config_data, "._precision");
-    uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
+    uint256 _maxPoints = stdJson.readUint(config_data, "._maxPoints");
+    uint256 _cycleLength = stdJson.readUint(config_data, "._cycleLength");
     uint256 _yieldFixedSplitDivisor = stdJson.readUint(config_data, "._yieldFixedSplitDivisor");
+    uint256 _lastClaimedBlockNumber = stdJson.readUint(config_data, "._lastClaimedBlockNumber");
+    address[] _projects = abi.decode(stdJson.parseRaw(config_data, "._projects"), (address[]));
     address _owner = stdJson.readAddress(config_data, "._owner");
-    bytes projectsRaw = stdJson.parseRaw(config_data, "._projects");
-    address[] projects = abi.decode(projectsRaw, (address[]));
-    bytes initData = abi.encodeWithSelector(
-        YieldDistributor.initialize.selector,
-        _bread,
-        _butteredBread,
-        _precision,
-        _maxPoints,
-        _cycleLength,
-        _yieldFixedSplitDivisor,
-        _lastClaimedBlockNumber,
-        projects,
-        _owner
-    );
 
     function run() external {
+        bytes memory initData = abi.encodeWithSelector(
+            YieldDistributor.initialize.selector,
+            _bread,
+            _butteredBread,
+            _precision,
+            _maxPoints,
+            _cycleLength,
+            _yieldFixedSplitDivisor,
+            _lastClaimedBlockNumber,
+            _projects,
+            _owner
+        );
+
         vm.startBroadcast();
         YieldDistributor yieldDistributorImplementation = new YieldDistributor();
         YieldDistributor yieldDistributor = YieldDistributor(
