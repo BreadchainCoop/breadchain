@@ -1,0 +1,443 @@
+name: Deploy All Contracts to Testnet
+
+on:
+  push:
+    branches:
+      - dev
+      - staging
+  pull_request:
+    branches:
+      - dev
+      - staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run tests (with fork)
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ]; then
+            forge test --fork-url "$TESTNET_RPC_URL" -vvvv
+          else
+            forge test -vvvv
+          fi
+      
+      - name: Run tests (without fork for external PRs)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: forge test -vvvv
+
+      - name: Initialize deployment tracking
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
+            echo '{"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "network": "testnet", "contracts": {}, "implementations": {}}' > deployment.json
+          fi
+
+      - name: Deploy ButteredBread
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
+            echo "Deploying ButteredBread..."
+            
+            # Run the deployment script and capture exit code
+            set +e
+            forge script script/deploy/DeployButteredBread.s.sol:DeployButteredBread \
+              --rpc-url "$TESTNET_RPC_URL" \
+              --broadcast \
+              --private-key "$TESTNET_PRIVATE_KEY" \
+              --json > butteredbread_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            echo "Forge script exit code: $EXIT_CODE"
+            
+            # Check if the output is valid JSON by trying to parse it
+            if [ $EXIT_CODE -eq 0 ] && jq -e . butteredbread_deploy.json >/dev/null 2>&1; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' butteredbread_deploy.json 2>/dev/null || true
+              
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' butteredbread_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
+              
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' butteredbread_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
+                if [ -f deployment.json ]; then
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.ButteredBread = $proxy | .implementations.ButteredBread = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
+                fi
+                echo "✅ ButteredBread deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
+              else
+                echo "⚠️ ButteredBread deployment completed but no contract address found"
+                echo "Debug output - Full JSON structure:"
+                jq '.' butteredbread_deploy.json 2>/dev/null || true
+              fi
+            else
+              echo "❌ ButteredBread deployment failed. Output:"
+              cat butteredbread_deploy.json
+            fi
+          fi
+
+      - name: Deploy YieldDistributor
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
+            echo "Deploying YieldDistributor..."
+            
+            # Run the deployment script and capture exit code
+            set +e
+            forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor \
+              --rpc-url "$TESTNET_RPC_URL" \
+              --broadcast \
+              --private-key "$TESTNET_PRIVATE_KEY" \
+              --json > yielddistributor_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            echo "Forge script exit code: $EXIT_CODE"
+            
+            # Check if the output is valid JSON by trying to parse it
+            if [ $EXIT_CODE -eq 0 ] && jq -e . yielddistributor_deploy.json >/dev/null 2>&1; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' yielddistributor_deploy.json 2>/dev/null || true
+              
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' yielddistributor_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
+              
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' yielddistributor_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
+                if [ -f deployment.json ]; then
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.YieldDistributor = $proxy | .implementations.YieldDistributor = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
+                fi
+                echo "✅ YieldDistributor deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
+              else
+                echo "⚠️ YieldDistributor deployment completed but no contract address found"
+                echo "Debug output - Full JSON structure:"
+                jq '.' yielddistributor_deploy.json 2>/dev/null || true
+              fi
+            else
+              echo "❌ YieldDistributor deployment failed. Output:"
+              cat yielddistributor_deploy.json
+            fi
+          fi
+
+      - name: Deploy NFTMultiplier
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          NFT_CONTRACT_ADDRESS: ${{ secrets.NFT_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000' }}
+          INITIAL_MULTIPLYING_FACTOR: ${{ secrets.INITIAL_MULTIPLYING_FACTOR || '1100' }}
+          VALID_UNTIL_BLOCK: ${{ secrets.VALID_UNTIL_BLOCK || '999999999' }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
+            # Check if NFT_CONTRACT_ADDRESS is set and not the zero address
+            if [ "$NFT_CONTRACT_ADDRESS" = "0x0000000000000000000000000000000000000000" ]; then
+              echo "⚠️ Skipping NFTMultiplier deployment: NFT_CONTRACT_ADDRESS not configured"
+              echo "To deploy NFTMultiplier, set the NFT_CONTRACT_ADDRESS secret in repository settings"
+            else
+              echo "Deploying NFTMultiplier..."
+              echo "NFT Contract: $NFT_CONTRACT_ADDRESS"
+              echo "Multiplying Factor: $INITIAL_MULTIPLYING_FACTOR"
+              echo "Valid Until Block: $VALID_UNTIL_BLOCK"
+              
+              # Run the deployment script and capture exit code
+              set +e
+              forge script script/deploy/DeployNFTMultiplier.s.sol:DeployNFTMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --broadcast \
+                --private-key "$TESTNET_PRIVATE_KEY" \
+                --json > nftmultiplier_deploy.json 2>&1
+              EXIT_CODE=$?
+              set -e
+              
+              echo "Forge script exit code: $EXIT_CODE"
+              
+              # Check if the output is valid JSON by trying to parse it
+              if [ $EXIT_CODE -eq 0 ] && jq -e . nftmultiplier_deploy.json >/dev/null 2>&1; then
+                # Debug: show the structure
+                echo "Debug: Looking for contract addresses in receipts..."
+                jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' nftmultiplier_deploy.json 2>/dev/null || true
+                
+                # Extract all contract addresses from receipts
+                ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' nftmultiplier_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
+                
+                # If we found addresses, use them
+                if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                  # Last address is usually the proxy, second-to-last is implementation
+                  if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                    IMPL_ADDRESS="${ADDRESSES[-2]}"
+                    PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  else
+                    # Only one address, it's probably not using proxy pattern
+                    PROXY_ADDRESS="${ADDRESSES[-1]}"
+                    IMPL_ADDRESS="${ADDRESSES[-1]}"
+                  fi
+                else
+                  # Fallback: try to get from returns array
+                  echo "Debug: No addresses in receipts, checking returns..."
+                  PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' nftmultiplier_deploy.json 2>/dev/null || echo "")
+                  IMPL_ADDRESS="$PROXY_ADDRESS"
+                fi
+                
+                if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
+                  if [ -f deployment.json ]; then
+                    jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                      '.contracts.NFTMultiplier = $proxy | .implementations.NFTMultiplier = $impl' \
+                      deployment.json > temp.json && mv temp.json deployment.json
+                  fi
+                  echo "✅ NFTMultiplier deployed:"
+                  echo "   Proxy: $PROXY_ADDRESS"
+                  [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
+                else
+                  echo "⚠️ NFTMultiplier deployment completed but no contract address found"
+                  echo "Debug output - Full JSON structure:"
+                  jq '.' nftmultiplier_deploy.json 2>/dev/null || true
+                fi
+              else
+                echo "❌ NFTMultiplier deployment failed. Output:"
+                cat nftmultiplier_deploy.json
+              fi
+            fi
+          fi
+
+      - name: Deploy VotingStreakMultiplier
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          TESTNET_PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$TESTNET_PRIVATE_KEY" ]; then
+            echo "Deploying VotingStreakMultiplier..."
+            
+            # Run the deployment script and capture exit code
+            set +e
+            forge script script/deploy/DeployVotingStreakMultiplier.s.sol:DeployVotingStreakMultiplier \
+              --rpc-url "$TESTNET_RPC_URL" \
+              --broadcast \
+              --private-key "$TESTNET_PRIVATE_KEY" \
+              --json > votingstreakMultiplier_deploy.json 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            echo "Forge script exit code: $EXIT_CODE"
+            
+            # Check if the output is valid JSON by trying to parse it
+            if [ $EXIT_CODE -eq 0 ] && jq -e . votingstreakMultiplier_deploy.json >/dev/null 2>&1; then
+              # Debug: show the structure
+              echo "Debug: Looking for contract addresses in receipts..."
+              jq '.receipts[] | select(.contractAddress != null) | {contractAddress, transactionHash}' votingstreakMultiplier_deploy.json 2>/dev/null || true
+              
+              # Extract all contract addresses from receipts
+              ADDRESSES=($(jq -r '.receipts[]?.contractAddress // empty' votingstreakMultiplier_deploy.json 2>/dev/null | grep -v '^$' | grep -v 'null' || true))
+              
+              # If we found addresses, use them
+              if [ ${#ADDRESSES[@]} -gt 0 ]; then
+                # Last address is usually the proxy, second-to-last is implementation
+                if [ ${#ADDRESSES[@]} -ge 2 ]; then
+                  IMPL_ADDRESS="${ADDRESSES[-2]}"
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                else
+                  # Only one address, it's probably not using proxy pattern
+                  PROXY_ADDRESS="${ADDRESSES[-1]}"
+                  IMPL_ADDRESS="${ADDRESSES[-1]}"
+                fi
+              else
+                # Fallback: try to get from returns array
+                echo "Debug: No addresses in receipts, checking returns..."
+                PROXY_ADDRESS=$(jq -r '.returns[0].deployed_addresses[0] // empty' votingstreakMultiplier_deploy.json 2>/dev/null || echo "")
+                IMPL_ADDRESS="$PROXY_ADDRESS"
+              fi
+              
+              if [ -n "$PROXY_ADDRESS" ] && [ "$PROXY_ADDRESS" != "null" ] && [ "$PROXY_ADDRESS" != "" ]; then
+                if [ -f deployment.json ]; then
+                  jq --arg proxy "$PROXY_ADDRESS" --arg impl "${IMPL_ADDRESS:-$PROXY_ADDRESS}" \
+                    '.contracts.VotingStreakMultiplier = $proxy | .implementations.VotingStreakMultiplier = $impl' \
+                    deployment.json > temp.json && mv temp.json deployment.json
+                fi
+                echo "✅ VotingStreakMultiplier deployed:"
+                echo "   Proxy: $PROXY_ADDRESS"
+                [ "$IMPL_ADDRESS" != "$PROXY_ADDRESS" ] && echo "   Implementation: $IMPL_ADDRESS"
+              else
+                echo "⚠️ VotingStreakMultiplier deployment completed but no contract address found"
+                echo "Debug output - Full JSON structure:"
+                jq '.' votingstreakMultiplier_deploy.json 2>/dev/null || true
+              fi
+            else
+              echo "❌ VotingStreakMultiplier deployment failed. Output:"
+              cat votingstreakMultiplier_deploy.json
+            fi
+          fi
+
+      - name: Verify contracts on block explorer
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          TESTNET_RPC_URL: ${{ secrets.TESTNET_RPC_URL }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: |
+          if [ -n "$TESTNET_RPC_URL" ] && [ -n "$ETHERSCAN_API_KEY" ] && [ -f deployment.json ]; then
+            echo "Starting contract verification..."
+            echo "Deployment data:"
+            cat deployment.json | jq '.'
+            
+            VERIFICATION_FAILED=false
+            
+            # Verify ButteredBread implementation
+            BUTTEREDBREAD_IMPL=$(jq -r '.implementations.ButteredBread // empty' deployment.json)
+            if [ -n "$BUTTEREDBREAD_IMPL" ] && [ "$BUTTEREDBREAD_IMPL" != "null" ] && [ "$BUTTEREDBREAD_IMPL" != "" ]; then
+              echo "Verifying ButteredBread implementation at $BUTTEREDBREAD_IMPL..."
+              forge verify-contract "$BUTTEREDBREAD_IMPL" src/ButteredBread.sol:ButteredBread \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            fi
+            
+            # Verify YieldDistributor implementation
+            YIELDDISTRIBUTOR_IMPL=$(jq -r '.implementations.YieldDistributor // empty' deployment.json)
+            if [ -n "$YIELDDISTRIBUTOR_IMPL" ] && [ "$YIELDDISTRIBUTOR_IMPL" != "null" ] && [ "$YIELDDISTRIBUTOR_IMPL" != "" ]; then
+              echo "Verifying YieldDistributor implementation at $YIELDDISTRIBUTOR_IMPL..."
+              forge verify-contract "$YIELDDISTRIBUTOR_IMPL" src/YieldDistributor.sol:YieldDistributor \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            fi
+            
+            # Verify NFTMultiplier implementation
+            NFTMULTIPLIER_IMPL=$(jq -r '.implementations.NFTMultiplier // empty' deployment.json)
+            if [ -n "$NFTMULTIPLIER_IMPL" ] && [ "$NFTMULTIPLIER_IMPL" != "null" ] && [ "$NFTMULTIPLIER_IMPL" != "" ]; then
+              echo "Verifying NFTMultiplier implementation at $NFTMULTIPLIER_IMPL..."
+              forge verify-contract "$NFTMULTIPLIER_IMPL" src/multipliers/NFTMultiplier.sol:NFTMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            fi
+            
+            # Verify VotingStreakMultiplier implementation
+            VOTINGSTREAKMULTIPLIER_IMPL=$(jq -r '.implementations.VotingStreakMultiplier // empty' deployment.json)
+            if [ -n "$VOTINGSTREAKMULTIPLIER_IMPL" ] && [ "$VOTINGSTREAKMULTIPLIER_IMPL" != "null" ] && [ "$VOTINGSTREAKMULTIPLIER_IMPL" != "" ]; then
+              echo "Verifying VotingStreakMultiplier implementation at $VOTINGSTREAKMULTIPLIER_IMPL..."
+              forge verify-contract "$VOTINGSTREAKMULTIPLIER_IMPL" src/multipliers/VotingStreakMultiplier.sol:VotingStreakMultiplier \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || VERIFICATION_FAILED=true
+            fi
+            
+            # Also verify proxies if they are different from implementations
+            BUTTEREDBREAD_PROXY=$(jq -r '.contracts.ButteredBread // empty' deployment.json)
+            if [ -n "$BUTTEREDBREAD_PROXY" ] && [ "$BUTTEREDBREAD_PROXY" != "$BUTTEREDBREAD_IMPL" ] && [ "$BUTTEREDBREAD_PROXY" != "null" ]; then
+              echo "Verifying ButteredBread proxy at $BUTTEREDBREAD_PROXY..."
+              forge verify-contract "$BUTTEREDBREAD_PROXY" \
+                @openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy \
+                --rpc-url "$TESTNET_RPC_URL" \
+                --etherscan-api-key "$ETHERSCAN_API_KEY" || true
+            fi
+            
+            # Update deployment.json with verification status
+            if [ "$VERIFICATION_FAILED" = "true" ]; then
+              jq '.verification_status = "partial_failure"' deployment.json > temp.json && mv temp.json deployment.json
+              echo "⚠️ Some contract verifications failed. Check logs above for details."
+            else
+              jq '.verification_status = "success"' deployment.json > temp.json && mv temp.json deployment.json
+              echo "✅ All contract implementations verified successfully!"
+            fi
+          else
+            echo "Skipping verification: Missing required environment variables or deployment data"
+            [ ! -f deployment.json ] && echo "  - deployment.json not found"
+            [ -z "$TESTNET_RPC_URL" ] && echo "  - TESTNET_RPC_URL not set"
+            [ -z "$ETHERSCAN_API_KEY" ] && echo "  - ETHERSCAN_API_KEY not set"
+          fi
+
+      - name: Upload deployment artifacts
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifacts
+          path: |
+            deployment.json
+            *_deploy.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Display deployment summary
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if [ -f deployment.json ]; then
+            echo "📋 Deployment Summary"
+            echo "===================="
+            cat deployment.json | jq '.'
+            echo ""
+            echo "🔗 Contract Addresses (Proxies):"
+            jq -r '.contracts | to_entries[] | "- \(.key): \(.value)"' deployment.json
+            echo ""
+            echo "🔧 Implementation Addresses:"
+            jq -r '.implementations | to_entries[] | "- \(.key): \(.value)"' deployment.json
+          else
+            echo "ℹ️ No deployment was performed (missing required secrets or fork PR)"
+          fi
