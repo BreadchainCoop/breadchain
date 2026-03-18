@@ -29,6 +29,8 @@ interface IYieldDistributor {
     error YieldNotResolved();
     /// @notice The error emitted if a user with zero points attempts to cast votes
     error ZeroVotePoints();
+    /// @notice The error emitted when a caller is not the GasKiller manager or owner
+    error NotGasKillerManager();
 
     /// @notice The event emitted when an account casts a vote
     event BreadHolderVoted(address indexed account, uint256[] points, address[] projects);

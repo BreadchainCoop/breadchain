@@ -77,6 +77,14 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     mapping(uint256 => address) public voterAtIndex;
     /// @notice Mapping from voter address to the cycle they last voted in
     mapping(address => uint256) public voterVotedCycle;
+    /// @notice The address authorized to manage GasKiller settings (AVS, BLS, block stale measure)
+    address public gasKillerManager;
+
+    /// @notice Restricts access to the GasKiller manager or the owner
+    modifier onlyGasKillerManager() {
+        if (msg.sender != gasKillerManager && msg.sender != owner()) revert NotGasKillerManager();
+        _;
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -607,27 +615,35 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
-     * @notice Allows the owner to set the AVS address
+     * @notice Set the address authorized to manage GasKiller settings
+     * @param _gasKillerManager The new GasKiller manager address
+     */
+    function setGasKillerManager(address _gasKillerManager) public onlyOwner trackState {
+        gasKillerManager = _gasKillerManager;
+    }
+
+    /**
+     * @notice Allows the GasKiller manager or owner to set the AVS address
      * @param newAvsAddress The new AVS address
      * @dev Also updates the namespace for the contract
      */
-    function setAvsAddress(address newAvsAddress) external onlyOwner trackState {
+    function setAvsAddress(address newAvsAddress) external onlyGasKillerManager trackState {
         _setAvsAddress(newAvsAddress);
     }
 
     /**
-     * @notice Allows the owner to set the BLS signature checker address
+     * @notice Allows the GasKiller manager or owner to set the BLS signature checker address
      * @param newBlsSignatureChecker The new BLS signature checker address
      */
-    function setBlsSignatureChecker(address newBlsSignatureChecker) external onlyOwner trackState {
+    function setBlsSignatureChecker(address newBlsSignatureChecker) external onlyGasKillerManager trackState {
         _setBlsSignatureChecker(newBlsSignatureChecker);
     }
 
     /**
-     * @notice Allows the owner to set the block stale measure
+     * @notice Allows the GasKiller manager or owner to set the block stale measure
      * @param _blockStaleMeasure The new block stale measure
      */
-    function setBlockStaleMeasure(uint256 _blockStaleMeasure) external onlyOwner trackState {
+    function setBlockStaleMeasure(uint256 _blockStaleMeasure) external onlyGasKillerManager trackState {
         _setBlockStaleMeasure(_blockStaleMeasure);
     }
 }
