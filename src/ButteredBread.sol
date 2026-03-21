@@ -4,6 +4,10 @@ pragma solidity ^0.8.25;
 import {
     ERC20VotesUpgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {
+    VotesExtendedUpgradeable,
+    VotesUpgradeable
+} from "@openzeppelin/contracts-upgradeable/governance/utils/VotesExtendedUpgradeable.sol";
 import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,7 +24,13 @@ import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
  * @custom:coauthor @daopunk
  * @custom:coauthor @bagelface
  */
-contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpgradeable, ReentrancyGuard {
+contract ButteredBread is
+    IButteredBread,
+    ERC20VotesUpgradeable,
+    VotesExtendedUpgradeable,
+    Ownable2StepUpgradeable,
+    ReentrancyGuard
+{
     /// @notice Value used for calculating the precision of scaling factors
     uint256 public constant FIXED_POINT_PERCENT = 100;
     /// @notice `IERC20Votes` contract used for powering `ButteredBread` voting
@@ -133,6 +143,17 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         revert NonDelegatable();
     }
 
+    /**
+     * @notice Initialize VotesExtended checkpoints for delegation and balance history
+     * @dev Must be called once after upgrading from a version without VotesExtended.
+     *      Uses ERC-7201 namespaced storage, so no storage collision risk.
+     * @custom:oz-upgrades-validate-as-initializer
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
+     */
+    function initializeVotesExtended() public reinitializer(2) {
+        __VotesExtended_init();
+    }
+
     /// @notice Get the LP data (balance and scaling factor) of a specific LP for a given account
     /// @param _holder The address of the account to get the data for
     /// @param _lp The address of the LP to get the data for
@@ -183,6 +204,28 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         for (uint256 i = 0; i < _holders.length; i++) {
             _syncVotingWeight(_holders[i], _lp);
         }
+    }
+
+    /// @inheritdoc VotesUpgradeable
+    /// @dev Resolves diamond inheritance: VotesUpgradeable ← VotesExtendedUpgradeable
+    ///      VotesExtended._delegate records delegation checkpoints before calling super.
+    function _delegate(address account, address delegatee)
+        internal
+        virtual
+        override(VotesUpgradeable, VotesExtendedUpgradeable)
+    {
+        super._delegate(account, delegatee);
+    }
+
+    /// @inheritdoc VotesUpgradeable
+    /// @dev Resolves diamond inheritance: VotesUpgradeable ← VotesExtendedUpgradeable
+    ///      VotesExtended._transferVotingUnits records balance checkpoints after calling super.
+    function _transferVotingUnits(address from, address to, uint256 amount)
+        internal
+        virtual
+        override(VotesUpgradeable, VotesExtendedUpgradeable)
+    {
+        super._transferVotingUnits(from, to, amount);
     }
 
     /// @notice Sync this delegation with delegate selection on $BREAD
