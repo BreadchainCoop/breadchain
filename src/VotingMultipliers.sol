@@ -116,11 +116,15 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
 
         uint256 _totalMultiplier = MultiplierConstants.BASE_MULTIPLIER;
 
+        bool[] memory _seen = new bool[]($.allowlistedMultipliers.length);
+
         for (uint256 i = 0; i < _multiplierIndexes.length; i++) {
             uint256 index = _multiplierIndexes[i];
             if (index >= $.allowlistedMultipliers.length) {
                 revert InvalidMultiplierIndex();
             }
+            if (_seen[index]) revert DuplicateMultiplierIndex();
+            _seen[index] = true;
 
             IMultiplier multiplier = $.allowlistedMultipliers[index];
             multiplier.updateMultiplyingFactor(_user);

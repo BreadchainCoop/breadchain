@@ -1199,6 +1199,29 @@ contract VotingMultipliersTest is YieldDistributorTest {
         assertEq(totalAfterRevote, voter1Power + voter2Power, "Total should remain sum of both voters after revote");
     }
 
+    function test_castVoteWithMultipliers_duplicateIndex_reverts() public {
+        // Add a mock multiplier
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+
+        // Set up a voter
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        // Pass duplicate index [0, 0]
+        uint256[] memory multiplierIndices = new uint256[](2);
+        multiplierIndices[0] = 0;
+        multiplierIndices[1] = 0;
+
+        vm.prank(voter);
+        vm.expectRevert(IVotingMultipliers.DuplicateMultiplierIndex.selector);
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+    }
+
     function test_stateTransitionCount_IncrementsOnStateMutatingFunctions() public {
         // Get initial state transition count
         uint256 initialCount = yieldDistributor.stateTransitionCount();
