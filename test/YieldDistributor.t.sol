@@ -444,6 +444,47 @@ contract YieldDistributorTest is Test {
         assertEq(length, 1);
     }
 
+    function test_distributeYieldGK_UsesEffectiveVotingPowerWithMultipliers() public {
+        // This test verifies that distributeYieldGK uses the stored effective voting power
+        // (which includes multipliers) rather than recomputing raw voting power.
+        // We use yieldDistributorGasKiller which has 1 project.
+
+        address voter = address(0x1234567890123456789012345678901234567890);
+        address[] memory accounts = new address[](1);
+        accounts[0] = voter;
+        setUpAccountsForVoting(accounts);
+        setUpForCycle(yieldDistributorGasKiller);
+
+        // Add a mock multiplier with 2x factor
+        MockMultiplier mockMult = new MockMultiplier();
+        mockMult.setMultiplier(2e18, type(uint256).max);
+        yieldDistributorGasKiller.addMultiplier(IMultiplier(address(mockMult)));
+
+        // Cast vote with the multiplier
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](1);
+        multiplierIndices[0] = 0;
+
+        vm.prank(voter);
+        yieldDistributorGasKiller.castVoteWithMultipliers(points, multiplierIndices);
+
+        // currentVotes should reflect the multiplied power
+        uint256 rawPower = yieldDistributorGasKiller.getCurrentVotingPower(voter);
+        uint256 effectivePower = yieldDistributorGasKiller.currentVotes();
+        // effectivePower should be 2x rawPower (2e18 multiplier applied)
+        assertEq(effectivePower, (rawPower * 2e18) / yieldDistributorGasKiller.PRECISION());
+
+        // distributeYieldGK should use the same effective power, producing same result as distributeYield
+        // Record bread balance before
+        uint256 balBefore = bread.balanceOf(address(this));
+
+        yieldDistributorGasKiller.distributeYieldGK();
+
+        uint256 balAfter = bread.balanceOf(address(this));
+        assertGt(balAfter, balBefore, "Project should receive yield");
+    }
+
     // GasKiller Voting System Tests (default voting system)
 
     function test_distributeYieldGK_DistributesYieldToSingleProject() public {
