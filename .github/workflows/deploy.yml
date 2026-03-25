@@ -1,0 +1,126 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Target network for deployment"
+        required: true
+        type: choice
+        options:
+          - sepolia
+          - gnosis
+        default: sepolia
+      dry_run:
+        description: "Dry run (build + test only, skip deployment)"
+        required: true
+        type: boolean
+        default: true
+
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    name: Build, Test & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+
+      # --------------------------------------------------------------------------
+      # Determine network from tag (vX.Y.Z-<network>) or manual input.
+      # Tag convention: v1.0.0-sepolia  or  v1.0.0-gnosis
+      # Falls back to "sepolia" if no suffix is present.
+      # --------------------------------------------------------------------------
+      - name: Resolve deployment network
+        id: resolve-network
+        if: >
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false')
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            # Extract suffix after last hyphen, e.g. "v1.0.0-gnosis" → "gnosis"
+            SUFFIX="${TAG##*-}"
+            if [ "$SUFFIX" = "gnosis" ] || [ "$SUFFIX" = "sepolia" ]; then
+              NETWORK="$SUFFIX"
+            else
+              # Default to sepolia when tag has no recognised network suffix
+              NETWORK="sepolia"
+            fi
+          else
+            NETWORK="${{ github.event.inputs.network }}"
+          fi
+          echo "network=$NETWORK" >> "$GITHUB_OUTPUT"
+          echo "Resolved deployment network: $NETWORK"
+
+      # --------------------------------------------------------------------------
+      # Deployment — only runs when:
+      #   • tag push  (dry_run input is absent / irrelevant)
+      #   • manual dispatch with dry_run == false
+      # --------------------------------------------------------------------------
+      - name: Deploy YieldDistributor
+        id: deploy
+        if: >
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false')
+        run: |
+          NETWORK="${{ steps.resolve-network.outputs.network }}"
+
+          if [ "$NETWORK" = "gnosis" ]; then
+            RPC_URL="${{ secrets.GNOSIS_RPC_URL }}"
+          else
+            RPC_URL="${{ secrets.SEPOLIA_RPC_URL }}"
+          fi
+
+          echo "Deploying to network: $NETWORK"
+
+          forge script script/deploy/DeployYieldDistributor.s.sol:DeployYieldDistributor \
+            --rpc-url "$RPC_URL" \
+            --private-key "${{ secrets.DEPLOYER_PRIVATE_KEY }}" \
+            --broadcast \
+            --verify \
+            --etherscan-api-key "${{ secrets.ETHERSCAN_API_KEY }}" \
+            -vvvv
+        env:
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+
+      # --------------------------------------------------------------------------
+      # GitHub Release — created automatically on every v* tag push.
+      # --------------------------------------------------------------------------
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
