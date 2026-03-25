@@ -1,0 +1,120 @@
+# ============================================================================
+# Upgrade Safety CI — OpenZeppelin Storage Layout Validation
+# ============================================================================
+#
+# PURPOSE
+# -------
+# This workflow validates that every pull request targeting an upgradeable
+# contract (YieldDistributor, ButteredBread) does NOT introduce any breaking
+# storage layout changes that would corrupt on-chain state after an upgrade.
+#
+# HOW IT WORKS
+# ------------
+# 1. Forge is used to compile all contracts and produce build-info JSON files
+#    under out/build-info/ (enabled via `build_info = true` in foundry.toml).
+# 2. The @openzeppelin/upgrades-core CLI reads those build-info files and
+#    checks each named contract against the OpenZeppelin upgrade-safety rules:
+#      • No storage slot collisions
+#      • No storage variable deletions
+#      • No type incompatibilities (e.g. uint256 → address)
+#      • UUPS / Initializable hygiene (constructors call _disableInitializers,
+#        all initializer functions properly declared, etc.)
+# 3. If any violation is found the step exits non-zero and the PR is blocked.
+#
+# FIXING A FAILURE
+# ----------------
+# See UPGRADING.md in the project root for full guidance.
+# Short version: if you are intentionally making an unsafe change and have
+# verified it is safe, annotate the affected variable with the appropriate
+# suppression comment — e.g.:
+#
+#   /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+#   uint256 private immutable MY_VAR;
+#
+# ============================================================================
+
+name: Upgrade Safety
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  upgrade-safety:
+    name: OpenZeppelin Upgrade Safety Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------------------
+      # 1. Checkout — include all submodules (lib/openzeppelin-contracts, etc.)
+      # ----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ----------------------------------------------------------------------
+      # 2. Install Foundry (forge build produces the build-info artefacts)
+      # ----------------------------------------------------------------------
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      # ----------------------------------------------------------------------
+      # 3. Install Node.js 20 — required by @openzeppelin/upgrades-core CLI
+      # ----------------------------------------------------------------------
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # ----------------------------------------------------------------------
+      # 4. Install the OpenZeppelin Upgrades Core CLI globally
+      #    This provides the `validate` sub-command used in the steps below.
+      # ----------------------------------------------------------------------
+      - name: Install @openzeppelin/upgrades-core
+        run: npm install --global @openzeppelin/upgrades-core
+
+      # ----------------------------------------------------------------------
+      # 5. Build — generates out/build-info/*.json with full storage layouts.
+      #    foundry.toml already sets:  build_info = true
+      #                                extra_output = ["storageLayout"]
+      # ----------------------------------------------------------------------
+      - name: Build contracts
+        run: |
+          forge --version
+          forge build
+        id: build
+
+      # ----------------------------------------------------------------------
+      # 6. Validate YieldDistributor upgrade safety
+      #
+      #    YieldDistributor is a UUPS-style upgradeable contract that:
+      #      • Inherits Ownable2StepUpgradeable (OZ upgradeable base)
+      #      • Uses _disableInitializers() in its constructor
+      #      • Uses multiple reinitializer() functions for phased upgrades
+      #      • Contains an @custom:oz-renamed-from annotation for a deprecated
+      #        storage variable (_deprecated_minRequiredVotingPower)
+      #      • Uses ERC-7201 namespaced storage in VotingMultipliers base
+      # ----------------------------------------------------------------------
+      - name: Validate YieldDistributor upgrade safety
+        run: |
+          npx @openzeppelin/upgrades-core validate out/build-info \
+            --contract YieldDistributor
+        id: validate-yield-distributor
+
+      # ----------------------------------------------------------------------
+      # 7. Validate ButteredBread upgrade safety
+      #
+      #    ButteredBread is a UUPS-style upgradeable contract that:
+      #      • Inherits ERC20VotesUpgradeable, VotesExtendedUpgradeable,
+      #        Ownable2StepUpgradeable (all OZ upgradeable bases)
+      #      • Uses _disableInitializers() in its constructor
+      #      • Has an initialize() function guarded by the initializer modifier
+      # ----------------------------------------------------------------------
+      - name: Validate ButteredBread upgrade safety
+        run: |
+          npx @openzeppelin/upgrades-core validate out/build-info \
+            --contract ButteredBread
+        id: validate-buttered-bread
