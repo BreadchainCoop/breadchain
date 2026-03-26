@@ -16,6 +16,7 @@ import {ICurveStableSwap} from "src/interfaces/ICurveStableSwap.sol";
 import {IERC20Votes} from "src/interfaces/IERC20Votes.sol";
 import {YieldDistributorTestWrapper} from "src/test/YieldDistributorTestWrapper.sol";
 import {YieldDistributor, IYieldDistributor} from "src/YieldDistributor.sol";
+import {FeeOnTransferERC20} from "src/test/FeeOnTransferERC20.sol";
 
 uint256 constant XDAI_FACTOR = 700; // 700% scaling factor; 7X
 uint256 constant TOKEN_AMOUNT = 1000 ether;
@@ -577,5 +578,153 @@ contract ButteredBreadTest_Integration is ButteredBreadTest {
         uint256 bbBalance = bb.balanceOf(ALICE);
         uint256 bBalance = IERC20(GNOSIS_BREAD).balanceOf(ALICE);
         assertEq(yieldDistributor.getCurrentVotingPower(ALICE), bbBalance + bBalance);
+    }
+}
+
+/// @notice Tests for issue #187: fee-on-transfer token accounting
+contract ButteredBreadTest_FeeOnTransfer is ButteredBreadTest {
+    FeeOnTransferERC20 public fotToken;
+    uint256 public constant FEE_PERCENT = 5;
+    uint256 public constant FOT_FACTOR = 200; // 2X scaling
+
+    function setUp() public virtual override {
+        super.setUp();
+        fotToken = new FeeOnTransferERC20(FEE_PERCENT);
+
+        // Allowlist the fee-on-transfer token
+        address[] memory emptyList = new address[](0);
+        bb.modifyScalingFactor(address(fotToken), FOT_FACTOR, emptyList);
+        bb.modifyAllowList(address(fotToken), true);
+    }
+
+    /// @dev Helper to mint FOT tokens and approve ButteredBread
+    function _setupFotDepositor(address _account, uint256 _amount) internal {
+        fotToken.mint(_account, _amount);
+        vm.prank(_account);
+        fotToken.approve(address(bb), _amount);
+    }
+
+    /// @notice Deposit should record actual received amount, not requested amount
+    function testDepositAccountsForTransferFee() public {
+        uint256 depositAmount = 1000 ether;
+        uint256 expectedReceived = depositAmount - (depositAmount * FEE_PERCENT / 100); // 950 ether
+
+        _setupFotDepositor(ALICE, depositAmount);
+
+        vm.prank(ALICE);
+        bb.deposit(address(fotToken), depositAmount);
+
+        // Internal balance should reflect actual tokens received, not requested amount
+        uint256 recordedBalance = bb.accountToLPBalance(ALICE, address(fotToken));
+        assertEq(recordedBalance, expectedReceived, "Recorded balance should equal actual received amount");
+
+        // Contract's token balance should match recorded balance
+        uint256 contractBalance = fotToken.balanceOf(address(bb));
+        assertEq(contractBalance, expectedReceived, "Contract token balance should match recorded balance");
+
+        // ButteredBread minted should be based on actual received amount
+        uint256 expectedBB = expectedReceived * FOT_FACTOR / fixedPointPercent;
+        assertEq(bb.balanceOf(ALICE), expectedBB, "BB minted should be based on actual received amount");
+    }
+
+    /// @notice Multiple depositors should not allow early withdrawers to drain the contract
+    function testFeeOnTransferNoDrain() public {
+        uint256 aliceDeposit = 1000 ether;
+        uint256 bobbyDeposit = 1000 ether;
+        uint256 aliceReceived = aliceDeposit - (aliceDeposit * FEE_PERCENT / 100); // 950
+        uint256 bobbyReceived = bobbyDeposit - (bobbyDeposit * FEE_PERCENT / 100); // 950
+
+        _setupFotDepositor(ALICE, aliceDeposit);
+        _setupFotDepositor(BOBBY, bobbyDeposit);
+
+        vm.prank(ALICE);
+        bb.deposit(address(fotToken), aliceDeposit);
+
+        vm.prank(BOBBY);
+        bb.deposit(address(fotToken), bobbyDeposit);
+
+        // Contract should hold exactly what was actually received
+        assertEq(
+            fotToken.balanceOf(address(bb)),
+            aliceReceived + bobbyReceived,
+            "Contract should hold sum of actual received amounts"
+        );
+
+        // Alice withdraws her full recorded balance
+        uint256 aliceRecorded = bb.accountToLPBalance(ALICE, address(fotToken));
+        vm.prank(ALICE);
+        bb.withdraw(address(fotToken), aliceRecorded);
+
+        // Contract should still hold enough for Bobby's withdrawal
+        uint256 contractRemaining = fotToken.balanceOf(address(bb));
+        uint256 bobbyRecorded = bb.accountToLPBalance(BOBBY, address(fotToken));
+        assertGe(
+            contractRemaining, bobbyRecorded, "Contract must hold enough tokens for remaining depositors to withdraw"
+        );
+
+        // Bobby should be able to withdraw without reverting
+        vm.prank(BOBBY);
+        bb.withdraw(address(fotToken), bobbyRecorded);
+
+        assertEq(bb.accountToLPBalance(BOBBY, address(fotToken)), 0, "Bobby should have zero balance after withdrawal");
+    }
+
+    /// @notice Voting power (BB balance) should not be inflated beyond actual deposits
+    function testFeeOnTransferVotingPowerNotInflated() public {
+        uint256 depositAmount = 1000 ether;
+        uint256 expectedReceived = depositAmount - (depositAmount * FEE_PERCENT / 100);
+
+        _setupFotDepositor(ALICE, depositAmount);
+
+        vm.prank(ALICE);
+        bb.deposit(address(fotToken), depositAmount);
+
+        // BB balance should be based on actual received, not the inflated requested amount
+        uint256 inflatedBB = depositAmount * FOT_FACTOR / fixedPointPercent;
+        uint256 correctBB = expectedReceived * FOT_FACTOR / fixedPointPercent;
+
+        assertEq(bb.balanceOf(ALICE), correctBB, "BB should reflect actual deposit");
+        assertLt(bb.balanceOf(ALICE), inflatedBB, "BB must be less than inflated amount");
+    }
+
+    /// @notice ButterAdded event should emit the actual received amount
+    function testFeeOnTransferEventEmitsActualAmount() public {
+        uint256 depositAmount = 1000 ether;
+        uint256 expectedReceived = depositAmount - (depositAmount * FEE_PERCENT / 100);
+
+        _setupFotDepositor(ALICE, depositAmount);
+
+        vm.expectEmit(true, true, false, true);
+        emit IButteredBread.ButterAdded(ALICE, address(fotToken), expectedReceived);
+
+        vm.prank(ALICE);
+        bb.deposit(address(fotToken), depositAmount);
+    }
+
+    /// @notice Fuzz test: deposit accounting holds for any fee percentage and amount
+    function testFeeOnTransferDepositFuzz(uint256 _depositAmount, uint256 _feePercent) public {
+        _feePercent = bound(_feePercent, 1, 50); // 1% to 50% fee
+        _depositAmount = bound(_depositAmount, 1 ether, 100_000 ether);
+
+        FeeOnTransferERC20 fuzzToken = new FeeOnTransferERC20(_feePercent);
+
+        address[] memory emptyList = new address[](0);
+        bb.modifyScalingFactor(address(fuzzToken), FOT_FACTOR, emptyList);
+        bb.modifyAllowList(address(fuzzToken), true);
+
+        fuzzToken.mint(ALICE, _depositAmount);
+        vm.prank(ALICE);
+        fuzzToken.approve(address(bb), _depositAmount);
+
+        vm.prank(ALICE);
+        bb.deposit(address(fuzzToken), _depositAmount);
+
+        uint256 expectedReceived = _depositAmount - (_depositAmount * _feePercent / 100);
+        uint256 contractBalance = fuzzToken.balanceOf(address(bb));
+        uint256 recordedBalance = bb.accountToLPBalance(ALICE, address(fuzzToken));
+
+        assertEq(recordedBalance, expectedReceived, "Recorded balance must match actual received");
+        assertEq(contractBalance, expectedReceived, "Contract balance must match actual received");
+        assertEq(recordedBalance, contractBalance, "Recorded and contract balances must be in sync");
     }
 }
