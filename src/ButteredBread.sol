@@ -141,24 +141,24 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         return _accountToLPData[_holder][_lp];
     }
 
-    /// @notice Deposit LP tokens and mint ButteredBread with corresponding LP scaling factor
+    /// @notice Deposit LP tokens and mint ButteredBread with corresponding LP scaling factor.
+    ///         For fee-on-transfer tokens, mints based on actual received amount, not requested amount.
     function _deposit(address _account, address _lp, uint256 _amount) internal {
         uint256 balanceBefore = IERC20(_lp).balanceOf(address(this));
         bool success = IERC20(_lp).transferFrom(_account, address(this), _amount);
         if (!success) revert TransferFailed();
 
-        uint256 actualReceived = IERC20(_lp).balanceOf(address(this));
-        _amount = actualReceived - balanceBefore;
+        uint256 actualReceivedAmount = IERC20(_lp).balanceOf(address(this)) - balanceBefore;
 
         _syncDelegation(_account);
 
         /// @dev ensure proper accounting in case of admin error in `modifyScalingFactor` where not all holders are updated
         _syncVotingWeight(_account, _lp);
-        _accountToLPData[_account][_lp].balance += _amount;
+        _accountToLPData[_account][_lp].balance += actualReceivedAmount;
 
-        _mint(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
+        _mint(_account, actualReceivedAmount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
 
-        emit ButterAdded(_account, _lp, _amount);
+        emit ButterAdded(_account, _lp, actualReceivedAmount);
     }
 
     /// @notice Withdraw LP tokens and burn ButteredBread with corresponding LP scaling factor

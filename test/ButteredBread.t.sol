@@ -628,7 +628,7 @@ contract ButteredBreadTest_FeeOnTransfer is ButteredBreadTest {
     }
 
     /// @notice Multiple depositors should not allow early withdrawers to drain the contract
-    function testFeeOnTransferNoDrain() public {
+    function testFeeOnTransferPreventsImbalancedWithdrawals() public {
         uint256 aliceDeposit = 1000 ether;
         uint256 bobbyDeposit = 1000 ether;
         uint256 aliceReceived = aliceDeposit - (aliceDeposit * FEE_PERCENT / 100); // 950
