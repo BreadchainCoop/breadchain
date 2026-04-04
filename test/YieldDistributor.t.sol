@@ -673,6 +673,7 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
     function setUpForCycle(YieldDistributorTestWrapper _yieldDistributor, uint256 iterator) public {
         vm.roll(START + (_cycleLength * (iterator)));
         _yieldDistributor.setLastClaimedBlockNumber(vm.getBlockNumber());
+        _yieldDistributor.setVotingCycle(iterator + 1);
         address owner = bread.owner();
         vm.prank(owner);
         bread.setYieldClaimer(address(_yieldDistributor));
