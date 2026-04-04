@@ -29,4 +29,12 @@ contract YieldDistributorTestWrapper is YieldDistributor {
     function setLastClaimedBlockNumber(uint256 _lastClaimedBlockNumber) public onlyOwner {
         lastClaimedBlockNumber = _lastClaimedBlockNumber;
     }
+
+    /**
+     * @notice Set the voting cycle number (for testing cycle-dependent guards)
+     * @param _votingCycle New voting cycle number
+     */
+    function setVotingCycle(uint256 _votingCycle) public onlyOwner {
+        votingCycle = _votingCycle;
+    }
 }
