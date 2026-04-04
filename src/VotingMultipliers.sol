@@ -123,6 +123,14 @@ contract VotingMultipliers is Ownable2StepUpgradeable, IVotingMultipliers {
             }
 
             IMultiplier multiplier = $.allowlistedMultipliers[index];
+
+            /// @dev Prevent duplicate multiplier indexes from inflating voting power
+            for (uint256 j = 0; j < i; j++) {
+                if (_multiplierIndexes[j] == index) {
+                    revert DuplicateMultiplierIndex();
+                }
+            }
+
             multiplier.updateMultiplyingFactor(_user);
             if (block.number <= multiplier.validUntil(_user)) {
                 uint256 factor = multiplier.getMultiplyingFactor(_user);

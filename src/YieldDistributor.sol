@@ -78,6 +78,11 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice Mapping from voter address to the cycle they last voted in
     mapping(address => uint256) public voterVotedCycle;
 
+    /// @notice The multiplier-adjusted voting power for voters who used castVoteWithMultipliers.
+    /// @dev Stored to prevent distributeYieldGK from bypassing multipliers by recomputing
+    ///      from raw voting power. Zero means the voter cast a regular vote (no multipliers).
+    mapping(address => uint256) public voterEffectiveVotes;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -384,6 +389,10 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         uint256 _multiplier = calculateTotalMultipliers(msg.sender, _multiplierIndices);
         _currentVotingPower = _multiplier == 0 ? _currentVotingPower : (_currentVotingPower * _multiplier) / PRECISION;
 
+        /// @dev Store multiplier-adjusted effective voting power so _computeVotedDistribution uses it,
+        ///      preventing distributeYieldGK from bypassing multipliers via getCurrentVotingPower.
+        voterEffectiveVotes[msg.sender] = (_multiplier > PRECISION) ? _currentVotingPower : 0;
+
         _castVote(msg.sender, _points, _currentVotingPower);
     }
 
@@ -459,7 +468,12 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
         for (uint256 i; i < votersCount; ++i) {
             address _voter = voterAtIndex[i];
-            uint256 _voterPower = getCurrentVotingPower(_voter);
+            /// @dev Use multiplier-adjusted effective voting power if set (via castVoteWithMultipliers),
+            ///      otherwise fall back to raw voting power for regular castVote callers.
+            uint256 _voterPower = voterEffectiveVotes[_voter];
+            if (_voterPower == 0) {
+                _voterPower = getCurrentVotingPower(_voter);
+            }
             uint256[] memory _voterDistribution = _holderToDistribution[_voter];
             uint256 _vote;
             for (uint256 j; j < projects.length; ++j) {

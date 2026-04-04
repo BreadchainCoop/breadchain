@@ -29,8 +29,16 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Mapping of user addresses to their multiplier validity period
     mapping(address => uint256) public userToValidUntil;
 
+    /// @notice Mapping of user addresses to the cycle in which they last updated their multiplier.
+    /// @dev Enforces one multiplier update per voting cycle to prevent spamming the multiplier
+    ///      before voting to artificially inflate voting power.
+    mapping(address => uint256) public lastUpdatedCycle;
+
     /// @notice Error emitted when an invalid multiplier increment is provided
     error InvalidMultiplierIncrement();
+
+    /// @notice Error emitted when updateMultiplyingFactor is called more than once in the same cycle
+    error MultiplierAlreadyUpdatedThisCycle();
 
     /// @notice Emitted when a user's multiplier is updated
     /// @param user The address of the user
@@ -84,7 +92,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Updates the multiplying factor for a user
     /// @param _user The address of the user to update the multiplying factor for
     function updateMultiplyingFactor(address _user) external override {
-        // Check if user has already voted in current cycle
+        // Derive the current cycle from lastClaimedBlock and cycleLength
         uint256 lastVotedBlock = yieldDistributor.accountLastVoted(_user);
         uint256 lastClaimedBlock = yieldDistributor.lastClaimedBlockNumber();
         uint256 cycleLength = yieldDistributor.cycleLength();
@@ -92,6 +100,12 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
         // If user has already voted in current cycle, do nothing
         if (lastVotedBlock > lastClaimedBlock) {
             return;
+        }
+
+        // Enforce one multiplier update per voting cycle to prevent spam-ratcheting the multiplier
+        uint256 currentCycle = lastClaimedBlock / cycleLength;
+        if (lastUpdatedCycle[_user] == currentCycle) {
+            revert MultiplierAlreadyUpdatedThisCycle();
         }
 
         uint256 currentMultiplier = getMultiplyingFactor(_user);
@@ -104,6 +118,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
 
         userToMultiplier[_user] = newMultiplier;
         userToValidUntil[_user] = lastClaimedBlock + (2 * cycleLength);
+        lastUpdatedCycle[_user] = currentCycle;
         emit MultiplierUpdated(_user, newMultiplier, userToValidUntil[_user]);
     }
 
