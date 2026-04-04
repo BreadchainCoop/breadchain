@@ -813,6 +813,26 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
     }
 
+    function test_updateMultiplyingFactor_oncePerCycle() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 baseMultiplier = 1e18;
+        setUpForCycle(yieldDistributor, 0);
+
+        // Initial multiplier should be base
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
+
+        // First call to updateMultiplyingFactor should increment
+        multiplier.updateMultiplyingFactor(testAccount);
+        uint256 afterFirst = multiplier.userToMultiplier(testAccount);
+        assertEq(afterFirst, baseMultiplier + multiplier.multiplierIncrement());
+
+        // Second call in the same cycle should be a no-op
+        multiplier.updateMultiplyingFactor(testAccount);
+        uint256 afterSecond = multiplier.userToMultiplier(testAccount);
+        assertEq(afterSecond, afterFirst, "Multiplier should not change on second call in same cycle");
+    }
+
     function test_set_invalid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 

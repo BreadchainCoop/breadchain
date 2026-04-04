@@ -29,6 +29,10 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
     /// @notice Mapping of user addresses to their multiplier validity period
     mapping(address => uint256) public userToValidUntil;
 
+    /// @notice Mapping of user addresses to the lastClaimedBlockNumber when their streak was last incremented
+    /// @dev Prevents streak from being incremented more than once per cycle (issue #185)
+    mapping(address => uint256) public userLastUpdatedCycle;
+
     /// @notice Error emitted when an invalid multiplier increment is provided
     error InvalidMultiplierIncrement();
 
@@ -94,6 +98,14 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
             return;
         }
 
+        // Prevent streak from being incremented more than once per cycle (issue #185)
+        // Without this check, a user could call updateMultiplyingFactor (or castVoteWithMultipliers)
+        // multiple times before their first vote to max the streak in a single cycle.
+        // Use lastClaimedBlock as the cycle identifier since it changes each distribution.
+        if (userLastUpdatedCycle[_user] == lastClaimedBlock) {
+            return;
+        }
+
         uint256 currentMultiplier = getMultiplyingFactor(_user);
         uint256 newMultiplier = (currentMultiplier == MultiplierConstants.BASE_MULTIPLIER)
             ? MultiplierConstants.BASE_MULTIPLIER + multiplierIncrement
@@ -102,6 +114,7 @@ contract VotingStreakMultiplier is Initializable, OwnableUpgradeable, IMultiplie
                 (MultiplierConstants.BASE_MULTIPLIER + (maxMultiplierIncrements * multiplierIncrement))
             );
 
+        userLastUpdatedCycle[_user] = lastClaimedBlock;
         userToMultiplier[_user] = newMultiplier;
         userToValidUntil[_user] = lastClaimedBlock + (2 * cycleLength);
         emit MultiplierUpdated(_user, newMultiplier, userToValidUntil[_user]);
