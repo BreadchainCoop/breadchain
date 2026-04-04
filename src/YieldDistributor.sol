@@ -599,11 +599,41 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
+     * @notice Set the BREAD token contract address
+     * @dev Allows updating the BREAD token reference without redeploying the contract.
+     *      Should only be used during token migrations or if the BREAD contract is upgraded
+     *      to a new address. Reverts if the new address is zero.
+     * @param _bread Address of the new $BREAD token contract
+     */
+    function setBread(address _bread) public onlyOwner trackState {
+        if (_bread == address(0)) revert MustBeGreaterThanZero();
+        BREAD = IBread(_bread);
+    }
+
+    /**
      * @notice Set the ButteredBread token contract
      * @param _butteredBread Address of the ButteredBread token contract
      */
     function setButteredBread(address _butteredBread) public onlyOwner trackState {
         BUTTERED_BREAD = IERC20Votes(_butteredBread);
+    }
+
+    /**
+     * @notice Returns the full list of eligible member projects
+     * @dev Convenience view function to retrieve the entire projects array in a single call,
+     *      avoiding the need for callers to iterate via the indexed `projects(uint256)` getter.
+     * @return address[] Array of all currently eligible project addresses
+     */
+    function getProjects() external view returns (address[] memory) {
+        return projects;
+    }
+
+    /**
+     * @notice Returns the number of currently eligible member projects
+     * @return uint256 The length of the projects array
+     */
+    function getProjectCount() external view returns (uint256) {
+        return projects.length;
     }
 
     /**
