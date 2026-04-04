@@ -77,6 +77,8 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     mapping(uint256 => address) public voterAtIndex;
     /// @notice Mapping from voter address to the cycle they last voted in
     mapping(address => uint256) public voterVotedCycle;
+    /// @notice Mapping from voter address to their effective voting power (with multipliers) for the current cycle
+    mapping(address => uint256) internal _voterEffectivePower;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -441,6 +443,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
         }
 
         accountLastVoted[_account] = block.number;
+        _voterEffectivePower[_account] = _votingPower;
 
         emit BreadHolderVoted(_account, _points, projects);
     }
@@ -459,7 +462,7 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
         for (uint256 i; i < votersCount; ++i) {
             address _voter = voterAtIndex[i];
-            uint256 _voterPower = getCurrentVotingPower(_voter);
+            uint256 _voterPower = _voterEffectivePower[_voter];
             uint256[] memory _voterDistribution = _holderToDistribution[_voter];
             uint256 _vote;
             for (uint256 j; j < projects.length; ++j) {
