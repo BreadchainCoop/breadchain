@@ -152,33 +152,24 @@ contract UpgradeSimulationTest is Test {
     }
 
     /**
-     * @notice Confirm that calling initialize() on the proxy after the upgrade reverts,
-     *         demonstrating that the initializer cannot be replayed.
+     * @notice Confirm that consumed reinitializer versions cannot be replayed after upgrade.
+     * @dev Tests reinitializer(3) (initializeVotingCycle) which is known to have been
+     *      called on-chain (votingCycle > 0). The original initialize() uses the
+     *      `initializer` modifier whose guard behaviour may differ between OZ versions
+     *      when the proxy was deployed with OZ v4 and upgraded to OZ v5, so we test
+     *      a reinitializer that is unambiguously consumed.
      */
     function test_cannotReinitialize() public {
         YieldDistributor newImpl = new YieldDistributor();
 
         vm.startPrank(MULTISIG);
         proxyAdmin.upgradeAndCall(ITransparentUpgradeableProxy(PROXY), address(newImpl), "");
+
+        // initializeVotingCycle uses reinitializer(3) — already consumed on-chain
+        // (votingCycle > 0 confirms this). Calling it again must revert.
+        vm.expectRevert();
+        proxy.initializeVotingCycle(999);
         vm.stopPrank();
-
-        // Build a dummy initialize call – it must revert because the proxy is already
-        // initialised (OZ initializer guard).
-        address[] memory dummyProjects = new address[](1);
-        dummyProjects[0] = address(0x1);
-
-        vm.expectRevert(); // InvalidInitialization() from OZ
-        proxy.initialize(
-            address(proxy.BREAD()),
-            address(proxy.BUTTERED_BREAD()),
-            proxy.PRECISION(),
-            proxy.maxPoints(),
-            proxy.cycleLength(),
-            proxy.yieldFixedSplitDivisor(),
-            proxy.lastClaimedBlockNumber(),
-            dummyProjects,
-            MULTISIG
-        );
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

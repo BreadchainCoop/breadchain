@@ -102,7 +102,7 @@ jobs:
       - name: Validate YieldDistributor upgrade safety
         run: |
           npx @openzeppelin/upgrades-core validate out/build-info \
-            --contract YieldDistributor
+            --contract src/YieldDistributor.sol:YieldDistributor
         id: validate-yield-distributor
 
       # ----------------------------------------------------------------------
