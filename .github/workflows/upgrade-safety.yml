@@ -67,7 +67,7 @@ jobs:
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       # ----------------------------------------------------------------------
       # 4. Install the OpenZeppelin Upgrades Core CLI globally
@@ -84,6 +84,7 @@ jobs:
       - name: Build contracts
         run: |
           forge --version
+          forge clean
           forge build
         id: build
 
