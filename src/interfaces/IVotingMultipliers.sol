@@ -12,6 +12,8 @@ interface IVotingMultipliers {
     error MultiplierNotAllowlisted();
     /// @notice Thrown when an invalid multiplier index is provided
     error InvalidMultiplierIndex();
+    /// @notice Thrown when a duplicate multiplier index is provided
+    error DuplicateMultiplierIndex();
 
     /// @notice Emitted when a new multiplier is added to the allowlist
     /// @param multiplier The address of the added multiplier
