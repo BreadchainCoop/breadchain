@@ -78,12 +78,80 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     /// @notice Mapping from voter address to the cycle they last voted in
     mapping(address => uint256) public voterVotedCycle;
 
+    // -------------------------------------------------------------------------
+    // Legacy storage layout — frozen for deployed proxy compatibility
+    // -------------------------------------------------------------------------
+    // IMPORTANT: This contract is deployed on Gnosis mainnet behind a UUPS proxy.
+    // The variables above occupy slots 0–22 and MUST NOT be reordered, removed,
+    // or have new variables inserted among them. The __gap below reserves slots
+    // 23–49 so that any parent-contract storage growth does not collide with
+    // future additions made via the ERC-7201 namespaced struct below.
+    //
+    // @custom:storage-location erc7201:breadchain.YieldDistributor.legacy
+    // (Documented for tooling; the flat variables above ARE the legacy layout.)
+    // -------------------------------------------------------------------------
+
+    /// @dev Reserves storage slots 23–49 to protect against inheritance-chain
+    ///      collisions. Size = 50 − 23 (used slots 0–22) = 27.
+    ///      DO NOT add new flat state variables below this gap — use
+    ///      `_getYieldDistributorExtendedStorage()` instead.
+    uint256[27] private __gap;
+
+    // =========================================================================
+    // ERC-7201 Namespaced storage — use this for ALL future storage additions
+    // =========================================================================
+
+    /// @custom:storage-location erc7201:breadchain.YieldDistributor.extended
+    struct YieldDistributorExtendedStorage {
+        // Add new storage variables here in future upgrades.
+        // Example:
+        //   uint256 newFeeBps;
+        //   mapping(address => bool) featureFlags;
+        //
+        // Placeholder — Solidity ≥ 0.8.28 disallows empty structs.
+        // Replace with the first real field when extending storage.
+        uint256 _placeholder;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("breadchain.YieldDistributor.extended")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant YIELD_DISTRIBUTOR_EXTENDED_STORAGE_LOCATION =
+        0x5e457f4cb3ed23cbab501ec75e79c2992724d70171de059fc49a7a77b9c8b500;
+
+    /// @dev Returns a pointer to the ERC-7201 extended storage struct.
+    ///      Use this accessor in new functions that need additional state.
+    function _getYieldDistributorExtendedStorage()
+        private
+        pure
+        returns (YieldDistributorExtendedStorage storage $)
+    {
+        assembly {
+            $.slot := YIELD_DISTRIBUTOR_EXTENDED_STORAGE_LOCATION
+        }
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
+    /**
+     * @notice Initializes the YieldDistributor contract with all required configuration
+     * @dev Sets up BREAD and ButteredBread token references, distribution parameters, and the
+     *      initial project list. If `_lastClaimedBlockNumber` is 0, it defaults to the current
+     *      block number. Voting cycle is seeded at 1 so that default-zero `voterVotedCycle`
+     *      values are correctly treated as "has not voted this cycle".
+     * @param _bread Address of the $BREAD token contract
+     * @param _butteredBread Address of the ButteredBread (bbREAD) token contract
+     * @param _precision Fixed-point precision denominator used in distribution calculations
+     * @param _maxPoints Maximum points a voter may allocate to a single project
+     * @param _cycleLength Minimum number of blocks that must elapse between yield distributions
+     * @param _yieldFixedSplitDivisor Divisor applied to total yield to derive the equal-split
+     *        portion; the remainder is distributed proportionally to votes
+     * @param _lastClaimedBlockNumber Block number of the most recent yield claim (0 = current block)
+     * @param _projects Initial array of member project addresses eligible for yield
+     * @param _initialOwner Address that will be granted the contract owner role
+     * @custom:oz-upgrades-unsafe-allow missing-initializer-call
+     */
     function initialize(
         address _bread,
         address _butteredBread,
@@ -229,10 +297,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Return the voting power for a specified user during a specified period of time
-     * @param _start Start time of the period to return the voting power for
-     * @param _end End time of the period to return the voting power for
-     * @param _account Address of user to return the voting power for
-     * @return uint256 Voting power of the specified user at the specified period of time
+     * @dev Walks the ERC20Votes checkpoint history of `_sourceContract` backwards for the
+     *      given account, accumulating `balance × blocks_held` across checkpoints that
+     *      overlap `[_start, _end)`. Only checkpoints whose key (block number) falls at or
+     *      before `_end` are considered; the effective start of each checkpoint's contribution
+     *      is clamped to `_start`.
+     * @param _sourceContract ERC20Votes token to read checkpoints from (BREAD or BUTTERED_BREAD)
+     * @param _start Inclusive start block of the period
+     * @param _end Exclusive end block of the period (must be ≤ current block)
+     * @param _account Address of the user whose voting power is being queried
+     * @return uint256 Accumulated voting power (balance × blocks) over the specified period
      */
     function getVotingPowerForPeriod(IERC20Votes _sourceContract, uint256 _start, uint256 _end, address _account)
         public
@@ -343,17 +417,26 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
-     * @notice Distribute $BREAD yield to projects using GasKiller voting system
+     * @notice Distribute $BREAD yield to projects using the GasKiller AVS voting system
+     * @dev Uses the same pre-accumulated `projectDistributions` as `distributeYield` to ensure
+     *      multiplier-weighted voting power is honoured in both distribution paths (issue #184).
+     *      The GasKiller `trackState` modifier verifies the AVS task-state proof before executing.
+     *      Reverts via `YieldNotResolved` if the distribution preconditions are not met.
      */
     function distributeYieldGK() public trackState {
         (uint256 _balance, uint256 _baseSplit, uint256 _votedYield) = _claimAndPrepareYield();
-        (uint256[] memory _currentProjectDistributions, uint256 _totalVotes) = _computeVotedDistribution();
 
-        _executeAndFinalizeDistribution(_currentProjectDistributions, _totalVotes, _balance, _baseSplit, _votedYield);
+        _executeAndFinalizeDistribution(projectDistributions, currentVotes, _balance, _baseSplit, _votedYield);
     }
 
     /**
-     * @notice Distribute $BREAD yield to projects using gas efficient voting system to avoid OOG errors
+     * @notice Distribute $BREAD yield to projects
+     * @dev Claims accrued yield from the BREAD contract, splits it into a fixed equal portion
+     *      and a voted portion, then transfers to each project in proportion to accumulated
+     *      `projectDistributions`. Resets voter state and increments `votingCycle` on success.
+     *      Reverts via `YieldNotResolved` if preconditions (minimum blocks elapsed, votes cast,
+     *      sufficient yield) are not met. The `trackState` modifier applies GasKiller AVS
+     *      task-state tracking for gas-efficient on-chain verification.
      */
     function distributeYield() public trackState {
         (uint256 balance, uint256 _baseSplit, uint256 _votedYield) = _claimAndPrepareYield();
@@ -363,7 +446,13 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
 
     /**
      * @notice Cast votes for the distribution of $BREAD yield
-     * @param _points List of points as integers for each project
+     * @dev Voting power is computed from combined BREAD + ButteredBread balances over the
+     *      previous cycle window (`previousCycleStartingBlock` → `lastClaimedBlockNumber`).
+     *      A voter may re-cast in the same cycle to update their allocation; the previous
+     *      vote is replaced entirely. Points are allocated proportionally across projects.
+     *      Reverts if `_points.length` does not match the current project count, any single
+     *      value exceeds `maxPoints`, or the total is zero.
+     * @param _points Array of relative allocation points for each project (must sum > 0)
      */
     function castVote(uint256[] calldata _points) public trackState {
         uint256 _currentVotingPower = getCurrentVotingPower(msg.sender);
@@ -372,9 +461,16 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
-     * @notice Cast votes for the distribution of $BREAD yield with multipliers
-     * @param _points List of points as integers for each project
-     * @param _multiplierIndices List of indices of multipliers to use for each project
+     * @notice Cast votes for the distribution of $BREAD yield with voting-power multipliers
+     * @dev The caller's base voting power (BREAD + ButteredBread over the previous cycle) is
+     *      scaled by the product of the selected multipliers before being applied to the vote.
+     *      Each multiplier's `updateMultiplyingFactor` is called first to ensure state is fresh
+     *      (e.g. VotingStreakMultiplier increments the streak here). Duplicate indices and
+     *      out-of-range indices are rejected. If the combined multiplier resolves to zero
+     *      (no valid multiplier), the base voting power is used unchanged.
+     * @param _points Array of relative allocation points for each project (must sum > 0)
+     * @param _multiplierIndices Indices into the `allowlistedMultipliers` array; each index
+     *        selects one active multiplier to apply. Must not contain duplicates.
      */
     function castVoteWithMultipliers(uint256[] calldata _points, uint256[] calldata _multiplierIndices)
         public
@@ -599,11 +695,41 @@ contract YieldDistributor is IYieldDistributor, Ownable2StepUpgradeable, VotingM
     }
 
     /**
+     * @notice Set the BREAD token contract address
+     * @dev Allows updating the BREAD token reference without redeploying the contract.
+     *      Should only be used during token migrations or if the BREAD contract is upgraded
+     *      to a new address. Reverts if the new address is zero.
+     * @param _bread Address of the new $BREAD token contract
+     */
+    function setBread(address _bread) public onlyOwner trackState {
+        if (_bread == address(0)) revert MustBeGreaterThanZero();
+        BREAD = IBread(_bread);
+    }
+
+    /**
      * @notice Set the ButteredBread token contract
      * @param _butteredBread Address of the ButteredBread token contract
      */
     function setButteredBread(address _butteredBread) public onlyOwner trackState {
         BUTTERED_BREAD = IERC20Votes(_butteredBread);
+    }
+
+    /**
+     * @notice Returns the full list of eligible member projects
+     * @dev Convenience view function to retrieve the entire projects array in a single call,
+     *      avoiding the need for callers to iterate via the indexed `projects(uint256)` getter.
+     * @return address[] Array of all currently eligible project addresses
+     */
+    function getProjects() external view returns (address[] memory) {
+        return projects;
+    }
+
+    /**
+     * @notice Returns the number of currently eligible member projects
+     * @return uint256 The length of the projects array
+     */
+    function getProjectCount() external view returns (uint256) {
+        return projects.length;
     }
 
     /**
