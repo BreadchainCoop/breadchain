@@ -166,7 +166,17 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
         _syncVotingWeight(_account, _lp);
         _accountToLPData[_account][_lp].balance -= _amount;
 
-        _burn(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
+        /// @dev `_deposit` mints per-call with integer division, so summing several deposits and
+        /// withdrawing them in one call can compute a burn amount larger than what was actually
+        /// minted (floor(a) + floor(b) <= floor(a + b)). Clamp to the account's real balance so a
+        /// full withdrawal can never revert with an ERC20 insufficient-balance error; this can only
+        /// reduce the burn amount, never increase it, so it can't let an account escape with more
+        /// LP than it's owed.
+        uint256 burnAmount = _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT;
+        uint256 accountBalance = balanceOf(_account);
+        if (burnAmount > accountBalance) burnAmount = accountBalance;
+        _burn(_account, burnAmount);
+
         bool success = IERC20(_lp).transfer(_account, _amount);
         if (!success) revert TransferFailed();
 
