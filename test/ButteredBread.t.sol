@@ -229,6 +229,52 @@ contract ButteredBreadTest_Unit is ButteredBreadTest {
         bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, depositAmount + 1);
     }
 
+    /// @notice Reproduces the bug from crowdstaking-v2 issue #408: when a scaling factor doesn't
+    /// divide FIXED_POINT_PERCENT evenly (eg. the live BUTTER scaling factor of 32), minting on
+    /// each deposit floors independently, but a single full withdrawal floors the summed amount.
+    /// Since floor(a) + floor(b) <= floor(a + b), an account that deposited in more than one
+    /// transaction can end up owing more ButteredBread than it holds when it withdraws everything
+    /// at once, reverting the withdrawal entirely. Before the `_withdraw` clamp, this reverted with
+    /// `ERC20InsufficientBalance`.
+    function testWithdrawAndBurnFullBalanceAfterMultipleDeposits() public {
+        ERC20Mock mockLp = new ERC20Mock();
+        address[] memory emptyList = new address[](0);
+        uint256 oddScalingFactor = 133; // does not divide 100 evenly
+
+        bb.modifyScalingFactor(address(mockLp), oddScalingFactor, emptyList);
+        bb.modifyAllowList(address(mockLp), true);
+
+        uint256 firstDeposit = 33;
+        uint256 secondDeposit = 67;
+        uint256 totalDeposit = firstDeposit + secondDeposit;
+
+        mockLp.mint(ALICE, totalDeposit);
+
+        vm.startPrank(ALICE);
+        mockLp.approve(address(bb), totalDeposit);
+        bb.deposit(address(mockLp), firstDeposit);
+        bb.deposit(address(mockLp), secondDeposit);
+
+        uint256 mintedFromDeposits =
+            firstDeposit * oddScalingFactor / fixedPointPercent + secondDeposit * oddScalingFactor / fixedPointPercent;
+        uint256 burnRequiredForFullWithdraw = totalDeposit * oddScalingFactor / fixedPointPercent;
+
+        // The rounding shortfall this bug relies on.
+        assertLt(mintedFromDeposits, burnRequiredForFullWithdraw);
+        assertEq(bb.balanceOf(ALICE), mintedFromDeposits);
+
+        uint256 lockedBalance = bb.accountToLPBalance(ALICE, address(mockLp));
+        assertEq(lockedBalance, totalDeposit);
+
+        // Prior to the fix, this reverted with ERC20InsufficientBalance.
+        bb.withdraw(address(mockLp), lockedBalance);
+        vm.stopPrank();
+
+        assertEq(bb.accountToLPBalance(ALICE, address(mockLp)), 0);
+        assertEq(bb.balanceOf(ALICE), 0);
+        assertEq(mockLp.balanceOf(ALICE), totalDeposit);
+    }
+
     function testMintScalingFactor() public {
         assertEq(bb.scalingFactors(GNOSIS_CURVE_POOL_XDAI_BREAD), XDAI_FACTOR);
 
