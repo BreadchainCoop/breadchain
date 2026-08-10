@@ -150,23 +150,31 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
 
         /// @dev ensure proper accounting in case of admin error in `modifyScalingFactor` where not all holders are updated
         _syncVotingWeight(_account, _lp);
-        _accountToLPData[_account][_lp].balance += _amount;
 
-        _mint(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
+        uint256 previousBalance = _accountToLPData[_account][_lp].balance;
+        uint256 newBalance = previousBalance + _amount;
+        _accountToLPData[_account][_lp].balance = newBalance;
+
+        _mint(_account, _scaledBalance(newBalance, _lp) - _scaledBalance(previousBalance, _lp));
 
         emit ButterAdded(_account, _lp, _amount);
     }
 
     /// @notice Withdraw LP tokens and burn ButteredBread with corresponding LP scaling factor
     function _withdraw(address _account, address _lp, uint256 _amount) internal {
-        if (_amount > _accountToLPData[_account][_lp].balance) revert InsufficientFunds();
+        uint256 previousBalance = _accountToLPData[_account][_lp].balance;
+        if (_amount > previousBalance) revert InsufficientFunds();
         _syncDelegation(_account);
 
         /// @dev ensure proper accounting in case of admin error in `modifyScalingFactor` where not all holders are updated
         _syncVotingWeight(_account, _lp);
-        _accountToLPData[_account][_lp].balance -= _amount;
 
-        _burn(_account, _amount * scalingFactors[_lp] / FIXED_POINT_PERCENT);
+        /// @dev `_syncVotingWeight` only adjusts the stored scaling factor, so `previousBalance` is still current
+        uint256 newBalance = previousBalance - _amount;
+        _accountToLPData[_account][_lp].balance = newBalance;
+
+        _burnUpToBalance(_account, _scaledBalance(previousBalance, _lp) - _scaledBalance(newBalance, _lp));
+
         bool success = IERC20(_lp).transfer(_account, _amount);
         if (!success) revert TransferFailed();
 
@@ -201,18 +209,33 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
             _accountToLPData[_account][_lp].scalingFactor = currentScalingFactor;
 
             if (lpBalance > 0) {
-                if (currentScalingFactor > initialScalingFactor) {
-                    _mint(
-                        _account,
-                        (lpBalance * currentScalingFactor - lpBalance * initialScalingFactor) / FIXED_POINT_PERCENT
-                    );
+                /// @dev difference of scaled balances, matching how `_deposit` and `_withdraw` scale
+                uint256 currentWeight = lpBalance * currentScalingFactor / FIXED_POINT_PERCENT;
+                uint256 initialWeight = lpBalance * initialScalingFactor / FIXED_POINT_PERCENT;
+
+                if (currentWeight > initialWeight) {
+                    _mint(_account, currentWeight - initialWeight);
                 } else {
-                    _burn(
-                        _account,
-                        (lpBalance * initialScalingFactor - lpBalance * currentScalingFactor) / FIXED_POINT_PERCENT
-                    );
+                    _burnUpToBalance(_account, initialWeight - currentWeight);
                 }
             }
         }
+    }
+
+    /// @notice Apply the scaling factor of a liquidity pool to an LP token balance
+    function _scaledBalance(uint256 _balance, address _lp) internal view returns (uint256) {
+        return _balance * scalingFactors[_lp] / FIXED_POINT_PERCENT;
+    }
+
+    /**
+     * @notice Burn `ButteredBread`, capped at the balance of the account
+     * @dev Accounts that deposited before scaled balances were differenced hold slightly less `ButteredBread`
+     *  than their aggregate entitlement, because each deposit floored its own mint. Capping lets those accounts
+     *  withdraw their full LP balance instead of reverting in `_burn`. For every deposit made under the current
+     *  accounting the requested amount is already covered, so the cap does not apply.
+     */
+    function _burnUpToBalance(address _account, uint256 _amount) internal {
+        uint256 accountBalance = balanceOf(_account);
+        _burn(_account, _amount > accountBalance ? accountBalance : _amount);
     }
 }

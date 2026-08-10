@@ -377,11 +377,12 @@ contract ButteredBreadTest_Fuzz is ButteredBreadTest {
         assertEq(bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), _s.deposit);
         assertEq(curvePoolXdai.balanceOf(ALICE), 0);
 
-        uint256 preWithdrawBalance = bb.balanceOf(ALICE);
         bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, _s.withdrawal);
 
-        assertEq(bb.balanceOf(ALICE), preWithdrawBalance - (_s.withdrawal * _s.initialFactor / fixedPointPercent));
-        assertEq(bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), _s.deposit - _s.withdrawal);
+        uint256 remainingBalance = _s.deposit - _s.withdrawal;
+        /// @dev the burn is the difference of scaled balances, so the holding always matches the scaled remainder
+        assertEq(bb.balanceOf(ALICE), remainingBalance * _s.initialFactor / fixedPointPercent);
+        assertEq(bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), remainingBalance);
         assertEq(curvePoolXdai.balanceOf(ALICE), _s.withdrawal);
     }
 
@@ -577,5 +578,173 @@ contract ButteredBreadTest_Integration is ButteredBreadTest {
         uint256 bbBalance = bb.balanceOf(ALICE);
         uint256 bBalance = IERC20(GNOSIS_BREAD).balanceOf(ALICE);
         assertEq(yieldDistributor.getCurrentVotingPower(ALICE), bbBalance + bBalance);
+    }
+}
+
+/**
+ * @dev Regression coverage for scaling factors that are not a whole multiple of `FIXED_POINT_PERCENT`.
+ *  The mint in `_deposit` floors once per deposit while the burn in `_withdraw` floors over the aggregate
+ *  balance, so a sum of floors could fall short of the floor of the sum and a full withdrawal reverted in
+ *  `_burn` with `ERC20InsufficientBalance`. Existing suites only exercise `XDAI_FACTOR` (700), an exact
+ *  multiple of 100, where every division is exact and the shortfall cannot appear.
+ */
+contract ButteredBreadTest_WithdrawRounding is ButteredBreadTest {
+    /// @dev Scaling factor of the live BREAD/WXDAI deployment, which is not a multiple of `FIXED_POINT_PERCENT`
+    uint256 public constant LIVE_FACTOR = 32;
+    /// @dev Factor satisfying the documented `>= FIXED_POINT_PERCENT` invariant that still truncates
+    uint256 public constant FRACTIONAL_FACTOR = 132;
+
+    /// @dev Deposits made by 0x37cc13650d0D2A73E181cbF48A1847AE5f0531b5, the account reported in #408
+    uint256 public constant LIVE_DEPOSIT_ONE = 2_146_701_100_755_580_030_478;
+    uint256 public constant LIVE_DEPOSIT_TWO = 485_633_753_042_731_023_542;
+
+    function setUp() public virtual override {
+        super.setUp();
+        _helperAddLiquidity(ALICE, 2500 ether, 2500 ether);
+    }
+
+    /// @dev Deploy a separate proxy so a scaling factor below `FIXED_POINT_PERCENT` can be set through `initialize`
+    function _deployWithFactor(uint256 _factor) internal returns (ButteredBread _bb) {
+        address[] memory _liquidityPools = new address[](1);
+        _liquidityPools[0] = GNOSIS_CURVE_POOL_XDAI_BREAD;
+
+        uint256[] memory _scalingFactors = new uint256[](1);
+        _scalingFactors[0] = _factor;
+
+        IButteredBread.InitData memory initData = IButteredBread.InitData({
+            breadToken: GNOSIS_BREAD,
+            liquidityPools: _liquidityPools,
+            scalingFactors: _scalingFactors,
+            name: "ButteredBread",
+            symbol: "BB"
+        });
+
+        _bb = ButteredBread(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new ButteredBread()),
+                    address(this),
+                    abi.encodeWithSelector(ButteredBread.initialize.selector, initData)
+                )
+            )
+        );
+
+        vm.prank(ALICE);
+        curvePoolXdai.approve(address(_bb), type(uint256).max);
+    }
+
+    /// @dev Two deposits then a full withdrawal, replicating the exact amounts of the reported account
+    function testWithdrawFullBalanceAfterTwoDeposits() public {
+        ButteredBread _bb = _deployWithFactor(LIVE_FACTOR);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, LIVE_DEPOSIT_ONE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, LIVE_DEPOSIT_TWO);
+
+        uint256 stakedBalance = _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD);
+        assertEq(stakedBalance, LIVE_DEPOSIT_ONE + LIVE_DEPOSIT_TWO);
+
+        /// @dev The frontend unlocks the full reported balance, which is the amount that reverted
+        _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, stakedBalance);
+        vm.stopPrank();
+
+        assertEq(_bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), 0);
+        assertEq(_bb.balanceOf(ALICE), 0);
+        assertEq(curvePoolXdai.balanceOf(address(_bb)), 0);
+    }
+
+    /// @dev The same shortfall arises for a factor that respects the documented `>= FIXED_POINT_PERCENT` invariant
+    function testWithdrawFullBalanceFractionalFactor() public {
+        ButteredBread _bb = _deployWithFactor(FRACTIONAL_FACTOR);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, 1 ether + 1);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, 1 ether + 3);
+
+        uint256 stakedBalance = _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD);
+        _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, stakedBalance);
+        vm.stopPrank();
+
+        assertEq(_bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), 0);
+        assertEq(_bb.balanceOf(ALICE), 0);
+    }
+
+    /// @dev Cumulative minted supply must equal the aggregate entitlement so a full exit always clears
+    function testMintedSupplyMatchesAggregateEntitlement() public {
+        ButteredBread _bb = _deployWithFactor(LIVE_FACTOR);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, LIVE_DEPOSIT_ONE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, LIVE_DEPOSIT_TWO);
+        vm.stopPrank();
+
+        uint256 stakedBalance = _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD);
+        assertEq(_bb.balanceOf(ALICE), stakedBalance * LIVE_FACTOR / fixedPointPercent);
+    }
+
+    /// @dev A withdrawal small enough to floor to zero must not return LP while retaining voting weight
+    function testDustWithdrawalDoesNotRetainVotingWeight() public {
+        ButteredBread _bb = _deployWithFactor(LIVE_FACTOR);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, 100 ether);
+
+        uint256 balanceBefore = _bb.balanceOf(ALICE);
+        /// @dev `3 * 32 / 100` floors to zero under the previous arithmetic
+        _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, 3);
+        vm.stopPrank();
+
+        assertLt(_bb.balanceOf(ALICE), balanceBefore);
+        assertEq(
+            _bb.balanceOf(ALICE),
+            _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD) * LIVE_FACTOR / fixedPointPercent
+        );
+    }
+
+    /// @dev Any sequence of deposits must leave the whole staked balance withdrawable in one call
+    function testFuzzFullWithdrawAfterArbitraryDeposits(uint256 _first, uint256 _second, uint256 _factor) public {
+        uint256 factor = bound(_factor, 1, 10_000);
+        uint256 available = curvePoolXdai.balanceOf(ALICE) / 2;
+        uint256 first = bound(_first, 1, available);
+        uint256 second = bound(_second, 1, available);
+
+        ButteredBread _bb = _deployWithFactor(factor);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, first);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, second);
+
+        uint256 stakedBalance = _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD);
+        assertEq(stakedBalance, first + second);
+
+        _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, stakedBalance);
+        vm.stopPrank();
+
+        assertEq(_bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), 0);
+        assertEq(_bb.balanceOf(ALICE), 0);
+    }
+
+    /// @dev Partial withdrawals in arbitrary chunks must never strand LP or desync the scaled balance
+    function testFuzzPartialWithdrawalsKeepBalancesInSync(uint256 _deposit, uint256 _chunk, uint256 _factor) public {
+        uint256 factor = bound(_factor, 1, 10_000);
+        uint256 depositAmount = bound(_deposit, 2, curvePoolXdai.balanceOf(ALICE));
+        uint256 chunk = bound(_chunk, 1, depositAmount);
+
+        ButteredBread _bb = _deployWithFactor(factor);
+
+        vm.startPrank(ALICE);
+        _bb.deposit(GNOSIS_CURVE_POOL_XDAI_BREAD, depositAmount);
+        _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, chunk);
+
+        uint256 remaining = _bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD);
+        assertEq(remaining, depositAmount - chunk);
+        assertEq(_bb.balanceOf(ALICE), remaining * factor / fixedPointPercent);
+
+        if (remaining > 0) _bb.withdraw(GNOSIS_CURVE_POOL_XDAI_BREAD, remaining);
+        vm.stopPrank();
+
+        assertEq(_bb.accountToLPBalance(ALICE, GNOSIS_CURVE_POOL_XDAI_BREAD), 0);
+        assertEq(_bb.balanceOf(ALICE), 0);
+        assertEq(curvePoolXdai.balanceOf(address(_bb)), 0);
     }
 }
