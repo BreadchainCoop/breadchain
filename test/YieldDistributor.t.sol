@@ -1245,33 +1245,62 @@ contract VotingMultipliersTest is YieldDistributorTest {
     }
 
     /// @notice Issue #184: distributeYieldGK must use effective (multiplied) power
+    /// @dev Multi-project relative shares prove GK reads stored effective power. With one
+    ///      project, payout is independent of voter weight so a raw-power reversion still passes.
     function test_distributeYieldGK_UsesEffectiveVotingPowerWithMultipliers() public {
-        address voter = address(0x1234567890123456789012345678901234567890);
-        address[] memory accounts = new address[](1);
-        accounts[0] = voter;
+        address voterWithMult = address(0x1234567890123456789012345678901234567890);
+        address voterNoMult = address(0xabCDEF1234567890ABcDEF1234567890aBCDeF12);
+        address[] memory accounts = new address[](2);
+        accounts[0] = voterWithMult;
+        accounts[1] = voterNoMult;
         setUpAccountsForVoting(accounts);
-        setUpForCycle(yieldDistributorGasKiller);
+        setUpForCycle(yieldDistributor2);
 
         MockMultiplier mockMult = new MockMultiplier();
         mockMult.setMultiplier(2e18, type(uint256).max);
-        yieldDistributorGasKiller.addMultiplier(IMultiplier(address(mockMult)));
+        yieldDistributor2.addMultiplier(IMultiplier(address(mockMult)));
 
-        uint256[] memory points = new uint256[](1);
-        points[0] = 100;
+        uint256 rawPower = yieldDistributor2.getCurrentVotingPower(voterWithMult);
+        assertEq(yieldDistributor2.getCurrentVotingPower(voterNoMult), rawPower, "Voters need equal raw power");
+
+        // 2x-multiplied voter sends all weight to project 0; plain voter to project 1
+        uint256[] memory pointsMult = new uint256[](2);
+        pointsMult[0] = 100;
+        pointsMult[1] = 0;
         uint256[] memory multiplierIndices = new uint256[](1);
         multiplierIndices[0] = 0;
+        vm.prank(voterWithMult);
+        yieldDistributor2.castVoteWithMultipliers(pointsMult, multiplierIndices);
 
-        vm.prank(voter);
-        yieldDistributorGasKiller.castVoteWithMultipliers(points, multiplierIndices);
+        uint256[] memory pointsPlain = new uint256[](2);
+        pointsPlain[0] = 0;
+        pointsPlain[1] = 100;
+        vm.prank(voterNoMult);
+        yieldDistributor2.castVote(pointsPlain);
 
-        uint256 rawPower = yieldDistributorGasKiller.getCurrentVotingPower(voter);
-        uint256 effectivePower = yieldDistributorGasKiller.currentVotes();
-        assertEq(effectivePower, (rawPower * 2e18) / yieldDistributorGasKiller.PRECISION());
+        uint256 effectivePower = (rawPower * 2e18) / yieldDistributor2.PRECISION();
+        assertEq(
+            yieldDistributor2.currentVotes(),
+            effectivePower + rawPower,
+            "currentVotes should sum 2x + 1x effective power"
+        );
 
-        uint256 balBefore = bread.balanceOf(address(this));
-        yieldDistributorGasKiller.distributeYieldGK();
-        uint256 balAfter = bread.balanceOf(address(this));
-        assertGt(balAfter, balBefore, "Project should receive yield");
+        uint256 yieldAccrued = bread.yieldAccrued();
+        uint256 fixedPerProject = (yieldAccrued / _yieldFixedSplitDivisor) / 2;
+        uint256 bal0Before = bread.balanceOf(address(this));
+        uint256 bal1Before = bread.balanceOf(secondProject);
+
+        yieldDistributor2.distributeYieldGK();
+
+        uint256 received0 = bread.balanceOf(address(this)) - bal0Before;
+        uint256 received1 = bread.balanceOf(secondProject) - bal1Before;
+        uint256 voted0 = received0 - fixedPerProject;
+        uint256 voted1 = received1 - fixedPerProject;
+
+        // If GK recomputed from raw power, both projects would get equal voted yield.
+        // With stored 2x effective power, project 0's voted share must be ~2x project 1's.
+        assertGt(voted0, voted1, "2x effective power must favor project 0 over project 1");
+        assertApproxEqAbs(voted0, voted1 * 2, marginOfError * 2);
     }
 
     function test_stateTransitionCount_IncrementsOnStateMutatingFunctions() public {
