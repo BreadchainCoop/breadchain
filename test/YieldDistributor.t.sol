@@ -813,6 +813,30 @@ contract VotingStreakMultiplierTest is YieldDistributorTest {
         assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier + multiplier.multiplierIncrement());
     }
 
+    /// @notice Issue #185: spam updateMultiplyingFactor must not max the streak in one cycle
+    function test_updateMultiplyingFactor_oncePerCycle() public {
+        VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
+        address testAccount = setUpTestAccount();
+        uint256 baseMultiplier = 1e18;
+        setUpForCycle(yieldDistributor, 0);
+
+        assertEq(multiplier.getMultiplyingFactor(testAccount), baseMultiplier);
+
+        multiplier.updateMultiplyingFactor(testAccount);
+        uint256 afterFirst = multiplier.userToMultiplier(testAccount);
+        assertEq(afterFirst, baseMultiplier + multiplier.multiplierIncrement());
+
+        multiplier.updateMultiplyingFactor(testAccount);
+        uint256 afterSecond = multiplier.userToMultiplier(testAccount);
+        assertEq(afterSecond, afterFirst, "Multiplier should not change on second call in same cycle");
+
+        // Spam further — still no-op
+        for (uint256 i = 0; i < 10; i++) {
+            multiplier.updateMultiplyingFactor(testAccount);
+        }
+        assertEq(multiplier.userToMultiplier(testAccount), afterFirst);
+    }
+
     function test_set_invalid_multiplier_increment() public {
         VotingStreakMultiplier multiplier = setUpVotingStreakMultiplier();
 
@@ -1197,6 +1221,57 @@ contract VotingMultipliersTest is YieldDistributorTest {
         // Total should still be the same
         uint256 totalAfterRevote = yieldDistributor2.currentVotes();
         assertEq(totalAfterRevote, voter1Power + voter2Power, "Total should remain sum of both voters after revote");
+    }
+
+    /// @notice Issue #186: repeating the same multiplier index must revert
+    function test_castVoteWithMultipliers_duplicateIndex_reverts() public {
+        yieldDistributor.addMultiplier(IMultiplier(address(mockMultiplier1)));
+
+        address voter = address(0x1);
+        address[] memory voters = new address[](1);
+        voters[0] = voter;
+        setUpAccountsForVoting(voters);
+        setUpForCycle(yieldDistributor);
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](2);
+        multiplierIndices[0] = 0;
+        multiplierIndices[1] = 0;
+
+        vm.prank(voter);
+        vm.expectRevert(IVotingMultipliers.DuplicateMultiplierIndex.selector);
+        yieldDistributor.castVoteWithMultipliers(points, multiplierIndices);
+    }
+
+    /// @notice Issue #184: distributeYieldGK must use effective (multiplied) power
+    function test_distributeYieldGK_UsesEffectiveVotingPowerWithMultipliers() public {
+        address voter = address(0x1234567890123456789012345678901234567890);
+        address[] memory accounts = new address[](1);
+        accounts[0] = voter;
+        setUpAccountsForVoting(accounts);
+        setUpForCycle(yieldDistributorGasKiller);
+
+        MockMultiplier mockMult = new MockMultiplier();
+        mockMult.setMultiplier(2e18, type(uint256).max);
+        yieldDistributorGasKiller.addMultiplier(IMultiplier(address(mockMult)));
+
+        uint256[] memory points = new uint256[](1);
+        points[0] = 100;
+        uint256[] memory multiplierIndices = new uint256[](1);
+        multiplierIndices[0] = 0;
+
+        vm.prank(voter);
+        yieldDistributorGasKiller.castVoteWithMultipliers(points, multiplierIndices);
+
+        uint256 rawPower = yieldDistributorGasKiller.getCurrentVotingPower(voter);
+        uint256 effectivePower = yieldDistributorGasKiller.currentVotes();
+        assertEq(effectivePower, (rawPower * 2e18) / yieldDistributorGasKiller.PRECISION());
+
+        uint256 balBefore = bread.balanceOf(address(this));
+        yieldDistributorGasKiller.distributeYieldGK();
+        uint256 balAfter = bread.balanceOf(address(this));
+        assertGt(balAfter, balBefore, "Project should receive yield");
     }
 
     function test_stateTransitionCount_IncrementsOnStateMutatingFunctions() public {
