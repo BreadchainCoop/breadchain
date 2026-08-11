@@ -23,6 +23,7 @@ interface IButteredBread {
     error AmountZero();
 
     /// @notice The event emitted when an LP Token (Butter) has been added
+    /// @dev `_amount` is the LP balance actually credited (actual tokens received after transferFrom)
     event ButterAdded(address _account, address _lp, uint256 _amount);
     /// @notice The event emitted when an LP Token (Butter) has been removed
     event ButterRemoved(address _account, address _lp, uint256 _amount);
@@ -67,6 +68,7 @@ interface IButteredBread {
     function accountToLPBalance(address _account, address _lp) external view returns (uint256 _balance);
 
     /// @notice Deposits LP tokens (Butter) and mints `ButteredBread` according to the respective LP scaling factor
+    /// @dev Minting and balance accounting use the actual balance delta after transferFrom (fee-on-transfer safe)
     function deposit(address _lp, uint256 _amount) external;
 
     /// @notice Withdraws some amount of Butter (LP token) and burns an amount of the user's `ButteredBread` according to the respective scaling factor

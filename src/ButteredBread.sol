@@ -77,8 +77,10 @@ contract ButteredBread is IButteredBread, ERC20VotesUpgradeable, Ownable2StepUpg
     /**
      * @notice Deposit LP tokens and mint ButteredBread
      *  NOTE: Additional ButteredBread can be minted/burned due to scaling factor changes
+     *  NOTE: For fee-on-transfer tokens, minting and LP balance accounting use the actual
+     *        amount received after transferFrom, not the requested `_amount`
      * @param _lp Liquidity Pool token
-     * @param _amount Value of LP token
+     * @param _amount Amount of LP token to transferFrom the caller
      */
     function deposit(address _lp, uint256 _amount) external onlyAllowed(_lp) nonReentrant {
         if (_amount == 0) revert AmountZero();
